@@ -4,8 +4,18 @@ import {
   getZestReservesDataConverter,
   ZestPublicResponse,
 } from './zest-v1/publicCallParse'
+import { buildZestV2ReserveCalls } from './zest-v2/publicCallBuild'
+import {
+  getZestV2ReservesDataConverter,
+  ZestV2PublicResponse,
+} from './zest-v2/publicCallParse'
 
-export type StacksLender = 'zest-v1'
+export type StacksLender = 'zest-v1' | 'zest-v2'
+
+interface StacksLenderOptions {
+  apiUrl?: string
+  concurrency?: number
+}
 
 /**
  * Fetch public reserve data for a Stacks-based lending protocol.
@@ -16,23 +26,36 @@ export type StacksLender = 'zest-v1'
  *   3. Parse results (publicCallParse)
  */
 export async function getStacksLenderPublicData(
+  lender: 'zest-v1',
+  prices?: Record<string, number>,
+  options?: StacksLenderOptions,
+): Promise<ZestPublicResponse | undefined>
+export async function getStacksLenderPublicData(
+  lender: 'zest-v2',
+  prices?: Record<string, number>,
+  options?: StacksLenderOptions,
+): Promise<ZestV2PublicResponse | undefined>
+export async function getStacksLenderPublicData(
+  lender: StacksLender,
+  prices?: Record<string, number>,
+  options?: StacksLenderOptions,
+): Promise<ZestPublicResponse | ZestV2PublicResponse | undefined>
+export async function getStacksLenderPublicData(
   lender: StacksLender,
   prices: Record<string, number> = {},
-  options?: {
-    apiUrl?: string
-    concurrency?: number
-  },
-): Promise<ZestPublicResponse | undefined> {
+  options?: StacksLenderOptions,
+): Promise<ZestPublicResponse | ZestV2PublicResponse | undefined> {
   switch (lender) {
     case 'zest-v1': {
-      // Step 1: Build the call array
       const calls = buildZestReserveCalls()
-
-      // Step 2: Execute all calls in parallel
       const results = await executeStacksReadCalls(calls, options)
-
-      // Step 3: Parse results into structured data
       const [converter] = getZestReservesDataConverter(prices)
+      return converter(results)
+    }
+    case 'zest-v2': {
+      const calls = buildZestV2ReserveCalls()
+      const results = await executeStacksReadCalls(calls, options)
+      const [converter] = getZestV2ReservesDataConverter(prices)
       return converter(results)
     }
     default:
