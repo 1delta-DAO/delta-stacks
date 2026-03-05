@@ -29,6 +29,16 @@ importers:
 
   packages/backend: {}
 
+  packages/data-provision:
+    dependencies:
+      '@stacks/transactions':
+        specifier: ^7.0.0
+        version: 7.3.1
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
   packages/frontend: {}
 
 packages:
