@@ -1,12 +1,14 @@
 ;; zest-reader.clar
 ;;
-;; Unified aggregator contract for reading all Zest V1 + V2 reserve data
-;; in single read-only calls. Collapses ~100 individual HTTP requests into 2.
+;; Unified aggregator contract for reading all lending protocol reserve data
+;; in single read-only calls. Collapses ~100 individual HTTP requests into 3.
 ;;
 ;; Deployed by delta-stacks.
 ;;
-;; V1 deployer: SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N
-;; V2 deployer: SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7
+;; Zest V1 deployer:  SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N
+;; Zest V2 deployer:  SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7
+;; Granite STX:       SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA
+;; Granite USDCx:     SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE
 
 ;; ===================================================================
 ;; V1 READER -9 assets, pool-based architecture (like Aave)
@@ -272,4 +274,64 @@
 ;; Keep legacy name for backwards compatibility
 (define-read-only (get-all-reserve-data)
   (get-v2-reserve-data)
+)
+
+;; ===================================================================
+;; GRANITE READER - 2 isolated markets (Compound V3 style)
+;; ===================================================================
+;;
+;; Per-market data tuple:
+;; {
+;;   lp-params:             { total-assets, total-shares }
+;;   debt-params:           { open-interest, total-debt-shares }
+;;   open-interest:         { lp-open-interest, protocol-open-interest, staked-open-interest }
+;;   reserve-balance:       uint
+;;   asset-cap:             uint
+;;   borrow-enabled:        bool
+;;   deposit-enabled:       bool
+;;   ir-params:             { base-ir, ir-slope-1, ir-slope-2, utilization-kink }
+;;   protocol-reserve-pct:  uint
+;; }
+
+;; -------------------------------------------------------------------
+;; Granite per-market helpers
+;; -------------------------------------------------------------------
+
+(define-read-only (read-granite-stx)
+  {
+    lp-params:            (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1 get-lp-params),
+    debt-params:          (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1 get-debt-params),
+    open-interest:        (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1 get-open-interest),
+    reserve-balance:      (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1 get-reserve-balance),
+    asset-cap:            (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1 get-asset-cap),
+    borrow-enabled:       (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1 is-borrow-enabled),
+    deposit-enabled:      (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1 is-deposit-asset-enabled),
+    ir-params:            (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.linear-kinked-ir-v1 get-ir-params),
+    protocol-reserve-pct: (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1 get-protocol-reserve-percentage),
+  }
+)
+
+(define-read-only (read-granite-usdcx)
+  {
+    lp-params:            (contract-call? 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1 get-lp-params),
+    debt-params:          (contract-call? 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1 get-debt-params),
+    open-interest:        (contract-call? 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1 get-open-interest),
+    reserve-balance:      (contract-call? 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1 get-reserve-balance),
+    asset-cap:            (contract-call? 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1 get-asset-cap),
+    borrow-enabled:       (contract-call? 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1 is-borrow-enabled),
+    deposit-enabled:      (contract-call? 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1 is-deposit-asset-enabled),
+    ir-params:            (contract-call? 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.linear-kinked-ir-v1 get-ir-params),
+    protocol-reserve-pct: (contract-call? 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1 get-protocol-reserve-percentage),
+  }
+)
+
+;; -------------------------------------------------------------------
+;; Granite main aggregator: returns both markets in one call
+;; -------------------------------------------------------------------
+
+(define-read-only (get-granite-reserve-data)
+  (ok {
+    stx:   (read-granite-stx),
+    usdcx: (read-granite-usdcx),
+  })
 )
