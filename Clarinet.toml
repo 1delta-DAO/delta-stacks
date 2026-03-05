@@ -1,0 +1,8 @@
+[project]
+name = "delta-stacks"
+
+# Register contracts here:
+# [contracts.my-contract]
+# path = "contracts/my-contract.clar"
+# clarity_version = 3
+# epoch = 3.0

@@ -1,0 +1,27 @@
+[network]
+name = "devnet"
+deployment_fee_rate = 10
+
+[accounts.deployer]
+mnemonic = "twice particular replace describe pagoda grocery vintage medal pool about blob protect wagon fantasy calm library owner civil hub jungle bolt vibrant organ penalty"
+balance = 100_000_000_000_000
+# ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+
+[accounts.wallet_1]
+mnemonic = "sell invite acquire kitten bamboo drastic jelly vivid peace spawn twice guilt pave pen trash pretty park cube fragile unaware remain midnight betray rebuild"
+balance = 100_000_000_000_000
+# ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5
+
+[accounts.wallet_2]
+mnemonic = "hold excess usual excess ring elephant install account animal soda mother firm feast cave dad leisure weapon mushroom dizzy prefer program upset hurt crowd"
+balance = 100_000_000_000_000
+# ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG
+
+[accounts.wallet_3]
+mnemonic = "cycle puppy glare enroll cost improve round trend wrist mushroom scorpion tower claim oppose clever elephant dinosaur eight problem before frozen dune wagon high"
+balance = 100_000_000_000_000
+# ST2JHG361ZXG51QTKY2NQCVBPPRRE2KZB1HR05NNC
+
+[devnet]
+disable_stacks_explorer = false
+disable_stacks_api = false

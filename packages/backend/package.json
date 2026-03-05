@@ -1,0 +1,12 @@
+{
+  "name": "@delta-stacks/backend",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'TODO: add backend framework'",
+    "build": "echo 'TODO: add backend framework'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
