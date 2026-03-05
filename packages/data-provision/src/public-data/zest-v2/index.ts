@@ -5,6 +5,7 @@ export {
   type ZestV2PublicResponse,
   type ZestV2AssetStatus,
 } from './publicCallParse'
+export { parseAggregatorResult } from './aggregatorParse'
 export {
   ZEST_V2_CONTRACTS,
   ZEST_V2_DEPLOYER,

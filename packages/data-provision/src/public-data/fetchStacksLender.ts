@@ -1,4 +1,4 @@
-import { executeStacksReadCalls } from '../stacks-call'
+import { StacksCall, executeStacksReadCalls } from '../stacks-call'
 import { buildZestReserveCalls } from './zest-v1/publicCallBuild'
 import {
   getZestReservesDataConverter,
@@ -9,12 +9,19 @@ import {
   getZestV2ReservesDataConverter,
   ZestV2PublicResponse,
 } from './zest-v2/publicCallParse'
+import { parseAggregatorResult } from './zest-v2/aggregatorParse'
 
 export type StacksLender = 'zest-v1' | 'zest-v2'
 
-interface StacksLenderOptions {
+export interface StacksLenderOptions {
   apiUrl?: string
   concurrency?: number
+  /**
+   * For zest-v2: use the deployed aggregator contract (1 call instead of 60).
+   * Requires zest-v2-reader to be deployed on-chain.
+   * Provide the full deployer address, e.g. "SP123...".
+   */
+  aggregatorAddress?: string
 }
 
 /**
@@ -53,6 +60,15 @@ export async function getStacksLenderPublicData(
       return converter(results)
     }
     case 'zest-v2': {
+      // If aggregator contract is deployed, use single-call path
+      if (options?.aggregatorAddress) {
+        return fetchZestV2ViaAggregator(
+          options.aggregatorAddress,
+          prices,
+          options,
+        )
+      }
+      // Otherwise, use individual calls
       const calls = buildZestV2ReserveCalls()
       const results = await executeStacksReadCalls(calls, options)
       const [converter] = getZestV2ReservesDataConverter(prices)
@@ -61,4 +77,20 @@ export async function getStacksLenderPublicData(
     default:
       throw new Error(`Unknown Stacks lender: ${lender}`)
   }
+}
+
+async function fetchZestV2ViaAggregator(
+  aggregatorAddress: string,
+  prices: Record<string, number>,
+  options?: StacksLenderOptions,
+): Promise<ZestV2PublicResponse | undefined> {
+  const call: StacksCall = {
+    contractAddress: aggregatorAddress,
+    contractName: 'zest-v2-reader',
+    functionName: 'get-all-reserve-data',
+    args: [],
+  }
+
+  const [result] = await executeStacksReadCalls([call], options)
+  return parseAggregatorResult(result, prices)
 }
