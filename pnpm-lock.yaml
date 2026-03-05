@@ -29,6 +29,19 @@ importers:
 
   packages/backend: {}
 
+  packages/calldata-sdk-stacks:
+    dependencies:
+      '@stacks/transactions':
+        specifier: ^7.0.0
+        version: 7.3.1
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4
+
   packages/data-provision:
     dependencies:
       '@stacks/transactions':
