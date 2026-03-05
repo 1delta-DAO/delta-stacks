@@ -22,3 +22,15 @@ export {
   ZEST_V2_DEPLOYER,
   ZEST_V2_CONTRACTS,
 } from './zest-v2'
+
+// Granite
+export {
+  GraniteLending,
+  GRANITE_CORE_DEPLOYER,
+  GRANITE_STX_DEPLOYER,
+  GRANITE_USDCX_DEPLOYER,
+  GRANITE_MARKETS,
+  GRANITE_STX_MARKET,
+  GRANITE_USDCX_MARKET,
+} from './granite'
+export type { GraniteMarketContracts } from './granite'
