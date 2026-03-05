@@ -7,5 +7,13 @@ export default defineConfig({
     globals: true,
     setupFiles: [vitestSetupFilePath],
     pool: "forks",
+    environmentOptions: {
+      clarinet: {
+        manifestPath: "./Clarinet.toml",
+        initBeforeEach: true,
+        coverage: false,
+        costs: false,
+      },
+    },
   },
 });

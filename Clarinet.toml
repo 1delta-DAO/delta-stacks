@@ -1,7 +1,12 @@
 [project]
 name = "delta-stacks"
 
-[contracts.zest-v2-reader]
-path = "contracts/zest-v2-reader.clar"
+[contracts.zest-reader]
+path = "contracts/zest-reader.clar"
 clarity_version = 3
 epoch = 3.0
+
+[repl.remote_data]
+enabled = true
+initial_height = 6972000
+api_url = 'https://api.hiro.so'

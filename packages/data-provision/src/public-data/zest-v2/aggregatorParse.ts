@@ -32,8 +32,8 @@ const ASSET_DECIMALS: Record<number, number> = {
 }
 
 /**
- * Parse the single aggregator call result from zest-v2-reader.clar's
- * `get-all-reserve-data` into the same ZestV2PublicResponse format.
+ * Parse the single aggregator call result from zest-reader.clar's
+ * `get-v2-reserve-data` into the same ZestV2PublicResponse format.
  */
 export function parseAggregatorResult(
   result: StacksCallResult,
