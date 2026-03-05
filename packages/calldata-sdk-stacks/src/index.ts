@@ -34,3 +34,12 @@ export {
   GRANITE_USDCX_MARKET,
 } from './granite'
 export type { GraniteMarketContracts } from './granite'
+
+// Pyth oracle helpers
+export {
+  PYTH_FEED_IDS,
+  PYTH_HERMES_URL,
+  fetchPythPriceUpdate,
+  fetchPythPriceUpdates,
+} from './pyth'
+export type { PythFeedId, PythFetchOptions } from './pyth'

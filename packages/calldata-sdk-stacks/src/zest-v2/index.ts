@@ -2,6 +2,9 @@ import type { StacksContractCall } from '../types'
 import { principal, uint, optionalPrincipal, noneCV, someCV, listCV, bufferCV, tupleCV } from '../types/clarity-args'
 import type { ClarityValue } from '../types/clarity-args'
 import { ZEST_V2_DEPLOYER, ZEST_V2_CONTRACTS, splitContract } from './constants'
+import { fetchPythPriceUpdates } from '../pyth/fetch'
+import type { PythFetchOptions } from '../pyth/fetch'
+import { PYTH_FEED_IDS } from '../pyth/feed-ids'
 
 export { ZEST_V2_DEPLOYER, ZEST_V2_CONTRACTS }
 
@@ -231,6 +234,37 @@ export namespace ZestV2Lending {
       encodePriceFeeds(priceFeeds),
     ],
   })
+
+  // =================================================================
+  // Pyth oracle helpers
+  // =================================================================
+
+  /**
+   * Pyth feed IDs for assets available in Zest V2.
+   * Pass the relevant subset to `fetchPriceFeeds` based on
+   * which assets are involved in your transaction.
+   */
+  export const PRICE_FEEDS = {
+    STX: PYTH_FEED_IDS.STX,
+    BTC: PYTH_FEED_IDS.BTC,
+    USDC: PYTH_FEED_IDS.USDC,
+    ETH: PYTH_FEED_IDS.ETH,
+  } as const
+
+  /**
+   * Fetch fresh Pyth price update buffers for Zest V2.
+   * Returns a `Uint8Array[]` ready to pass as `priceFeeds` to any
+   * encoder that accepts oracle data (borrow, collateral-remove, liquidate, etc.).
+   *
+   * @param feedIds - Pyth feed ID hex strings for the assets involved
+   * @param options - optional Hermes URL override
+   */
+  export async function fetchPriceFeeds(
+    feedIds: string[],
+    options?: PythFetchOptions,
+  ): Promise<Uint8Array[]> {
+    return fetchPythPriceUpdates(feedIds, options)
+  }
 }
 
 /**

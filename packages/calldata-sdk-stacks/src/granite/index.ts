@@ -11,6 +11,9 @@ import {
   splitContract,
 } from './constants'
 import type { GraniteMarketContracts } from './constants'
+import { fetchPythPriceUpdate } from '../pyth/fetch'
+import type { PythFetchOptions } from '../pyth/fetch'
+import { PYTH_FEED_IDS } from '../pyth/feed-ids'
 
 export {
   GRANITE_CORE_DEPLOYER,
@@ -236,4 +239,33 @@ export namespace GraniteLending {
       principal(callback),
       data ? someCV(bufferCV(data)) : noneCV(),
     ])
+
+  // =================================================================
+  // Pyth oracle helpers
+  // =================================================================
+
+  /**
+   * Pyth feed IDs relevant to Granite markets.
+   * STX market uses STX + BTC feeds; USDCx market uses USDC + BTC feeds.
+   */
+  export const PRICE_FEEDS = {
+    stx: [PYTH_FEED_IDS.STX, PYTH_FEED_IDS.BTC],
+    usdcx: [PYTH_FEED_IDS.USDC, PYTH_FEED_IDS.BTC],
+  } as const
+
+  /**
+   * Fetch fresh Pyth price update bytes for a Granite market.
+   * Returns a Uint8Array ready to pass as `priceFeedData` to
+   * `encodeBorrow`, `encodeRemoveCollateral`, or `encodeLiquidate`.
+   *
+   * @param marketId - 'stx' or 'usdcx'
+   * @param options  - optional Hermes URL override
+   */
+  export async function fetchPriceFeedData(
+    marketId: 'stx' | 'usdcx',
+    options?: PythFetchOptions,
+  ): Promise<Uint8Array> {
+    const feedIds = PRICE_FEEDS[marketId]
+    return fetchPythPriceUpdate([...feedIds], options)
+  }
 }
