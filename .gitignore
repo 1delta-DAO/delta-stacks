@@ -9,3 +9,5 @@ coverage/
 # Clarinet
 .cache/
 history.txt
+settings/Mainnet.toml
+settings/Testnet.toml
