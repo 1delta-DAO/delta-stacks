@@ -5,6 +5,8 @@ export {
   type GranitePublicResponse,
 } from './publicCallParse'
 export { parseGraniteAggregatorResult } from './aggregatorParse'
+export { buildGraniteReaderCalls } from './readerCallBuild'
+export { parseGraniteReaderResults } from './readerCallParse'
 export {
   GRANITE_MARKETS,
   GRANITE_STX_DEPLOYER,

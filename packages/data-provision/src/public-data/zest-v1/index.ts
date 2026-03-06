@@ -5,4 +5,6 @@ export {
   type ZestPublicResponse,
   type ZestEModeConfig,
 } from './publicCallParse'
+export { buildV1ReaderCalls } from './readerCallBuild'
+export { parseV1ReaderResults } from './readerCallParse'
 export { getZestAssets, ZEST_CONTRACTS, ZEST_ASSETS, ZEST_DEPLOYER } from './constants'
