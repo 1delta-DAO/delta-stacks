@@ -10,11 +10,9 @@ import {
   ZEST_V2_ALL_ASSET_IDS,
   ZEST_V2_SYMBOLS,
   ZEST_V2_VAULT_FOR_ASSET,
-  ORACLE_DECIMALS,
 } from './constants'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
-const BPS = 10_000
 
 /**
  * V2 rate precision.
@@ -61,6 +59,9 @@ export interface ZestV2ReserveData {
   // Asset registry metadata
   oracleType: string | null
   principal: string | null
+  // Egroup LTV (from z-token's efficiency group, BPS / 10000)
+  baseLtv: number
+  liquidationThreshold: number
 }
 
 export interface ZestV2AssetStatus {
@@ -99,7 +100,9 @@ export function getZestV2ReservesDataConverter(
       return undefined
     }
 
-    const failedIdx = results.findIndex((r) => !r.okay)
+    // Validate sections 1-3 (egroup resolve in section 4 may legitimately fail)
+    const section4Start_ = nUnderlying * (ASSET_REGISTRY_CALLS_PER_ASSET + VAULT_CALLS_PER_UNDERLYING) + ZEST_V2_ALL_ASSET_IDS.length
+    const failedIdx = results.slice(0, section4Start_).findIndex((r) => !r.okay)
     if (failedIdx !== -1) {
       console.warn(
         `Zest V2: call at index ${failedIdx} failed: ${results[failedIdx].result}`,
@@ -112,6 +115,7 @@ export function getZestV2ReservesDataConverter(
     const section2Start = nUnderlying * ASSET_REGISTRY_CALLS_PER_ASSET
     const section3Start =
       section2Start + nUnderlying * VAULT_CALLS_PER_UNDERLYING
+    const section4Start = section3Start + ZEST_V2_ALL_ASSET_IDS.length
 
     // --- Parse Section 3: all asset statuses ---
     const assetStatuses: Record<number, ZestV2AssetStatus> = {}
@@ -125,6 +129,16 @@ export function getZestV2ReservesDataConverter(
         debtEnabled: status?.debtEnabled ?? false,
       }
     })
+
+    // --- Parse Section 4: egroup resolve per z-token ---
+    // resolve() may fail (error response) for assets without an egroup
+    const egroupLtvs: Record<number, { baseLtv: number; liquidationThreshold: number }> = {}
+    for (let i = 0; i < nUnderlying; i++) {
+      const aid = ZEST_V2_UNDERLYING_IDS[i]
+      const egResult = results[section4Start + i]
+      const parsed = decodeEGroupResolve(egResult)
+      if (parsed) egroupLtvs[aid] = parsed
+    }
 
     // --- Parse Sections 1 & 2: per-underlying reserve data ---
     const reserveData: Record<string, ZestV2ReserveData> = {}
@@ -197,6 +211,9 @@ export function getZestV2ReservesDataConverter(
         // Metadata
         oracleType: assetLookup?.oracleType ?? null,
         principal: assetLookup?.principal ?? null,
+        // Egroup LTV
+        baseLtv: egroupLtvs[aid]?.baseLtv ?? 0,
+        liquidationThreshold: egroupLtvs[aid]?.liquidationThreshold ?? 0,
       }
     }
 
@@ -289,4 +306,36 @@ function decodeUintResult(result: StacksCallResult): bigint {
   } catch {
     return 0n
   }
+}
+
+/**
+ * Decode v0-egroup.resolve() result.
+ * Returns (ok tuple) on success or (err uint) if no egroup exists.
+ * LTV values are (buff 2) in BPS (10000 = 100%).
+ */
+function decodeEGroupResolve(
+  result: StacksCallResult,
+): { baseLtv: number; liquidationThreshold: number } | null {
+  try {
+    if (!result.okay) return null
+    const decoded = decodeClarityValue(result.result)
+    // resolve returns (response (tuple ...) uint) — check for success
+    if (decoded?.success === false) return null
+    const t = extractTuple(decoded?.value ?? decoded)
+    const ltvBorrow = decodeBuff2Bps(t?.['LTV-BORROW'])
+    const ltvLiqPartial = decodeBuff2Bps(t?.['LTV-LIQ-PARTIAL'])
+    return {
+      baseLtv: ltvBorrow,
+      liquidationThreshold: ltvLiqPartial,
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Decode a (buff 2) BPS value to a decimal (e.g. 6000 -> 0.6) */
+function decodeBuff2Bps(field: any): number {
+  if (!field) return 0
+  const hex = String(field.value ?? field).replace('0x', '')
+  return parseInt(hex, 16) / 10000
 }

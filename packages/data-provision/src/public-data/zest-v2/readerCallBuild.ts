@@ -1,5 +1,7 @@
 import { StacksCall } from '../../stacks-call'
+import { encodeClarityUint } from '../../stacks-call'
 import { READER_CONTRACT_ADDRESS, READER_CONTRACT_NAME } from '../fetchStacksLender'
+import { ZEST_V2_CONTRACTS, ZEST_V2_UNDERLYING_IDS } from './constants'
 
 /**
  * Reader function names in lending-reader-v1, matching ZEST_V2_UNDERLYING_IDS order.
@@ -14,20 +16,29 @@ const V2_READER_FUNCTIONS = [
 ] as const
 
 /**
- * Build calls to the per-vault reader functions in lending-reader-v1.
- * Each call bundles 10 sub-calls into a single read-only call.
+ * Build calls to the per-vault reader functions in lending-reader-v1,
+ * plus egroup resolve calls for each underlying's z-token.
  *
- * Layout: [0..6) per-vault = 6 calls total
- * (down from 60 individual calls)
- *
- * Note: the reader contract doesn't include the asset-bitmap call.
- * The bitmap must be fetched separately via buildZestV2ReserveCalls if needed.
+ * Layout: [0..6) per-vault reader calls, [6..12) egroup resolve calls
+ * Total: 12 calls (down from 60+ individual calls)
  */
 export function buildV2ReaderCalls(readerAddress = READER_CONTRACT_ADDRESS): StacksCall[] {
-  return V2_READER_FUNCTIONS.map((fn) => ({
+  const { egroup } = ZEST_V2_CONTRACTS
+
+  const readerCalls: StacksCall[] = V2_READER_FUNCTIONS.map((fn) => ({
     contractAddress: readerAddress,
     contractName: READER_CONTRACT_NAME,
     functionName: fn,
     args: [],
   }))
+
+  // Egroup resolve for each underlying's z-token: resolve(2^zTokenId)
+  const egroupCalls: StacksCall[] = ZEST_V2_UNDERLYING_IDS.map((aid) => ({
+    contractAddress: egroup.address,
+    contractName: egroup.name,
+    functionName: 'resolve',
+    args: [encodeClarityUint(BigInt(1) << BigInt(aid + 1))],
+  }))
+
+  return [...readerCalls, ...egroupCalls]
 }

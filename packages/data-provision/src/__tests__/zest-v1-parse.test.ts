@@ -14,7 +14,10 @@ import { getExpectedCallCount, CALLS_PER_ASSET, ZEST_EMODE_TYPES } from '../publ
 import { getZestAssets } from '../public-data/zest-v1/constants'
 import { StacksCallResult } from '../stacks-call'
 
-/** Create a mock reserve-state tuple matching Zest V1's pool-reserve-data */
+/**
+ * Create a mock reserve-state tuple matching Zest V1's pool-reserve-data.
+ * LTV/threshold/bonus values use 1e8 precision (e.g. 75000000 = 75%).
+ */
 function mockReserveState(overrides: Record<string, any> = {}) {
   return tupleCV({
     'total-borrows-stable': uintCV(overrides.totalBorrowsStable ?? 0),
@@ -25,9 +28,9 @@ function mockReserveState(overrides: Record<string, any> = {}) {
     'current-average-stable-borrow-rate': uintCV(0),
     'last-liquidity-cumulative-index': uintCV(100000000),
     'last-variable-borrow-cumulative-index': uintCV(100000000),
-    'base-ltv-as-collateral': uintCV(overrides.baseLtv ?? 7500),
-    'liquidation-threshold': uintCV(overrides.liquidationThreshold ?? 8000),
-    'liquidation-bonus': uintCV(overrides.liquidationBonus ?? 10500),
+    'base-ltv-as-collateral': uintCV(overrides.baseLtv ?? 75000000),      // 75%
+    'liquidation-threshold': uintCV(overrides.liquidationThreshold ?? 80000000), // 80%
+    'liquidation-bonus': uintCV(overrides.liquidationBonus ?? 105000000),  // 105%
     'decimals': uintCV(overrides.decimals ?? 8),
     'a-token-address': principalCV('SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zwstx-v2-0'),
     'oracle': principalCV('SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.stx-oracle-v1-4'),
@@ -60,6 +63,7 @@ function mockBuff1(byte: number): StacksCallResult {
 
 /**
  * Build a full mock result array matching the expected call order.
+ * APY values include a 1.0 base (e.g. 103500000 = 1.035x = 3.5% rate).
  */
 function buildMockResults(): StacksCallResult[] {
   const assets = getZestAssets()
@@ -72,10 +76,10 @@ function buildMockResults(): StacksCallResult[] {
       totalBorrowsVariable: 500000000 * (i + 1),
       currentVariableBorrowRate: 5000000 + i * 100000,
     }))))
-    // 1: supply APY
-    results.push(mockUint(3500000 + i * 50000))
-    // 2: borrow APY
-    results.push(mockUint(5000000 + i * 100000))
+    // 1: supply APY (includes 1.0 base: 103500000 = 1.035x = 3.5%)
+    results.push(mockUint(103500000 + i * 50000))
+    // 2: borrow APY (includes 1.0 base: 105000000 = 1.05x = 5%)
+    results.push(mockUint(105000000 + i * 100000))
     // 3: e-mode type
     results.push(mockBuff1(i < 3 ? 0x01 : 0x00))
   }
@@ -87,8 +91,8 @@ function buildMockResults(): StacksCallResult[] {
         cvToHex(
           tupleCV({
             label: bufferCV(new TextEncoder().encode('STX Correlated')),
-            ltv: uintCV(8500),
-            'liquidation-threshold': uintCV(9000),
+            ltv: uintCV(85000000),           // 85%
+            'liquidation-threshold': uintCV(90000000), // 90%
           }),
         ),
       ),
@@ -165,8 +169,9 @@ describe('Zest V1 parser', () => {
     expect(reserve.isFrozen).toBe(false)
     expect(reserve.borrowingEnabled).toBe(true)
     expect(reserve.collateralActive).toBe(true)
-    expect(reserve.baseLtv).toBe(7500 / 10000)
-    expect(reserve.liquidationThreshold).toBe(8000 / 10000)
+    // LTV/threshold use 1e8 precision: 75000000 / 1e8 = 0.75
+    expect(reserve.baseLtv).toBe(0.75)
+    expect(reserve.liquidationThreshold).toBe(0.80)
   })
 
   it('calculates rates as decimals', () => {
@@ -176,9 +181,9 @@ describe('Zest V1 parser', () => {
     const firstUid = Object.keys(parsed.data)[0]
     const reserve = parsed.data[firstUid]
 
-    // Rate = raw / 1e8, so 3500000 / 1e8 = 0.035
-    expect(reserve.depositRate).toBe(3500000 / 1e8)
-    expect(reserve.variableBorrowRate).toBe(5000000 / 1e8)
+    // Rate = raw / 1e8 - 1, so 103500000 / 1e8 - 1 = 0.035
+    expect(reserve.depositRate).toBeCloseTo(0.035, 10)
+    expect(reserve.variableBorrowRate).toBeCloseTo(0.05, 10)
   })
 
   it('applies USD prices when provided', () => {

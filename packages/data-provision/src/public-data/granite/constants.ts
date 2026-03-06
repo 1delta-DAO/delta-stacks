@@ -56,3 +56,17 @@ export const GRANITE_CONTRACT_NAMES = {
   ir: 'linear-kinked-ir-v1',
   constants: 'constants-v1',
 } as const
+
+/**
+ * Known collateral tokens per market.
+ * state-v1.get-collateral(principal) returns (optional tuple) with:
+ *   { decimals, max-ltv, liquidation-ltv, liquidation-premium }
+ * Values use 1e8 precision (50000000 = 50%).
+ */
+export const GRANITE_COLLATERAL_TOKENS: Record<string, string[]> = {
+  stx: ['SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token'],
+  // USDCx market not yet deployed
+  usdcx: [],
+}
+
+export const GRANITE_COLLATERAL_PRECISION = 1e8

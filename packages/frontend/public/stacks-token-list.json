@@ -1,0 +1,1392 @@
+{
+  "chainId": "stacks",
+  "version": "0",
+  "list": {
+    "sp1y5ystahz88xyk1vpdh24gy0hpx5j4jectmy4a1.wstx": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Stacks",
+      "address": "SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1.wstx",
+      "symbol": "STX",
+      "logoURI": "https://raw.githubusercontent.com/VelarBTC/token-images/main/stx.jpg"
+    },
+    "sp1ay6k3pqv5mrt6r4s671nww2frvpkm0br162ct6.leo-token": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Leo",
+      "address": "SP1AY6K3PQV5MRT6R4S671NWW2FRVPKM0BR162CT6.leo-token",
+      "symbol": "LEO",
+      "logoURI": "https://token-meta.s3.eu-central-1.amazonaws.com/icon.png"
+    },
+    "sp265wbwd4nh7tvpyqtvd23x3607nnk4484dtxqz3.longcoin": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "LONGcoin",
+      "address": "SP265WBWD4NH7TVPYQTVD23X3607NNK4484DTXQZ3.longcoin",
+      "symbol": "LONG",
+      "logoURI": "https://storage.googleapis.com/longcoin/LONGcoin-image.png"
+    },
+    "sp1z92mpdqewzxw36vx71q25hkf5k2epcj304f275.tokensoft-token-v4k68639zxz": {
+      "chainId": "stacks",
+      "decimals": 3,
+      "name": "Pepe Coin",
+      "address": "SP1Z92MPDQEWZXW36VX71Q25HKF5K2EPCJ304F275.tokensoft-token-v4k68639zxz",
+      "symbol": "PEPE",
+      "logoURI": "https://bafkreifq2bezvmjwfztjt4s3clt7or43kewxtg4ntbqur6axnh5qchkemu.ipfs.nftstorage.link"
+    },
+    "sp4m2c88ee8rqzpytc4pz88ce16ygp825eyf6kbq.stacks-rock": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Rock",
+      "address": "SP4M2C88EE8RQZPYTC4PZ88CE16YGP825EYF6KBQ.stacks-rock",
+      "symbol": "ROCK",
+      "logoURI": "https://bafybeifpgpxwrtgumuy7d7qlhxynvoixpva4m2toxkcr2jssix5gwqc4rq.ipfs.dweb.link/QmWFjBD56Xp9btmi6K8xNB6Sc5VQ9LRB1xfxfKa44pNvJW"
+    },
+    "sp2y8t3tr3fkh3y2fpzvnqaeknjxkwvs4rvqf48je.stakemouse": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Stakemouse",
+      "address": "SP2Y8T3TR3FKH3Y2FPZVNQAEKNJXKWVS4RVQF48JE.stakemouse",
+      "symbol": "MICK",
+      "logoURI": "https://mickey-public.s3.eu-central-1.amazonaws.com/coin.png"
+    },
+    "sp4sze494vc2yc5jyg7ayfq44f5q4pyv7dvmdpbg.ststx-token": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Stacked STX Token",
+      "address": "SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token",
+      "symbol": "stSTX",
+      "logoURI": "https://raw.githubusercontent.com/VelarBTC/token-images/main/stSTX.svg"
+    },
+    "sp2c1wrehgm75c7tgfaejpfktftegzkf6dft6e2ge.kangaroo": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Kangaroo the Jumping Coin",
+      "address": "SP2C1WREHGM75C7TGFAEJPFKTFTEGZKF6DFT6E2GE.kangaroo",
+      "symbol": "$ROO",
+      "logoURI": "https://roo-stx.com/images/55e88819c85e30c0e7cb4df70853adb1.png"
+    },
+    "sp3k8bc0ppevcv7nz6qsrwpq2je9e5b6n3pa0kbr9.token-abtc": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Bridged BTC",
+      "address": "SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token-abtc",
+      "symbol": "aBTC",
+      "logoURI": "https://token-images.alexlab.co/token-abtc"
+    },
+    "sp3y2zsh8p7d50b0vbtsx11s7xsg24m1vb9yfqa4k.token-aeusdc": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Allbridge USDC",
+      "address": "SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc",
+      "symbol": "aeUSDC",
+      "logoURI": "https://allbridge-assets.web.app/320px/ETH/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48.svg"
+    },
+    "sp1y5ystahz88xyk1vpdh24gy0hpx5j4jectmy4a1.velar-token": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Velar",
+      "address": "SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1.velar-token",
+      "symbol": "VELAR",
+      "logoURI": "https://raw.githubusercontent.com/Velar-co/Velar-assets/refs/heads/master/Token/velar-logo-icon.svg"
+    },
+    "sp3ne50gexfg9szgtt51p40x2ckysz5cc4ztz7a2g.welshcorgicoin-token": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Welshcorgicoin",
+      "address": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token",
+      "symbol": "WELSH",
+      "logoURI": "https://raw.githubusercontent.com/Welshcorgicoin/Welshcorgicoin/main/logos/welsh_tokenlogo.png"
+    },
+    "sp2x2z28nxzvjfcjpbr9q3nbvybk3gpx8pxa3r83c.odin-tkn": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "ODIN Coin",
+      "address": "SP2X2Z28NXZVJFCJPBR9Q3NBVYBK3GPX8PXA3R83C.odin-tkn",
+      "symbol": "ODIN",
+      "logoURI": "https://token-metadat.s3.eu-central-1.amazonaws.com/logo.png"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.liquid-staked-welsh-v2": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Liquid Staked Welsh v2",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.liquid-staked-welsh-v2",
+      "symbol": "sWELSH",
+      "logoURI": "https://raw.githubusercontent.com/Welshcorgicoin/Welshcorgicoin/main/logos/welsh_tokenlogo.png"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.liquid-staked-odin": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Liquid Staked Odin",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.liquid-staked-odin",
+      "symbol": "sODIN",
+      "logoURI": "https://www.charisma.rocks/liquid-staked-odin.png"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.liquid-staked-roo-v2": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Liquid Staked Roo v2",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.liquid-staked-roo-v2",
+      "symbol": "sROO",
+      "logoURI": "https://www.charisma.rocks/liquid-staked-roo.png"
+    },
+    "sp32aeef6ww5y0nmj1s8sbszday8r5j32nbzfpkkz.nope": {
+      "chainId": "stacks",
+      "decimals": 1,
+      "name": "Nothing",
+      "address": "SP32AEEF6WW5Y0NMJ1S8SBSZDAY8R5J32NBZFPKKZ.nope",
+      "symbol": "NOT",
+      "logoURI": "https://ipfs.io/ipfs/bafkreieug75i7f74at6gailpsox52lgs2ct7zccht5nobik3giv4opkeuu"
+    },
+    "sp2f4qc563wn0a0949wph5w1yxvc4m1r46qke0g14.memegoatstx": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "memegoatstx",
+      "address": "SP2F4QC563WN0A0949WPH5W1YXVC4M1R46QKE0G14.memegoatstx",
+      "symbol": "GOATSTX",
+      "logoURI": "https://gaia.hiro.so/hub/1KdNvLJVWXxnr8JKswBksFAv1y3hMwCYrr/Goat-logo.png"
+    },
+    "sprsrmpjx76hqkcrmwdhb41f55p855khnj374m5w.aluxlobs": {
+      "chainId": "stacks",
+      "decimals": 5,
+      "name": "AluxLobs",
+      "address": "SPRSRMPJX76HQKCRMWDHB41F55P855KHNJ374M5W.aluxlobs",
+      "symbol": "ALUX",
+      "logoURI": "https://rose-useful-vicuna-13.mypinata.cloud/ipfs/QmW5eYQTYvDpiEB1jHfQdYjaPrpfQLoG3WwGvWUXPevNe9"
+    },
+    "sp3mtmk7r8gqkyhn3xzgbfs81nsdd1yazw305h2cs.dogwifknife": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "DogWifKnife",
+      "address": "SP3MTMK7R8GQKYHN3XZGBFS81NSDD1YAZW305H2CS.dogwifknife",
+      "symbol": "KNFE",
+      "logoURI": "https://gaia.hiro.so/hub/18stqSd7UeMj4JygjLQsSmp5ELnWB3fFRF/Screenshot-2024-05-27-at-7-36-39-PM.png"
+    },
+    "sp3tmgz7wtt658pa632a3ba4b1grxbnnen8xpzq5x.donald-trump": {
+      "chainId": "stacks",
+      "decimals": 1,
+      "name": "Doland Tremp",
+      "address": "SP3TMGZ7WTT658PA632A3BA4B1GRXBNNEN8XPZQ5X.donald-trump",
+      "symbol": "TREMP",
+      "logoURI": "https://gaia.hiro.so/hub/13Z4eiPp6doBLZyK1yZr6EG8nprSJfVLxQ/Screen-Shot-2024-06-10-at-8-19-37-AM.png"
+    },
+    "sp1cyy7bkyd60r08k734k9sc6grzd4zsn4wcde5bd.golf-is-boring": {
+      "chainId": "stacks",
+      "decimals": 4,
+      "name": "Golf is Boring",
+      "address": "SP1CYY7BKYD60R08K734K9SC6GRZD4ZSN4WCDE5BD.golf-is-boring",
+      "symbol": "GOLF",
+      "logoURI": "https://gaia.hiro.so/hub/1C7c3Rj4LRXhFq3CJW7uR3QqanHvhXoTvz/hj.jpg"
+    },
+    "sp2hqvtv14de31xqze84g0ea2mfqy8g49r7rbaqz2.theroaringkitty": {
+      "chainId": "stacks",
+      "decimals": 3,
+      "name": "TheRoaringKitty",
+      "address": "SP2HQVTV14DE31XQZE84G0EA2MFQY8G49R7RBAQZ2.theroaringkitty",
+      "symbol": "DFV",
+      "logoURI": "https://gaia.hiro.so/hub/1E1znJXDfJpHBYCKPoFyapWkwTJF4Ke6YZ/G2w5X4MxQO2jIKEglnMZ4A.webp"
+    },
+    "sp3pgdsh8p2vja5rx4by0gbp867y4c9955kx97a4v.blitz": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Blitz",
+      "address": "SP3PGDSH8P2VJA5RX4BY0GBP867Y4C9955KX97A4V.blitz",
+      "symbol": "Blitz",
+      "logoURI": "https://gaia.hiro.so/hub/1NpgSJFwmmgQzr9YeFkWmVVPxyxsy2Wwy6/Blitz-logo.jpg"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.liquid-staked-charisma": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Liquid Staked Charisma",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.liquid-staked-charisma",
+      "symbol": "sCHA",
+      "logoURI": "https://www.charisma.rocks/liquid-staked-charisma.png"
+    },
+    "sp1nscd02ee377w77ja5rhxf9s6rt6a6ca7k039dh.hawk-thua": {
+      "chainId": "stacks",
+      "decimals": 1,
+      "name": "HAWK THUA",
+      "address": "SP1NSCD02EE377W77JA5RHXF9S6RT6A6CA7K039DH.hawk-thua",
+      "symbol": "SPIT",
+      "logoURI": "https://gaia.hiro.so/hub/1KGbedma7jYAENbnhoL3i9WiYqhnFvkbXc/Screenshot-2024-06-23-2-56-02-PM.png"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.quiet-confidence": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Quiet Confidence",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.quiet-confidence",
+      "symbol": "iQC",
+      "logoURI": "https://www.charisma.rocks/indexes/quiet-confidence-logo.png"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.wrapped-charisma": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Wrapped Charisma",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.wrapped-charisma",
+      "symbol": "wCHA",
+      "logoURI": "https://www.charisma.rocks/indexes/wrapped-charisma-logo.png"
+    },
+    "spaazwd8d1rxqg85hdh9nq90dv8tgxbxs4xy02j3.vkng-token": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Viking",
+      "address": "SPAAZWD8D1RXQG85HDH9NQ90DV8TGXBXS4XY02J3.vkng-token",
+      "symbol": "VIKI",
+      "logoURI": "https://raw.githubusercontent.com/VIKITOKEN/Vkg/main/viking.png"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.charismatic-corgi": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Charismatic Corgi",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-corgi",
+      "symbol": "iCC",
+      "logoURI": "https://www.charisma.rocks/indexes/charismatic-corgi-logo.png"
+    },
+    "sp3r4mhk99jaam0n3t0cbzrzvsvqfg1n75dq08jsd.sbtc": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "wsbtc",
+      "address": "SP3R4MHK99JAAM0N3T0CBZRZVSVQFG1N75DQ08JSD.sbtc",
+      "symbol": "sbtc",
+      "logoURI": "https://ipfs.io/ipfs/Qmc67nU3ANzq1bGLssAEGSoy51Kx6VCoyRR1jyUT72E5jg"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.magic-mojo": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Magic Mojo",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.magic-mojo",
+      "symbol": "iMM",
+      "logoURI": "https://www.charisma.rocks/indexes/magic-mojo-logo.png"
+    },
+    "sp1mjpvq6ze408zw4jm6het50s8gytyrz7pc6rkh7.edmundfitzgeraldcoin": {
+      "chainId": "stacks",
+      "decimals": 4,
+      "name": "EdmundFitzgeraldCoin",
+      "address": "SP1MJPVQ6ZE408ZW4JM6HET50S8GYTYRZ7PC6RKH7.edmundfitzgeraldcoin",
+      "symbol": "EDMUND",
+      "logoURI": "https://assets.hiro.so/api/mainnet/token-metadata-api/SP1MJPVQ6ZE408ZW4JM6HET50S8GYTYRZ7PC6RKH7.edmundfitzgeraldcoin/1.png"
+    },
+    "sp28nb976tjhhgf4218kt194npwp9n1x3wy516z1p.new-hashiko": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "New Hashiko",
+      "address": "SP28NB976TJHHGF4218KT194NPWP9N1X3WY516Z1P.new-hashiko",
+      "symbol": "HSHKO",
+      "logoURI": "https://gaia.hiro.so/hub/1NjjWAuUCVjQG9z9dSKNPtkpmkHCMbwrGT/newhashiko.png"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.fuji-apples": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Fuji Apples",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.fuji-apples",
+      "symbol": "FUJI",
+      "logoURI": "https://www.charisma.rocks/stations/fuji-apples.png"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.iron-ingots": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Iron Ingots",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.iron-ingots",
+      "symbol": "IRON",
+      "logoURI": "https://www.charisma.rocks/indexes/iron-ingots-logo.png"
+    },
+    "spa0szq6kccymjv5xvksnm7y1dgdxh39a11zx2y8.gamestop": {
+      "chainId": "stacks",
+      "decimals": 4,
+      "name": "Gamestop",
+      "address": "SPA0SZQ6KCCYMJV5XVKSNM7Y1DGDXH39A11ZX2Y8.gamestop",
+      "symbol": "GME",
+      "logoURI": "https://gaia.hiro.so/hub/1FsssMPzzQceoTWvYM3xpDVkRHuNufd83j/gamestop-logo.png"
+    },
+    "sp3smqnvwrbvwc81srjyfv4x1zq7awwjfbqjmc724.fam": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "TheFellowshipOfTheMeme",
+      "address": "SP3SMQNVWRBVWC81SRJYFV4X1ZQ7AWWJFBQJMC724.fam",
+      "symbol": "FAM",
+      "logoURI": "https://stacksrock.com/fam.png"
+    },
+    "sp32rxjsh9dx4jgmbszg0rqs09rg2mhbcgk4h8a7d.clokten": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "ClokTen",
+      "address": "SP32RXJSH9DX4JGMBSZG0RQS09RG2MHBCGK4H8A7D.clokten",
+      "symbol": "CLOK10",
+      "logoURI": "https://assets.hiro.so/api/mainnet/token-metadata-api/SP32RXJSH9DX4JGMBSZG0RQS09RG2MHBCGK4H8A7D.clokten/1.png"
+    },
+    "sp253j64egmh59tv32cqxxtvkh5tqvgn108ta5tnd.fair-bonding-curve": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Fair",
+      "address": "SP253J64EGMH59TV32CQXXTVKH5TQVGN108TA5TND.fair-bonding-curve",
+      "symbol": "FAIR",
+      "logoURI": "https://gaia.hiro.so/hub/1M19CV7cuRSEWzdfxAhiq6KSkDqHEqfoJt/fair-logo.JPG"
+    },
+    "sp3qj0mm9g8m3dsf5nex7cej99nfdq81wg17t7rmc.tenmetsu": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Tenmetsu",
+      "address": "SP3QJ0MM9G8M3DSF5NEX7CEJ99NFDQ81WG17T7RMC.tenmetsu",
+      "symbol": "TEN",
+      "logoURI": "https://gaia.hiro.so/hub/1J5gdJKirX5wzXivYzUbNCWytHsaDL5hJ7/pixelcut-export-2-.png"
+    },
+    "spgdf0faf9mkmpj36g07qar09dt4danrfv98rznt.dj-vence": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "DJ Vence",
+      "address": "SPGDF0FAF9MKMPJ36G07QAR09DT4DANRFV98RZNT.dj-vence",
+      "symbol": "VENCE",
+      "logoURI": "https://assets.hiro.so/api/mainnet/token-metadata-api/SPGDF0FAF9MKMPJ36G07QAR09DT4DANRFV98RZNT.dj-vence/1.png"
+    },
+    "sp2zngj85endy6qrhq5p2d4fxkgzwcktb2t0z55ks.mr-president-pepe": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "President Pepe",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.mr-president-pepe",
+      "symbol": "iPP",
+      "logoURI": "https://www.charisma.rocks/indexes/presidential-pepe-logo.jpg"
+    },
+    "sp26pzg61dh667xcx51tznbhxm4hg4m6b2hwvm47v.edelcoin": {
+      "chainId": "stacks",
+      "decimals": 5,
+      "name": "Edelcoin",
+      "address": "SP26PZG61DH667XCX51TZNBHXM4HG4M6B2HWVM47V.edelcoin",
+      "symbol": "EDLC",
+      "logoURI": "https://gaia.hiro.so/hub/1NVedaUK9KMEk8RMoM6sBn2LJ9UqHsEwC8/edlc-32.webp"
+    },
+    "spq5cehetp8k4q2fsnnk9anmpavbsa9nn86ysn59.stone-bonding-curve": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "STONE",
+      "address": "SPQ5CEHETP8K4Q2FSNNK9ANMPAVBSA9NN86YSN59.stone-bonding-curve",
+      "symbol": "STONE",
+      "logoURI": "https://raw.githubusercontent.com/VelarBTC/token-images/refs/heads/main/stone.png"
+    },
+    "sp2pga85mn3d1yvmrjk9wcgqt09q9ezbcm7c3vnya.fuck-the-cabal-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "FUCK THE CABAL",
+      "address": "SP2PGA85MN3D1YVMRJK9WCGQT09Q9EZBCM7C3VNYA.fuck-the-cabal-stxcity",
+      "symbol": "FTC",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/YSsFdXMv-bitcoindesigns-a-logo-of-a-crypto-coin-with-a-hand-of-a-rogue-g-7202eda9-cf2f-4313-9853-836cfa3d6305-1-.png"
+    },
+    "sp3brxz9y7p5yp28psr8yjt39rt51zzbsectcadgr.skullcoin-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Skullcoin",
+      "address": "SP3BRXZ9Y7P5YP28PSR8YJT39RT51ZZBSECTCADGR.skullcoin-stxcity",
+      "symbol": "SKULL",
+      "logoURI": "https://skullcoin.mypinata.cloud/ipfs/bafkreigqwmltx657ln2ncugdiixl5sjanh3ha3rdiqtgts4bzimmcifomq"
+    },
+    "sp45ryp4w83smscg5c7mzcm1efvrjy4k6d0e05z6.walter": {
+      "chainId": "stacks",
+      "decimals": 0,
+      "name": "Walter",
+      "address": "SP45RYP4W83SMSCG5C7MZCM1EFVRJY4K6D0E05Z6.walter",
+      "symbol": "Walter",
+      "logoURI": "https://gaia.hiro.so/hub/1FMBfC5FpvJmjkukJvGYBWNkC7PZcKosxq/AiArtPictures-1721047280374.jpg"
+    },
+    "spbnzd0nmbjvryjz3sj4mtrsz3femggtv2ym5mfv.moist-sock-bonding-curve": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Moist Sock",
+      "address": "SPBNZD0NMBJVRYJZ3SJ4MTRSZ3FEMGGTV2YM5MFV.moist-sock-bonding-curve",
+      "symbol": "Moist",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/RZtFXKCk-MoistSock.jpg"
+    },
+    "sp2vgjqab0t7r2y9s2pjrnpdew91cm2ycdyjggpqs.mooneeb": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Mooneeb",
+      "address": "SP2VGJQAB0T7R2Y9S2PJRNPDEW91CM2YCDYJGGPQS.mooneeb",
+      "symbol": "MOON",
+      "logoURI": "https://pink-added-stork-978.mypinata.cloud/ipfs/QmdMTQKYVHsK1USakRkDjKcJ9DnCfsyGm3cSQqkzJ4c9Yu"
+    },
+    "spkmq8qd26hs1b2e9kxwcdkrf63x0rp8bz361qth.moneystack-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "MoneyStack",
+      "address": "SPKMQ8QD26HS1B2E9KXWCDKRF63X0RP8BZ361QTH.moneystack-stxcity",
+      "symbol": "MST",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/FvBnbDVC-MST.jpg"
+    },
+    "sp1qbkvtkp2dg8bghqqd3kg6ebwwcb6v4x5nxqryr.eth-thcam-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "ETH THCAM",
+      "address": "SP1QBKVTKP2DG8BGHQQD3KG6EBWWCB6V4X5NXQRYR.eth-thcam-stxcity",
+      "symbol": "THCAM",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/XoBhsiAl-file.png"
+    },
+    "spn5akg35qzsk2m8gamr4afx45659rjhdw353hsg.usdh-token-v1": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Hermetica USDh",
+      "address": "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1",
+      "symbol": "USDh",
+      "logoURI": "https://app.hermetica.fi/assets/usdh_logo.svg"
+    },
+    "sp345fttdc4vt580k18er0mp5pr1zrp5c3q0kya1p.booster-bonding-curve": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "BOOSTER",
+      "address": "SP345FTTDC4VT580K18ER0MP5PR1ZRP5C3Q0KYA1P.booster-bonding-curve",
+      "symbol": "BOOSTER",
+      "logoURI": "https://gaia.hiro.so/hub/1JE8tA8g9jafC16FBG822Hwqf6dxVVNvJg/BOOSTER-logo1-800.jpg"
+    },
+    "sp1hpb7ytzdxmzszd51c113pqfaxksnr0qyffpwvc.blewy-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Blewy",
+      "address": "SP1HPB7YTZDXMZSZD51C113PQFAXKSNR0QYFFPWVC.blewy-stxcity",
+      "symbol": "BLEWY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/PZoVWzQF-IMG-1643.png"
+    },
+    "sp3w69vdg9vtzng7ntw1qncc1w45sny98w1jszbjh.flat-earth-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Flat Earth",
+      "address": "SP3W69VDG9VTZNG7NTW1QNCC1W45SNY98W1JSZBJH.flat-earth-stxcity",
+      "symbol": "FlatEarth",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/BxdQLdfT-IMG-0386.jpeg"
+    },
+    "sp739vrrcmxy223xpr28bwebtjma0b27dy8gtkch.gyatt-bonding-curve": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "GYATT",
+      "address": "SP739VRRCMXY223XPR28BWEBTJMA0B27DY8GTKCH.gyatt-bonding-curve",
+      "symbol": "GYAT",
+      "logoURI": "https://gaia.hiro.so/hub/1MCT5aQ6QAPoNhU6RQhh3TW51278xLraqu/gyatcat.jpg"
+    },
+    "sp116bxqnygh2sdf64z68crpkvtk93kwtvxta2dyd.moon-landing-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Moon Landing",
+      "address": "SP116BXQNYGH2SDF64Z68CRPKVTK93KWTVXTA2DYD.moon-landing-stxcity",
+      "symbol": "HOAX",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/HObfvRrY-qTDZs8Vp.jpeg"
+    },
+    "sp10vqcn71bz0cxvkh7df2h1meqnkg9c49r9ahgkb.bao-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "BAO",
+      "address": "SP10VQCN71BZ0CXVKH7DF2H1MEQNKG9C49R9AHGKB.bao-stxcity",
+      "symbol": "BAO",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/RPKCfTDH-BAO.png"
+    },
+    "sp2ecf9bd90cxw96xyt032mg6bq2n6trq47v0d90r.september-11-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "September 11",
+      "address": "SP2ECF9BD90CXW96XYT032MG6BQ2N6TRQ47V0D90R.september-11-stxcity",
+      "symbol": "TRUTH",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/RTwPLrXB-truth.webp"
+    },
+    "sp1npdhf9cq8b9q045ccqs1mr9m9sgj5tt6wffcd2.honey-badger-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Honey Badger",
+      "address": "SP1NPDHF9CQ8B9Q045CCQS1MR9M9SGJ5TT6WFFCD2.honey-badger-stxcity",
+      "symbol": "DGAF",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/XlNYtjWJ-IMG-4351.jpeg"
+    },
+    "sp25k3xpvbnwxpmydxbpszhgc8apw0z21cwj3y3b1.wen-nakamoto-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "$WEN",
+      "address": "SP25K3XPVBNWXPMYDXBPSZHGC8APW0Z21CWJ3Y3B1.wen-nakamoto-stxcity",
+      "symbol": "WEN",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/XLiJBFYK-wen-logo.png"
+    },
+    "sp2z2cbmgwb9mqzaf5z8x56ks69xrv3sjf4wkj7j9.dry-sock-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Dry Sock",
+      "address": "SP2Z2CBMGWB9MQZAF5Z8X56KS69XRV3SJF4WKJ7J9.dry-sock-stxcity",
+      "symbol": "FRESH",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/FZnTERSC-kb7SLKVY.jpg"
+    },
+    "sp371690bdhk9wrh3kxxrwnk62yr8n1p5jsygqkrm.clive-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Clive",
+      "address": "SP371690BDHK9WRH3KXXRWNK62YR8N1P5JSYGQKRM.clive-stxcity",
+      "symbol": "Clive",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/bFyDUeIU-IMG-8798.jpeg"
+    },
+    "sp3smqnvwrbvwc81srjyfv4x1zq7awwjfbqjmc724.riseofthememefam": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "RiseOfTheMemeFam",
+      "address": "SP3SMQNVWRBVWC81SRJYFV4X1ZQ7AWWJFBQJMC724.riseofthememefam",
+      "symbol": "RMFAM",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/DVQfDArB-RMFAM8.png"
+    },
+    "sp3j2h949kf8n4epxkb42zqt4efgjfew36dx20j1d.jackaroo-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "JACKAROO",
+      "address": "SP3J2H949KF8N4EPXKB42ZQT4EFGJFEW36DX20J1D.jackaroo-stxcity",
+      "symbol": "KANGA",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/ddaukPFu-kanga.jpg"
+    },
+    "sp253chxesx9w66mcsn4jm2xzjbfg9nphje6j5jfx.dokwondesk-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "dokwondesk",
+      "address": "SP253CHXESX9W66MCSN4JM2XZJBFG9NPHJE6J5JFX.dokwondesk-stxcity",
+      "symbol": "KWON",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/ulaIZkGA-kwon.jpg"
+    },
+    "sp3a4vhjm691ggac8qhnhpcx3kgj7dzye6gn6882d.mateo-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "MATEO",
+      "address": "SP3A4VHJM691GGAC8QHNHPCX3KGJ7DZYE6GN6882D.mateo-stxcity",
+      "symbol": "MATEO",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/kXwUwGOk-mateo-pfp.png"
+    },
+    "sp134acd749qym1j4ztwmj43mzh38bjb33d24dqb8.tychu-onasch-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Tychu Onasch",
+      "address": "SP134ACD749QYM1J4ZTWMJ43MZH38BJB33D24DQB8.tychu-onasch-stxcity",
+      "symbol": "TYCHU",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/pmaVaBbn-tychu-logo.PNG"
+    },
+    "sp2jcf3me5qc779dq2x1cm9s62vnjf44gc23mkqxk.less-bonding-curve": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "LESS",
+      "address": "SP2JCF3ME5QC779DQ2X1CM9S62VNJF44GC23MKQXK.less-bonding-curve",
+      "symbol": "LESS",
+      "logoURI": "https://gaia.hiro.so/hub/1FqPFBRapmCH3YpPYuChPq2BEB572DpTKE/less.jpg"
+    },
+    "spxw8bxg2s88sx7c1cj3bvfegr51sfgrf8dmyc93.pnuts-freedom-farm-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "PNuts Freedom Farm",
+      "address": "SPXW8BXG2S88SX7C1CJ3BVFEGR51SFGRF8DMYC93.pnuts-freedom-farm-stxcity",
+      "symbol": "PNUT",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/XwAXNhUL-PNUT.avif"
+    },
+    "sp1k8y1jdm3mx9hnbs4mgyerrzsadvmzwasaphpk3.simulation-coin-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Simulation Coin",
+      "address": "SP1K8Y1JDM3MX9HNBS4MGYERRZSADVMZWASAPHPK3.simulation-coin-stxcity",
+      "symbol": "SIM",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/BRtApnEI-SIM-COIN-LOGO-No-background.png"
+    },
+    "sp14j806bwepqaxva0g6ryzn7gna126b7jfrrytem.world-peace-stacks-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "World Peace Stacks",
+      "address": "SP14J806BWEPQAXVA0G6RYZN7GNA126B7JFRRYTEM.world-peace-stacks-stxcity",
+      "symbol": "WPS",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/jvtslHgU-peace.png"
+    },
+    "spn7gyfcevw1hr6cvfw3jgwsw57p1jzcz3ksqtpt.turtoshi-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Turtoshi",
+      "address": "SPN7GYFCEVW1HR6CVFW3JGWSW57P1JZCZ3KSQTPT.turtoshi-stxcity",
+      "symbol": "TURTO",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/wAJrggwd-TURTO.jpg"
+    },
+    "sp2zhzrwagze2qjktxyj2qwkvm3bz5hc2kc90hn1w.saylor-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "SAYLOR",
+      "address": "SP2ZHZRWAGZE2QJKTXYJ2QWKVM3BZ5HC2KC90HN1W.saylor-stxcity",
+      "symbol": "SAYLOR",
+      "logoURI": "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=325,h=335,fit=crop,trim=0;15.283582089552239;0;15.283582089552239/AoPvx5XgvEUrp4Wy/coin-logo-1024-YanylG664qc4ageG.png"
+    },
+    "spfgx4mz770da3re6s5pvq176qz3p7vwag3ckj0y.godl-on-stacks-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Godl on stacks",
+      "address": "SPFGX4MZ770DA3RE6S5PVQ176QZ3P7VWAG3CKJ0Y.godl-on-stacks-stxcity",
+      "symbol": "Godl",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/ilRbfTXo-IMG-20241114-WA0099.jpg"
+    },
+    "sp1masmf30drr4kdr5tg4rzeevhbks1zx4tjz8p06.mrbeans-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "MrBeans",
+      "address": "SP1MASMF30DRR4KDR5TG4RZEEVHBKS1ZX4TJZ8P06.mrbeans-stxcity",
+      "symbol": "Beans",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/IxnESYuq-400-x-400.png"
+    },
+    "sp2vrztfwh3d3459pmke2g6jnjn9pec0qfy1p64an.free-ross-the-freedom-coin-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Free Ross The Freedom Coin",
+      "address": "SP2VRZTFWH3D3459PMKE2G6JNJN9PEC0QFY1P64AN.free-ross-the-freedom-coin-stxcity",
+      "symbol": "ROSSTX",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/ccOIlGqE-ROSS.jpg"
+    },
+    "sp3hnexsxjk2ryng5p6ysee53frex645jpjj5fbfa.meme-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "MEME",
+      "address": "SP3HNEXSXJK2RYNG5P6YSEE53FREX645JPJJ5FBFA.meme-stxcity",
+      "symbol": "MEME",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/PxxUGCcj-f03c194bd4d181b.png"
+    },
+    "sp3acd3wc1xtvj0j3t3532tn4nfabrkmsd2wbbvwv.king-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "KING",
+      "address": "SP3ACD3WC1XTVJ0J3T3532TN4NFABRKMSD2WBBVWV.king-stxcity",
+      "symbol": "kinq",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/pyXpTkua-ai-generated.jpg"
+    },
+    "sp45ryp4w83smscg5c7mzcm1efvrjy4k6d0e05z6.wally": {
+      "chainId": "stacks",
+      "decimals": 0,
+      "name": "Wally",
+      "address": "SP45RYP4W83SMSCG5C7MZCM1EFVRJY4K6D0E05Z6.wally",
+      "symbol": "WALLY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/FvRfneQt-IMG-20240919-160030-921.jpg"
+    },
+    "speb2gs02xsfc1btrvsvhxy0xxkvxfxx14xr21ks.peepeepoopoo": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "PeePeePooPoo",
+      "address": "SPEB2GS02XSFC1BTRVSVHXY0XXKVXFXX14XR21KS.peepeepoopoo",
+      "symbol": "PPPP",
+      "logoURI": "https://cyan-imaginative-condor-764.mypinata.cloud/ipfs/QmPcTAk1oFaEaVz5hQsAj8stTjBDmqYo6VTavAPf3HxU2j"
+    },
+    "spz2x8p6qtv1spn5nkp4vvcfpdwwk63rpb9phcmk.secretsanta": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "SECRETSANTA",
+      "address": "SPZ2X8P6QTV1SPN5NKP4VVCFPDWWK63RPB9PHCMK.secretsanta",
+      "symbol": "SNTA",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/pCthJOAP-Untitled-1.png"
+    },
+    "sp3m31qff6s96215k4y2z9k5sghjn384nv6ym6vm8.satoshai": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "SatoshAi",
+      "address": "SP3M31QFF6S96215K4Y2Z9K5SGHJN384NV6YM6VM8.satoshai",
+      "symbol": "sAI",
+      "logoURI": "https://domain-interactive-470.mypinata.cloud/ipfs/bafybeif3okztvr3nsnwp4k5zvpxu2jvpavsxvlcefx43y5hffwtiq3iyvm"
+    },
+    "sp20kbf1fzaxdeh5d64fvyf9eyd8y2q8xpfnf381m.mana": {
+      "chainId": "stacks",
+      "decimals": 0,
+      "name": "MANA",
+      "address": "SP20KBF1FZAXDEH5D64FVYF9EYD8Y2Q8XPFNF381M.mana",
+      "symbol": "MANA",
+      "logoURI": "https://gaia.hiro.so/hub/1J4Wswh8LRRK9L6DP8QNpL7hX23gk3gcXp/mana.jpg"
+    },
+    "sp2c2yfp12ajzb4mabjbaj55xecvs7e4pmmz89yzr.arkadiko-token": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Arkadiko Token",
+      "address": "SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.arkadiko-token",
+      "symbol": "DIKO",
+      "logoURI": "https://app.arkadiko.finance/assets/tokens/diko.svg"
+    },
+    "spae4sfggskkh7nc49kqchjfy9159dg24yhqcjvx.xtremely-retarded-people-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Xtremely Retarded People",
+      "address": "SPAE4SFGGSKKH7NC49KQCHJFY9159DG24YHQCJVX.xtremely-retarded-people-stxcity",
+      "symbol": "XRP",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/vkSACnZx-xDcOa3je-400x400.jpg"
+    },
+    "sp17z9qg1vzczt01fyzd5kgvnmzvaxb0w536yma7c.annoying-delusional-assholes-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Annoying Delusional Assholes",
+      "address": "SP17Z9QG1VZCZT01FYZD5KGVNMZVAXB0W536YMA7C.annoying-delusional-assholes-stxcity",
+      "symbol": "ADA",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/aWdZMmZQ-Untitled-1.jpg"
+    },
+    "spfdays6c5xbh3cemc6r210p348yxt7w1q69jkpp.dumb-online-gambling-experts-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Dumb Online Gambling Experts",
+      "address": "SPFDAYS6C5XBH3CEMC6R210P348YXT7W1Q69JKPP.dumb-online-gambling-experts-stxcity",
+      "symbol": "DOGE",
+      "logoURI": "https://images.ctfassets.net/b8vkjfhb5t28/20cMS189swbEP516gy0hTj/64ce0db52bf21431d69cd24e3c872c94/doge-logo.png"
+    },
+    "spc77te65ct7m37rz7v282ke66cfbembnqzkn5wd.aidog": {
+      "chainId": "stacks",
+      "decimals": 3,
+      "name": "AIdog",
+      "address": "SPC77TE65CT7M37RZ7V282KE66CFBEMBNQZKN5WD.aidog",
+      "symbol": "AIdog",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/fPXUoRlD-photo-2024-12-09-20-49-58.jpg"
+    },
+    "spzx1hbfwaqmcjf9d5czk0d067z86kc2xvy75kky.kitsune-inu": {
+      "chainId": "stacks",
+      "decimals": 5,
+      "name": "KITSUNE INU",
+      "address": "SPZX1HBFWAQMCJF9D5CZK0D067Z86KC2XVY75KKY.kitsune-inu",
+      "symbol": "KINU",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/NreIXMqZ-photo-2024-12-10-16-07-28.jpg"
+    },
+    "sp4vezsabnv5sxe9gtymzhk9h08vczm4v1gwpkej.chancla-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Chancla",
+      "address": "SP4VEZSABNV5SXE9GTYMZHK9H08VCZM4V1GWPKEJ.chancla-stxcity",
+      "symbol": "FLIP",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/XIgEIPMA-Screenshot-2024-12-10-173826.png"
+    },
+    "sp1jbv7te0490knvm1vam19khzg0cpc9426ycy3zf.drones-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "DRONES",
+      "address": "SP1JBV7TE0490KNVM1VAM19KHZG0CPC9426YCY3ZF.drones-stxcity",
+      "symbol": "UAP",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/bNTkeudj-uap.jpg"
+    },
+    "sp3aftj38pszqbxzgncdgm05gr0sfy7hbpzd2acr2.rocket-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Rocket",
+      "address": "SP3AFTJ38PSZQBXZGNCDGM05GR0SFY7HBPZD2ACR2.rocket-stxcity",
+      "symbol": "Rocket",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/RcGNqcuH-hp-op-rocketemo.webp"
+    },
+    "sp1z92mpdqewzxw36vx71q25hkf5k2epcj304f275.tokensoft-token-v4kfxflkglu": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Wojak Coin",
+      "address": "SP1Z92MPDQEWZXW36VX71Q25HKF5K2EPCJ304F275.tokensoft-token-v4kfxflkglu",
+      "symbol": "WOJAK",
+      "logoURI": "https://bafybeieuezvziq273ryrjy2hmd7drpegtgz6di62zqmrcl3qngf7wwyyny.ipfs.w3s.link/wojak.png"
+    },
+    "sp2tt71cxbrddyp2p8xmvkrfykrgsmbwcz6w6fdgt.notastrategy": {
+      "chainId": "stacks",
+      "decimals": 7,
+      "name": "NotaStrategy",
+      "address": "SP2TT71CXBRDDYP2P8XMVKRFYKRGSMBWCZ6W6FDGT.notastrategy",
+      "symbol": "NASTY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/RkHzFqIs-Nasty-hoddie.png"
+    },
+    "sp2bq0676yv3f7qbjxs1pt7xa975zg03xexs9c8tn.stacksai-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "StacksAI",
+      "address": "SP2BQ0676YV3F7QBJXS1PT7XA975ZG03XEXS9C8TN.stacksai-stxcity",
+      "symbol": "stxAI",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/SKfCgdja-stxAI.jpeg"
+    },
+    "sm3vdxk3wzzsa84xxfkafaf15nnzx32ctsg82jfq4.sbtc-token": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "sBTC",
+      "address": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
+      "symbol": "sBTC",
+      "logoURI": "https://ipfs.io/ipfs/bafkreiffe46h5voimvulxm2s4ddszdm4uli4rwcvx34cgzz3xkfcc2hiwi"
+    },
+    "sp1aqdvjf18xefvxmwtraw9tq0n2dcn0178fkw03r.smoke": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Smoke",
+      "address": "SP1AQDVJF18XEFVXMWTRAW9TQ0N2DCN0178FKW03R.smoke",
+      "symbol": "Smoke",
+      "logoURI": "https://gaia.hiro.so/hub/14VoLKZdnhuRVkS3HRvFnCntCYKfMfaom7/LimeWire-AI-Studio-Asset.png"
+    },
+    "sp9pk32n4qvee3n1jnqvjwbm4r36tkhnnkzmn62e.bone-stacks": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Bone Stacks",
+      "address": "SP9PK32N4QVEE3N1JNQVJWBM4R36TKHNNKZMN62E.bone-stacks",
+      "symbol": "BONE",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/AJvvNvrt-BoneLogo.png"
+    },
+    "sp1epkczeg9t3pvemxgk81pvpaenwrm3h5mczx3dv.nerdydude": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "NerdyDude",
+      "address": "SP1EPKCZEG9T3PVEMXGK81PVPAENWRM3H5MCZX3DV.nerdydude",
+      "symbol": "NERDY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/kvDsKDYg-QdeiDDEcVtdnzwOP.jpg"
+    },
+    "spjakb2zmxjjjhtdj6a7q3a4p714h6cmgperq9m7.grinch-stole-christmas-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "GRINCH Stole Christmas",
+      "address": "SPJAKB2ZMXJJJHTDJ6A7Q3A4P714H6CMGPERQ9M7.grinch-stole-christmas-stxcity",
+      "symbol": "GRINCH",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/aLwnQAIz-IMG-20241218-152106-331.jpg"
+    },
+    "sp67mj3wdfw60xkgk1a45kdrtyxwfe0bb663w042.normie": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Normie",
+      "address": "SP67MJ3WDFW60XKGK1A45KDRTYXWFE0BB663W042.normie",
+      "symbol": "NORM",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/fKPqnBBL-3dlYhcnF-400x400.jpg"
+    },
+    "sp2vg7s0r4z8pynycaq04hcbx1mh75vt11vxcwq6g.built-on-bitcoin-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Built on Bitcoin",
+      "address": "SP2VG7S0R4Z8PYNYCAQ04HCBX1MH75VT11VXCWQ6G.built-on-bitcoin-stxcity",
+      "symbol": "BOB",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/AudBgumL-BOB-Main-Logo.png"
+    },
+    "sp67mj3wdfw60xkgk1a45kdrtyxwfe0bb663w042.kekius-maximus": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Kekius Maximus",
+      "address": "SP67MJ3WDFW60XKGK1A45KDRTYXWFE0BB663W042.kekius-maximus",
+      "symbol": "KEKIUS",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/nNvxpBBt-kek.png"
+    },
+    "sp1s7zpgh8nd18c6w00b3bb6bfkdvdf8y8ykm80my.ninja": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Ninja",
+      "address": "SP1S7ZPGH8ND18C6W00B3BB6BFKDVDF8Y8YKM80MY.ninja",
+      "symbol": "NINJA",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/pPvvaftP-16807.png"
+    },
+    "sp11576by1vgm2eegs0z8p0b3053v0ckt4yyrhm3z.sonic-svm": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Sonic SVM",
+      "address": "SP11576BY1VGM2EEGS0Z8P0B3053V0CKT4YYRHM3Z.sonic-svm",
+      "symbol": "SONIC",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/yuOkRdom-599UDQd5YAUfesAJCTNZ-4ELWLHX5pbid-ahpoJ-w1A.png"
+    },
+    "sp1gra661hsa3f1fwc6eanttf6nwtphmq31nb96ah.pizza-ninjas": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Pizza Ninjas",
+      "address": "SP1GRA661HSA3F1FWC6EANTTF6NWTPHMQ31NB96AH.pizza-ninjas",
+      "symbol": "NINJAS",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/eEjMbCZk-Pizza-Ninjas-1-23-.png"
+    },
+    "spqfacz5kgyjh3xg8bdww2vggrbj8bpfvexevc6m.mstr-on-stacks-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "MSTR on Stacks",
+      "address": "SPQFACZ5KGYJH3XG8BDWW2VGGRBJ8BPFVEXEVC6M.mstr-on-stacks-stxcity",
+      "symbol": "MSTR",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/oeNiAERy-MSTR-2-.png"
+    },
+    "spsp4ehj2cq3z5ck9n7ne7238fhyfsdbef79v5hq.stacked-chad": {
+      "chainId": "stacks",
+      "decimals": 0,
+      "name": "Stacked Chad",
+      "address": "SPSP4EHJ2CQ3Z5CK9N7NE7238FHYFSDBEF79V5HQ.stacked-chad",
+      "symbol": "StxCHAD",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/nIUploLi-WhatsApp-Image-2024-12-31-at-13-36-43-713d4d1d.jpg"
+    },
+    "sp5njh2ncqzk8v8e7gd4zxkq082n56yjyrd44cbr.chunk": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Chunk",
+      "address": "SP5NJH2NCQZK8V8E7GD4ZXKQ082N56YJYRD44CBR.chunk",
+      "symbol": "CHUNK",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/cQYLszdq-Logo.png"
+    },
+    "spx2cfj40nr4z39c2bk5zcc91xnrytpptkjmd9zz.zest-protocol-token": {
+      "chainId": "stacks",
+      "decimals": 3,
+      "name": "Zest Protocol Token",
+      "address": "SPX2CFJ40NR4Z39C2BK5ZCC91XNRYTPPTKJMD9ZZ.zest-protocol-token",
+      "symbol": "ZEST",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/PFJItLIO-WhatsApp-Image-2025-01-15-at-07-40-09-9dbcd2db.jpg"
+    },
+    "sp1b17ermzv499prh1wp6hdvvjarf3q4cdd92ebwn.aibtc": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "AIbtc",
+      "address": "SP1B17ERMZV499PRH1WP6HDVVJARF3Q4CDD92EBWN.aibtc",
+      "symbol": "AIBTC",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/bqITDveZ-Gabe6HRWAAA6K0-.jpg"
+    },
+    "sp6tnst5ekbstgkbr0r95af01hpw5747fyrbhkxt.trump-meme": {
+      "chainId": "stacks",
+      "decimals": 2,
+      "name": "TRUMP MEME",
+      "address": "SP6TNST5EKBSTGKBR0R95AF01HPW5747FYRBHKXT.trump-meme",
+      "symbol": "TRUMP",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/VYaupEsJ-WhatsApp-Image-2025-01-18-at-11-27-30-3e111460.jpg"
+    },
+    "spsz5kncz7t2q0b0nwqea2n4tny0vcywgn38dk9f.fomo-radio-ai": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "FOMO RADIO AI",
+      "address": "SPSZ5KNCZ7T2Q0B0NWQEA2N4TNY0VCYWGN38DK9F.fomo-radio-ai",
+      "symbol": "RADIO",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/QeMunPcu-QmYau7Hq9Ydd2DLgT6PBPdcKUS4wEQjVV4mN76tNxZTFKS.jpg"
+    },
+    "sp3pp4v77g7gj6hvq9t41estjd7gxh3dwr3k8wmxp.melania-meme": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Melania Meme",
+      "address": "SP3PP4V77G7GJ6HVQ9T41ESTJD7GXH3DWR3K8WMXP.melania-meme",
+      "symbol": "MELENIA",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/PlQEFhIO-bafkreiduq5c43xdbcbhzx3plcdtz2jwkjpzlm2hwkoxhjgmnmqbl6otyfu.jpg"
+    },
+    "sp2rstyvkmsyhx7rhd6qn9vhv20k0p2jypm18t069.bitstacks": {
+      "chainId": "stacks",
+      "decimals": 3,
+      "name": "Bitstacks",
+      "address": "SP2RSTYVKMSYHX7RHD6QN9VHV20K0P2JYPM18T069.bitstacks",
+      "symbol": "BTS",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/ClLejgYK-WhatsApp-Image-2025-01-21-at-10-26-56-22e411e4.jpg"
+    },
+    "spxx4c4zvm6n4rs4d7yx3qptrjme1esxwmnsb2mn.stacks-degens": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Stacks Degens",
+      "address": "SPXX4C4ZVM6N4RS4D7YX3QPTRJME1ESXWMNSB2MN.stacks-degens",
+      "symbol": "DEGENS",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/uxQYSfwT-Ghq7bA8WMAEl6Pv.jpg"
+    },
+    "sp2rstyvkmsyhx7rhd6qn9vhv20k0p2jypm18t069.ai-dao-token": {
+      "chainId": "stacks",
+      "decimals": 5,
+      "name": "AI Dao Token",
+      "address": "SP2RSTYVKMSYHX7RHD6QN9VHV20K0P2JYPM18T069.ai-dao-token",
+      "symbol": "AIDAO",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/eMhDqIMG-WhatsApp-Image-2025-01-21-at-11-07-37-2b82e27c.jpg"
+    },
+    "sp39859ad7rq6nyk00ej8hn1dwe40c576fbdghpa0.betrezen-legion-of-the-damned": {
+      "chainId": "stacks",
+      "decimals": 5,
+      "name": "Betrezen Legion of the Damned",
+      "address": "SP39859AD7RQ6NYK00EJ8HN1DWE40C576FBDGHPA0.betrezen-legion-of-the-damned",
+      "symbol": "BTZ",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/KCUTgfeZ-channels4-profile.jpg"
+    },
+    "sp39859ad7rq6nyk00ej8hn1dwe40c576fbdghpa0.the-ok": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "The Ok",
+      "address": "SP39859AD7RQ6NYK00EJ8HN1DWE40C576FBDGHPA0.the-ok",
+      "symbol": "OK",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/eHkORvaw-i-3-.webp"
+    },
+    "spd1r8a962ekb8jehfqtfnxgztrr93j0ng5kcm81.gangnam-rose-apt-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Gangnam Rose APT",
+      "address": "SPD1R8A962EKB8JEHFQTFNXGZTRR93J0NG5KCM81.gangnam-rose-apt-stxcity",
+      "symbol": "KAPT",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/orXMMQps-ase.png"
+    },
+    "sp10w82mxgp3za295ee5jdm7zgxbxen5awhg8sapw.human-ai": {
+      "chainId": "stacks",
+      "decimals": 3,
+      "name": "Human AI",
+      "address": "SP10W82MXGP3ZA295EE5JDM7ZGXBXEN5AWHG8SAPW.human-ai",
+      "symbol": "Humanoid",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/TlRMJyPX-WhatsApp-Image-2025-02-05-at-13-04-03-d283b358.jpg"
+    },
+    "sp22b7zepjrfzzfeyh8xmgxyrc9qttbmvnty3kxp9.stxtools-coin": {
+      "chainId": "stacks",
+      "decimals": 0,
+      "name": "STXTools coin",
+      "address": "SP22B7ZEPJRFZZFEYH8XMGXYRC9QTTBMVNTY3KXP9.stxtools-coin",
+      "symbol": "STXTool",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/iEPYdFsS-WhatsApp-Image-2025-02-06-at-10-33-36-729a16e5.jpg"
+    },
+    "sp2vessb9n0b19c1egn3t6rmrj4pvgfs4stxsaxkj.velar-ai": {
+      "chainId": "stacks",
+      "decimals": 0,
+      "name": "Velar AI",
+      "address": "SP2VESSB9N0B19C1EGN3T6RMRJ4PVGFS4STXSAXKJ.velar-ai",
+      "symbol": "vAI",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/yNJnrJlH-WhatsApp-Image-2025-02-11-at-17-09-08-67361cab.jpg"
+    },
+    "sp3se348dfbqt3pv6yt9b85014w0xac5ct5q50fb3.amigo-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Amigo",
+      "address": "SP3SE348DFBQT3PV6YT9B85014W0XAC5CT5Q50FB3.amigo-stxcity",
+      "symbol": "AMIGO",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/hNcAIdbw-Shib-Sombrero-1.png"
+    },
+    "sp4sze494vc2yc5jyg7ayfq44f5q4pyv7dvmdpbg.ststxbtc-token-v2": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Stacked STX BTC Token",
+      "address": "SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2",
+      "symbol": "stSTXbtc",
+      "logoURI": "https://app.stackingdao.com/ststxbtc-logo.png"
+    },
+    "sp1y5ystahz88xyk1vpdh24gy0hpx5j4jectmy4a1.neebs": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "neebs",
+      "address": "SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1.neebs",
+      "symbol": "neebs",
+      "logoURI": "/placeholder.jpg"
+    },
+    "sp3rdtnty5zg0x9qz397wpxm8w306vmjxwa3808c2.nakamoto-1": {
+      "chainId": "stacks",
+      "decimals": 5,
+      "name": "Nakamoto 1",
+      "address": "SP3RDTNTY5ZG0X9QZ397WPXM8W306VMJXWA3808C2.nakamoto-1",
+      "symbol": "nakamoto",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/GHFmXFdE-WhatsApp-Image-2025-02-25-at-15-58-06-4fbfe242.jpg"
+    },
+    "sp2jrmt8r6ar3b4m6gdfhmztv9gvk4hf5ydf7972y.nakamoto": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "NAKAMOTO",
+      "address": "SP2JRMT8R6AR3B4M6GDFHMZTV9GVK4HF5YDF7972Y.nakamoto",
+      "symbol": "NAKAMOTO",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/IBgsrDPP-EwrETfzj-400x400.jpg"
+    },
+    "sp1pw804599bz46b4a0fyh86ed26xpja7sfynk1xs.play": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Play",
+      "address": "SP1PW804599BZ46B4A0FYH86ED26XPJA7SFYNK1XS.play",
+      "symbol": "PLAY",
+      "logoURI": "https://nftstorage.link/ipfs/bafybeichx5wzd3drwp4hai55pvtjbrb422rg6m6kvc6ytvj7sxzxgdual4"
+    },
+    "sp2xf1rxben7r6tssa5mcnsp8x7bt69sm3vcagqrp.deer-seized-by-us-government": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Deer Seized by US Government",
+      "address": "SP2XF1RXBEN7R6TSSA5MCNSP8X7BT69SM3VCAGQRP.deer-seized-by-us-government",
+      "symbol": "BABY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/pBncjpMv-GlKs1K5WcAAix40.jpg"
+    },
+    "sp2qgq3r0rh96segev6ybk8qdpf7cq0atc2e7fh67.this-is-welsh-2-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "This is welsh 2",
+      "address": "SP2QGQ3R0RH96SEGEV6YBK8QDPF7CQ0ATC2E7FH67.this-is-welsh-2-stxcity",
+      "symbol": "welsh2",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/LUtrfZkW-welsh.webp"
+    },
+    "sp3m2k7rj4y1q0b4jsg0jwqew0zd9qky99nteeb4j.stxbot": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "stxBOT",
+      "address": "SP3M2K7RJ4Y1Q0B4JSG0JWQEW0ZD9QKY99NTEEB4J.stxbot",
+      "symbol": "stxBOT",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/cwdZWHju-photo-2025-03-25-17-36-47.jpg"
+    },
+    "sp672gfq8g37dk2kb05sxkjn7dtwtrkemkefykx7.chatty": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "CHATTY",
+      "address": "SP672GFQ8G37DK2KB05SXKJN7DTWTRKEMKEFYKX7.chatty",
+      "symbol": "CHATTY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/dUQlixLP-QmW1YoK6BWVNR7jcEHBpR47hHLiCG55eM3ucWRk5FN7w46.png"
+    },
+    "sp39859ad7rq6nyk00ej8hn1dwe40c576fbdghpa0.gas-futures": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Gas futures",
+      "address": "SP39859AD7RQ6NYK00EJ8HN1DWE40C576FBDGHPA0.gas-futures",
+      "symbol": "GZPB",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/TkMMHdav-1200x630wa.png"
+    },
+    "sp3k8bc0ppevcv7nz6qsrwpq2je9e5b6n3pa0kbr9.brc20-sbtc": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "sbtc (BRC20)",
+      "address": "SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.brc20-sbtc",
+      "symbol": "sbtc",
+      "logoURI": "https://token-images.alexlab.co/brc20-sbtc"
+    },
+    "sp2bvd7dttdp67a5swzcpcaxyz99gybz84nk25cmg.bingo": {
+      "chainId": "stacks",
+      "decimals": 3,
+      "name": "Bingo",
+      "address": "SP2BVD7DTTDP67A5SWZCPCAXYZ99GYBZ84NK25CMG.bingo",
+      "symbol": "Bingo",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/RBQsrhZC-photo-2025-04-23-19-29-25.jpg"
+    },
+    "sp3e8b51mf5e28bd82fm95vdsq71vk4kfnzx7zk2r.frog-faktory": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "frog",
+      "address": "SP3E8B51MF5E28BD82FM95VDSQ71VK4KFNZX7ZK2R.frog-faktory",
+      "symbol": "FROGGY",
+      "logoURI": "https://szigdtxfspmofhxoytra.supabase.co/storage/v1/object/public/token_logo/n62jpl96-froggy.gif"
+    },
+    "sp14zyp25nw67xzqwmcdqcgh9s178jt78qjye6k37.rapha-faktory": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Rapha",
+      "address": "SP14ZYP25NW67XZQWMCDQCGH9S178JT78QJYE6K37.rapha-faktory",
+      "symbol": "RAPHA",
+      "logoURI": "https://szigdtxfspmofhxoytra.supabase.co/storage/v1/object/public/token_logo/k7g75rwr-J_SO2iUR_400x400.jpg"
+    },
+    "sp3nymtqtx1ag6mmt2he51x94hyk774g3z3jjmf3j.purple-toshi": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Purple Toshi",
+      "address": "SP3NYMTQTX1AG6MMT2HE51X94HYK774G3Z3JJMF3J.purple-toshi",
+      "symbol": "POSHI",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/UztCOqYE-QmbWkjxLdRuVPezEwqfuWErEvy4aCtwDcwRgE7Z2pdJQaB.png"
+    },
+    "spkbv3czb15cm3cvmcmrx56wrykdy5p5ctqqxsn0.belgian-malinois": {
+      "chainId": "stacks",
+      "decimals": 3,
+      "name": "Belgian Malinois",
+      "address": "SPKBV3CZB15CM3CVMCMRX56WRYKDY5P5CTQQXSN0.belgian-malinois",
+      "symbol": "MALi",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/uJPiKMdH-gifFile.gif"
+    },
+    "sp147g43wr4cnp1rhh32vm4n64qc1hf9w6g7z4xmx.crustieno-renaldo": {
+      "chainId": "stacks",
+      "decimals": 5,
+      "name": "Crustieno Renaldo",
+      "address": "SP147G43WR4CNP1RHH32VM4N64QC1HF9W6G7Z4XMX.crustieno-renaldo",
+      "symbol": "SIUU",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/lcckJylz-indir.png"
+    },
+    "sp2jy62h3ekgnm5xtk3sp6zw4frwrsram38rj90za.more-passion": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "More Passion",
+      "address": "SP2JY62H3EKGNM5XTK3SP6ZW4FRWRSRAM38RJ90ZA.more-passion",
+      "symbol": "ENERGY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/WGLTSZBT-QmacvPPnYyj1RgC5M2CokpB4yX5fTdnkBmVJyN3Joq9QZ9.png"
+    },
+    "sp3ca2xys3pe4sg2rhj88c978hp3b0xsgz73swvzf.pepecola": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "PEPECOLA",
+      "address": "SP3CA2XYS3PE4SG2RHJ88C978HP3B0XSGZ73SWVZF.pepecola",
+      "symbol": "PEPECOLA",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/TlVgNhXN-QmPxoZToxUUhsyQ8P7MytFD7uXt2YAbyVV8UdBUyYukccE.png"
+    },
+    "sp2drm5dkdjx6ecfjh9xdt66dzv8fk2h1a27jzhca.doge-bonk": {
+      "chainId": "stacks",
+      "decimals": 0,
+      "name": "DOGE BONK ",
+      "address": "SP2DRM5DKDJX6ECFJH9XDT66DZV8FK2H1A27JZHCA.doge-bonk",
+      "symbol": "BONK",
+      "logoURI": "https://gaia.hiro.so/hub/1Gwh5gnZBHswL7mCBGV4ngRcjnJuDMpsfk/bonk.jpeg"
+    },
+    "sp15znq9ft2yjfnxqqhc16b1vaxhapq1h5ha5vq2t.simons-dog": {
+      "chainId": "stacks",
+      "decimals": 0,
+      "name": "Simons Dog",
+      "address": "SP15ZNQ9FT2YJFNXQQHC16B1VAXHAPQ1H5HA5VQ2T.simons-dog",
+      "symbol": "DOG",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/wJDMUFyh-IMG-4604.webp"
+    },
+    "spgnh14rqwat05pvg8cexcm7bgc5ppr01xvgqxpz.pos-coin-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "POS Coin",
+      "address": "SPGNH14RQWAT05PVG8CEXCM7BGC5PPR01XVGQXPZ.pos-coin-stxcity",
+      "symbol": "POS",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/tnpqevtM-03C3009C-AA50-4365-BB5C-15FB21FC72B4.png"
+    },
+    "sp15znq9ft2yjfnxqqhc16b1vaxhapq1h5ha5vq2t.nigiri": {
+      "chainId": "stacks",
+      "decimals": 0,
+      "name": "NIGIRI",
+      "address": "SP15ZNQ9FT2YJFNXQQHC16B1VAXHAPQ1H5HA5VQ2T.nigiri",
+      "symbol": "NIGIRI",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/XKzcWWqz-IMG-4658.jpeg"
+    },
+    "sp1z92mpdqewzxw36vx71q25hkf5k2epcj304f275.tokensoft-token-v4karmaedcr": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "STXOSHI",
+      "address": "SP1Z92MPDQEWZXW36VX71Q25HKF5K2EPCJ304F275.tokensoft-token-v4karmaedcr",
+      "symbol": "STXOSHI",
+      "logoURI": "https://s3-us-east-2.amazonaws.com/stackswap-launchpad/f9cd3af6-c6b3-4f8f-9fe0-7749d60b8d44.jpg"
+    },
+    "sp11958tjc5evf6vkccq33yr19pzgmgxcp8m4hafx.velar-inu": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "Velar INU",
+      "address": "SP11958TJC5EVF6VKCCQ33YR19PZGMGXCP8M4HAFX.velar-inu",
+      "symbol": "VelarInu",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/gvjaUSLh-INUUUU.png"
+    },
+    "spqymrakzpqpjaadx5jbeft0fhe3rzzk9f8tybq3.dawgpool-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Dawgpool",
+      "address": "SPQYMRAKZPQPJAADX5JBEFT0FHE3RZZK9F8TYBQ3.dawgpool-stxcity",
+      "symbol": "PEGGY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/DYgfUSfx-DawgcoinLogo.png"
+    },
+    "sp1tx54g3j018zgn0htgx0xxryp9t9xjaq75c4zym.dawgcoin": {
+      "chainId": "stacks",
+      "decimals": 5,
+      "name": "Dawgpool",
+      "address": "SP1TX54G3J018ZGN0HTGX0XXRYP9T9XJAQ75C4ZYM.dawgcoin",
+      "symbol": "PEGGY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/OWOlCnFc-photo-2025-07-18-15-51-53.jpeg"
+    },
+    "spb8pxkr86ckjnvg8y3aqkfezjx57nw2w8jpvxqa.testpresaledecimals": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "TestPresaleDecimals",
+      "address": "SPB8PXKR86CKJNVG8Y3AQKFEZJX57NW2W8JPVXQA.testpresaledecimals",
+      "symbol": "TPD",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/JDznubHF--.png"
+    },
+    "spb8pxkr86ckjnvg8y3aqkfezjx57nw2w8jpvxqa.mouse-with-bowl": {
+      "chainId": "stacks",
+      "decimals": 0,
+      "name": "Mouse with Bowl",
+      "address": "SPB8PXKR86CKJNVG8Y3AQKFEZJX57NW2W8JPVXQA.mouse-with-bowl",
+      "symbol": "MB",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/HXstbuqH-logo-transparent.png"
+    },
+    "sp1t0vy3dnxrvp6hbm75dfww0199cr0x15pc1d81b.teiko-token-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Teiko Token",
+      "address": "SP1T0VY3DNXRVP6HBM75DFWW0199CR0X15PC1D81B.teiko-token-stxcity",
+      "symbol": "Teiko",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/MOyNSqXv-Teiko-Labs-v1.png"
+    },
+    "sp1t0vy3dnxrvp6hbm75dfww0199cr0x15pc1d81b.mas-sats": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "The MAS Network",
+      "address": "SP1T0VY3DNXRVP6HBM75DFWW0199CR0X15PC1D81B.mas-sats",
+      "symbol": "MAS",
+      "logoURI": "/placeholder.jpg"
+    },
+    "spsjk3n41cwjrtzj6g554pfx6s9pyas9sqjx0dke.pumpeet": {
+      "chainId": "stacks",
+      "decimals": 3,
+      "name": "Pumpeet",
+      "address": "SPSJK3N41CWJRTZJ6G554PFX6S9PYAS9SQJX0DKE.pumpeet",
+      "symbol": "pumpeet",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/BJPCJfEl-photo-2025-08-16-17-58-11.jpeg"
+    },
+    "sp3k8bc0ppevcv7nz6qsrwpq2je9e5b6n3pa0kbr9.runes-dog": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "DOG GO TO THE MOON (RUNES)",
+      "address": "SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.runes-dog",
+      "symbol": "DOG",
+      "logoURI": "https://token-images.alexlab.co/runes-dog"
+    },
+    "sp3a4nsfw6gtb6rj33k06w8wshg4aa1c2e6172y02.buddha-stx-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "BUDDHA STX",
+      "address": "SP3A4NSFW6GTB6RJ33K06W8WSHG4AA1C2E6172Y02.buddha-stx-stxcity",
+      "symbol": "BUDDHA",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/wqvVcHuS-BUDDHA-STX-1-1024x1024.jpg"
+    },
+    "spscwdv3rkv5zrn1fqd84ye1nqfedj9r1f4dyq11.newyorkcitycoin-token-v2": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "newyorkcitycoin",
+      "address": "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2",
+      "symbol": "NYC",
+      "logoURI": "https://cdn.citycoins.co/logos/newyorkcitycoin.png"
+    },
+    "spkj5a8s5b7w1btba048pwrgbpr51aynpaj6ymwk.pumpy-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "PUMPY",
+      "address": "SPKJ5A8S5B7W1BTBA048PWRGBPR51AYNPAJ6YMWK.pumpy-stxcity",
+      "symbol": "PUMPY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/ZdMcKFbU-PUMPY-on-MOON.jpg"
+    },
+    "sp1h1733v5mz3sz9xrw9fkygezt0jdgeb8y634c7r.miamicoin-token-v2": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "miamicoin",
+      "address": "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-token-v2",
+      "symbol": "MIA",
+      "logoURI": "https://cdn.citycoins.co/logos/miamicoin.png"
+    },
+    "sp3byq48p3f6v9cjmsh5938qmhassxafyqm2a916c.bonkhouse": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "BONKHOUSE",
+      "address": "SP3BYQ48P3F6V9CJMSH5938QMHASSXAFYQM2A916C.bonkhouse",
+      "symbol": "BONKHOUSE",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/oJdNmqKT-af0ddh79kd8qanv6ob3dba7u6x5f.jpg"
+    },
+    "sp103k3q8a605ntqkn8ha8dtmmdyxdhxn06m79dfr.pomeranian": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Pomeranian",
+      "address": "SP103K3Q8A605NTQKN8HA8DTMMDYXDHXN06M79DFR.pomeranian",
+      "symbol": "POM",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/OFiZuVNh-ZjBbpUwP-400x400-fotor-bg-remover-20251008125752.png"
+    },
+    "sp2n66xw8xrgw2bz4yakh2zb9jqmyavd9dteym66y.buy-the-dip-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "BUY THE DIP",
+      "address": "SP2N66XW8XRGW2BZ4YAKH2ZB9JQMYAVD9DTEYM66Y.buy-the-dip-stxcity",
+      "symbol": "DIP",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/bUDNfKQa-BUYDIP.jpg"
+    },
+    "sp36b6yfweae81z4rp8w2a7c78mrd0h8vt7ar596n.sachi-coin": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "Sachi Coin",
+      "address": "SP36B6YFWEAE81Z4RP8W2A7C78MRD0H8VT7AR596N.sachi-coin",
+      "symbol": "SACHI",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/YpzfogEo-XJf4mmFi-400x400.jpg"
+    },
+    "spae1dze3hph909earz0fyy8kbr9jn7j3pe2g8qg.kendu": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "KENDU",
+      "address": "SPAE1DZE3HPH909EARZ0FYY8KBR9JN7J3PE2G8QG.kendu",
+      "symbol": "KENDU",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/wKzonhZy-avLfAf-0-400x400.jpg"
+    },
+    "sp2p1dfkbg6ph922b02be2kse458zyqg0dewa2kwy.stxanta": {
+      "chainId": "stacks",
+      "decimals": 3,
+      "name": "STXanta",
+      "address": "SP2P1DFKBG6PH922B02BE2KSE458ZYQG0DEWA2KWY.stxanta",
+      "symbol": "stxanta",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/XRRTsCJs-photo-2025-12-11-19-20-04.jpeg"
+    },
+    "spae1dze3hph909earz0fyy8kbr9jn7j3pe2g8qg.novax": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "NOVAX",
+      "address": "SPAE1DZE3HPH909EARZ0FYY8KBR9JN7J3PE2G8QG.novax",
+      "symbol": "NOVAX",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/vSkKYCvv-x97dxQ2A-400x400.jpg"
+    },
+    "sp293em9sxe8j8ssma7xrm5aess52h0m0qdxtf92x.pussy-ju1ce-stxcity": {
+      "chainId": "stacks",
+      "decimals": 6,
+      "name": "PUSSY JU1CE",
+      "address": "SP293EM9SXE8J8SSMA7XRM5AESS52H0M0QDXTF92X.pussy-ju1ce-stxcity",
+      "symbol": "JU1CY",
+      "logoURI": "https://pdakhjpwkuwtadzmpnjm.supabase.co/storage/v1/object/public/token_logo/lrGHLCEy-Screenshot-20241013-090420-1-.png"
+    },
+    "sp2xd7417hgprtremkf748vneqpdrr0rmanb7x1nk.token-abtc": {
+      "chainId": "stacks",
+      "decimals": 8,
+      "name": "aBTC",
+      "address": "SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-abtc",
+      "symbol": "aBTC",
+      "logoURI": "https://token-images.alexlab.co/token-abtc"
+    }
+  },
+  "mainTokens": [
+    "sp1y5ystahz88xyk1vpdh24gy0hpx5j4jectmy4a1.wstx",
+    "sm3vdxk3wzzsa84xxfkafaf15nnzx32ctsg82jfq4.sbtc-token",
+    "sp4sze494vc2yc5jyg7ayfq44f5q4pyv7dvmdpbg.ststx-token",
+    "sp3y2zsh8p7d50b0vbtsx11s7xsg24m1vb9yfqa4k.token-aeusdc",
+    "spn5akg35qzsk2m8gamr4afx45659rjhdw353hsg.usdh-token-v1",
+    "sp2c2yfp12ajzb4mabjbaj55xecvs7e4pmmz89yzr.arkadiko-token",
+    "sp3k8bc0ppevcv7nz6qsrwpq2je9e5b6n3pa0kbr9.token-abtc",
+    "sp4sze494vc2yc5jyg7ayfq44f5q4pyv7dvmdpbg.ststxbtc-token-v2"
+  ]
+}

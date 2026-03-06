@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tupleCV, uintCV, trueCV, falseCV, cvToHex } from '@stacks/transactions'
+import { tupleCV, uintCV, trueCV, falseCV, bufferCV, cvToHex } from '@stacks/transactions'
 import {
   getZestV2ReservesDataConverter,
 } from '../public-data/zest-v2/publicCallParse'
@@ -96,6 +96,36 @@ function buildMockResults(): StacksCallResult[] {
     results.push(mockAssetStatus(true, i % 2 === 0))
   }
 
+  // Section 4: egroup resolve per z-token (6 calls)
+  // Some return (ok tuple), others (err uint) for assets without egroup
+  for (let i = 0; i < nUnderlying; i++) {
+    if (i === 4) {
+      // USDH (asset 8) has no egroup — simulate (err uint)
+      results.push({ okay: true, result: cvToHex(uintCV(720007)) })
+    } else {
+      // Mock egroup with LTV-BORROW and LTV-LIQ-PARTIAL as (buff 2) BPS
+      const ltvBorrow = 4000 + i * 1000 // 40%, 50%, 60%, 70%, 80%, skip
+      const ltvLiqPartial = ltvBorrow + 1500
+      results.push(
+        okResult(
+          cvToHex(
+            tupleCV({
+              'LTV-BORROW': bufferCV(new Uint8Array([(ltvBorrow >> 8) & 0xff, ltvBorrow & 0xff])),
+              'LTV-LIQ-PARTIAL': bufferCV(new Uint8Array([(ltvLiqPartial >> 8) & 0xff, ltvLiqPartial & 0xff])),
+              'LTV-LIQ-FULL': bufferCV(new Uint8Array([0x23, 0x28])),
+              'LIQ-PENALTY-MIN': bufferCV(new Uint8Array([0x02, 0xee])),
+              'LIQ-PENALTY-MAX': bufferCV(new Uint8Array([0x03, 0xe8])),
+              'LIQ-CURVE-EXP': bufferCV(new Uint8Array([0x27, 0x10])),
+              'BORROW-DISABLED-MASK': uintCV(0),
+              'MASK': uintCV(0),
+              id: bufferCV(new Uint8Array([i])),
+            }),
+          ),
+        ),
+      )
+    }
+  }
+
   return results
 }
 
@@ -104,7 +134,8 @@ describe('Zest V2 parser', () => {
     const [converter, count] = getZestV2ReservesDataConverter()
     expect(typeof converter).toBe('function')
     expect(count).toBe(getExpectedCallCount())
-    expect(count).toBe(60)
+    // 6*3 registry + 6*5 vault + 12 statuses + 6 egroup = 66
+    expect(count).toBe(66)
   })
 
   it('rejects results with wrong length', () => {

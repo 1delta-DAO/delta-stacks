@@ -1,5 +1,5 @@
 import { StacksCallResult } from '../../stacks-call'
-import { decodeClarityValue } from '../../stacks-call'
+import { decodeClarityValue, extractTuple } from '../../stacks-call'
 import { ZEST_V2_SYMBOLS, ZEST_V2_UNDERLYING_IDS, ZEST_V2_VAULT_FOR_ASSET } from './constants'
 import type { ZestV2ReserveData, ZestV2PublicResponse, ZestV2AssetStatus } from './publicCallParse'
 
@@ -12,21 +12,19 @@ const ASSET_DECIMALS: Record<number, number> = {
 }
 
 /**
- * Parse results from the per-vault reader calls built by buildV2ReaderCalls.
+ * Parse results from the per-vault reader calls + egroup resolve calls.
  *
- * Layout: [0..6) per-vault tuples, each containing:
- *   { total-supply, total-assets, debt, available, interest-rate,
- *     index, lindex, cap-debt, cap-supply, fee-reserve }
- *
- * Note: asset-bitmap is not available from per-vault calls.
- * Asset statuses default to enabled.
+ * Layout: [0..6) per-vault tuples, [6..12) egroup resolve results
  */
 export function parseV2ReaderResults(
   results: StacksCallResult[],
   prices: Record<string, number> = {},
 ): ZestV2PublicResponse | undefined {
-  if (results.length !== ZEST_V2_UNDERLYING_IDS.length) {
-    console.warn(`V2 reader: expected ${ZEST_V2_UNDERLYING_IDS.length} results, got ${results.length}`)
+  const nUnderlying = ZEST_V2_UNDERLYING_IDS.length
+  const expectedCount = nUnderlying * 2 // 6 reader + 6 egroup
+
+  if (results.length !== expectedCount) {
+    console.warn(`V2 reader: expected ${expectedCount} results, got ${results.length}`)
     return undefined
   }
 
@@ -43,9 +41,18 @@ export function parseV2ReaderResults(
       }
     }
 
+    // Parse egroup resolve results (indices 6..12)
+    const egroupLtvs: Record<number, { baseLtv: number; liquidationThreshold: number }> = {}
+    for (let i = 0; i < nUnderlying; i++) {
+      const aid = ZEST_V2_UNDERLYING_IDS[i]
+      const egResult = results[nUnderlying + i]
+      const parsed = decodeEGroupResolve(egResult)
+      if (parsed) egroupLtvs[aid] = parsed
+    }
+
     const reserveData: Record<string, ZestV2ReserveData> = {}
 
-    for (let i = 0; i < ZEST_V2_UNDERLYING_IDS.length; i++) {
+    for (let i = 0; i < nUnderlying; i++) {
       const result = results[i]
       if (!result.okay) continue
 
@@ -94,6 +101,8 @@ export function parseV2ReaderResults(
         zTokenCollateralEnabled: assetStatuses[zTokenId]?.collateralEnabled ?? true,
         oracleType: null,
         principal: null,
+        baseLtv: egroupLtvs[aid]?.baseLtv ?? 0,
+        liquidationThreshold: egroupLtvs[aid]?.liquidationThreshold ?? 0,
       }
 
       // Derive supply rate
@@ -116,4 +125,27 @@ function extractNum(field: any): number {
   if (typeof field === 'bigint') return Number(field)
   if (field?.value !== undefined) return Number(field.value)
   return Number(field) || 0
+}
+
+/** Decode v0-egroup.resolve() — (ok tuple) or (err uint) */
+function decodeEGroupResolve(
+  result: StacksCallResult,
+): { baseLtv: number; liquidationThreshold: number } | null {
+  try {
+    if (!result.okay) return null
+    const decoded = decodeClarityValue(result.result)
+    if (decoded?.success === false) return null
+    const t = extractTuple(decoded?.value ?? decoded)
+    const ltvBorrow = decodeBuff2Bps(t?.['LTV-BORROW'])
+    const ltvLiqPartial = decodeBuff2Bps(t?.['LTV-LIQ-PARTIAL'])
+    return { baseLtv: ltvBorrow, liquidationThreshold: ltvLiqPartial }
+  } catch {
+    return null
+  }
+}
+
+function decodeBuff2Bps(field: any): number {
+  if (!field) return 0
+  const hex = String(field.value ?? field).replace('0x', '')
+  return parseInt(hex, 16) / 10000
 }

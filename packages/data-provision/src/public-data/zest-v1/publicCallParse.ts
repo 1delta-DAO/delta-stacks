@@ -9,8 +9,7 @@ import {
 } from './constants'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
-const BPS = 10_000
-// Zest uses 8-decimal fixed point for rates (1e8 = 100%)
+// Zest uses 8-decimal fixed point for rates and LTV/threshold values (1e8 = 100%)
 const RATE_PRECISION = 1e8
 
 export interface ZestReserveData {
@@ -160,8 +159,8 @@ export function getZestReservesDataConverter(
       config[0] = {
         category: 0,
         label: 'Disabled',
-        borrowCollateralFactor: Number(reserveState.baseLtvAsCollateral) / BPS,
-        collateralFactor: Number(reserveState.liquidationThreshold) / BPS,
+        borrowCollateralFactor: Number(reserveState.baseLtvAsCollateral) / RATE_PRECISION,
+        collateralFactor: Number(reserveState.liquidationThreshold) / RATE_PRECISION,
         borrowFactor: 1,
         collateralDisabled: !reserveState.usageAsCollateralEnabled,
         debtDisabled: !reserveState.borrowingEnabled,
@@ -173,8 +172,8 @@ export function getZestReservesDataConverter(
         config[assetEModeType] = {
           category: assetEModeType,
           label: eCfg.label,
-          borrowCollateralFactor: eCfg.ltv / BPS,
-          collateralFactor: eCfg.liquidationThreshold / BPS,
+          borrowCollateralFactor: eCfg.ltv / RATE_PRECISION,
+          collateralFactor: eCfg.liquidationThreshold / RATE_PRECISION,
           borrowFactor: 1,
           collateralDisabled: !reserveState.usageAsCollateralEnabled,
           debtDisabled: ZEST_NON_BORROWABLE.has(asset),
@@ -198,8 +197,8 @@ export function getZestReservesDataConverter(
         totalDebtUSD: totalDebt * price,
         totalLiquidityUSD: totalLiquidity * price,
         // rates
-        depositRate: supplyApy / RATE_PRECISION,
-        variableBorrowRate: borrowApy / RATE_PRECISION,
+        depositRate: supplyApy / RATE_PRECISION - 1,
+        variableBorrowRate: borrowApy / RATE_PRECISION - 1,
         stableBorrowRate: 0, // Zest doesn't have stable rates
         // config
         decimals,
@@ -213,9 +212,9 @@ export function getZestReservesDataConverter(
         borrowCap: Number(reserveState.borrowCap),
         debtCeiling: Number(reserveState.debtCeiling),
         liquidationThreshold:
-          Number(reserveState.liquidationThreshold) / BPS,
-        liquidationBonus: Number(reserveState.liquidationBonus) / BPS,
-        baseLtv: Number(reserveState.baseLtvAsCollateral) / BPS,
+          Number(reserveState.liquidationThreshold) / RATE_PRECISION,
+        liquidationBonus: Number(reserveState.liquidationBonus) / RATE_PRECISION,
+        baseLtv: Number(reserveState.baseLtvAsCollateral) / RATE_PRECISION,
         // metadata
         zToken: ZEST_Z_TOKENS[asset],
       }

@@ -4,6 +4,7 @@ import {
   getExpectedCallCount,
   ASSET_REGISTRY_CALLS_PER_ASSET,
   VAULT_CALLS_PER_UNDERLYING,
+  EGROUP_CALLS,
 } from '../public-data/zest-v2/publicCallBuild'
 import {
   ZEST_V2_UNDERLYING_IDS,
@@ -23,10 +24,11 @@ describe('Zest V2 call builder', () => {
     expect(expected).toBe(
       nUnderlying * ASSET_REGISTRY_CALLS_PER_ASSET +
         nUnderlying * VAULT_CALLS_PER_UNDERLYING +
-        nAll,
+        nAll +
+        EGROUP_CALLS,
     )
-    // 6*3 + 6*5 + 12 = 18 + 30 + 12 = 60
-    expect(expected).toBe(60)
+    // 6*3 + 6*5 + 12 + 6 = 18 + 30 + 12 + 6 = 66
+    expect(expected).toBe(66)
   })
 
   it('section 1: asset registry calls (3 per underlying)', () => {
@@ -68,6 +70,19 @@ describe('Zest V2 call builder', () => {
       expect(calls[section3Start + i].functionName).toBe('status')
       expect(calls[section3Start + i].contractName).toBe(
         ZEST_V2_CONTRACTS.assets.name,
+      )
+    }
+  })
+
+  it('section 4: egroup resolve calls for z-tokens', () => {
+    const section4Start =
+      nUnderlying * ASSET_REGISTRY_CALLS_PER_ASSET +
+      nUnderlying * VAULT_CALLS_PER_UNDERLYING +
+      nAll
+    for (let i = 0; i < EGROUP_CALLS; i++) {
+      expect(calls[section4Start + i].functionName).toBe('resolve')
+      expect(calls[section4Start + i].contractName).toBe(
+        ZEST_V2_CONTRACTS.egroup.name,
       )
     }
   })

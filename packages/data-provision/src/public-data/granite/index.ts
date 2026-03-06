@@ -3,6 +3,7 @@ export {
   getGraniteReservesDataConverter,
   type GraniteMarketData,
   type GranitePublicResponse,
+  type GraniteCollateralConfig,
 } from './publicCallParse'
 export { parseGraniteAggregatorResult } from './aggregatorParse'
 export { buildGraniteReaderCalls } from './readerCallBuild'

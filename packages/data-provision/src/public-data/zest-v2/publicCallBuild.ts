@@ -22,6 +22,8 @@ import {
  */
 export const ASSET_REGISTRY_CALLS_PER_ASSET = 3
 export const VAULT_CALLS_PER_UNDERLYING = 5
+/** Number of egroup resolve calls (one per underlying's z-token) */
+export const EGROUP_CALLS = ZEST_V2_UNDERLYING_IDS.length
 
 /**
  * Build the ordered call array for fetching all Zest V2 reserve data.
@@ -30,12 +32,12 @@ export const VAULT_CALLS_PER_UNDERLYING = 5
  *   Section 1: [0, N_underlying * 3)                    — asset registry calls
  *   Section 2: [N_underlying * 3, N_underlying * 8)     — vault calls (5 per underlying)
  *   Section 3: [N_underlying * 8, N_underlying * 8 + N_all)  — all asset statuses
- *   Section 4: [last]                                    — egroup count / global
+ *   Section 4: [N_underlying * 8 + N_all, ... + N_underlying) — egroup resolve per z-token
  *
  * Where N_underlying = 6, N_all = 12
  */
 export function buildZestV2ReserveCalls(): StacksCall[] {
-  const { assets, market } = ZEST_V2_CONTRACTS
+  const { assets, market, egroup } = ZEST_V2_CONTRACTS
 
   // Section 1: Asset registry lookups for underlying assets
   const assetRegistryCalls: StacksCall[] = ZEST_V2_UNDERLYING_IDS.flatMap(
@@ -106,7 +108,16 @@ export function buildZestV2ReserveCalls(): StacksCall[] {
     args: [encodeClarityUint(aid)],
   }))
 
-  return [...assetRegistryCalls, ...vaultCalls, ...allStatusCalls]
+  // Section 4: Egroup resolve for each underlying's z-token
+  // resolve(mask) where mask = 2^zTokenId, zTokenId = underlyingId + 1
+  const egroupCalls: StacksCall[] = ZEST_V2_UNDERLYING_IDS.map((aid) => ({
+    contractAddress: egroup.address,
+    contractName: egroup.name,
+    functionName: 'resolve',
+    args: [encodeClarityUint(BigInt(1) << BigInt(aid + 1))],
+  }))
+
+  return [...assetRegistryCalls, ...vaultCalls, ...allStatusCalls, ...egroupCalls]
 }
 
 /**
@@ -118,6 +129,7 @@ export function getExpectedCallCount(): number {
   return (
     nUnderlying * ASSET_REGISTRY_CALLS_PER_ASSET +
     nUnderlying * VAULT_CALLS_PER_UNDERLYING +
-    nAll
+    nAll +
+    EGROUP_CALLS
   )
 }

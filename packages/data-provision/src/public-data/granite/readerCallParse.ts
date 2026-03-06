@@ -1,26 +1,27 @@
 import { StacksCallResult } from '../../stacks-call'
 import { decodeClarityValue, extractTuple } from '../../stacks-call'
-import { GRANITE_MARKETS } from './constants'
-import type { GraniteMarketData, GranitePublicResponse } from './publicCallParse'
+import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_PRECISION } from './constants'
+import type { GraniteMarketData, GranitePublicResponse, GraniteCollateralConfig } from './publicCallParse'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 const RATE_PRECISION = 1e18
 
 /**
- * Parse results from the per-market reader calls built by buildGraniteReaderCalls.
+ * Parse results from the per-market reader calls + collateral config calls.
  *
- * Layout: [0] granite-stx, [1] granite-usdcx
- *
- * Each result is a tuple:
- *   { lp-params, debt-params, open-interest, reserve-balance, asset-cap,
- *     borrow-enabled, deposit-enabled, ir-params, protocol-reserve-pct }
+ * Layout: [0..2) reader results, [2..) collateral config results
  */
 export function parseGraniteReaderResults(
   results: StacksCallResult[],
   prices: Record<string, number> = {},
 ): GranitePublicResponse | undefined {
-  if (results.length !== GRANITE_MARKETS.length) {
-    console.warn(`Granite reader: expected ${GRANITE_MARKETS.length} results, got ${results.length}`)
+  const nCollateral = GRANITE_MARKETS.reduce(
+    (sum, m) => sum + (GRANITE_COLLATERAL_TOKENS[m.id]?.length ?? 0), 0,
+  )
+  const expectedCount = GRANITE_MARKETS.length + nCollateral
+
+  if (results.length !== expectedCount) {
+    console.warn(`Granite reader: expected ${expectedCount} results, got ${results.length}`)
     return undefined
   }
 
@@ -103,6 +104,31 @@ export function parseGraniteReaderResults(
         },
         borrowEnabled,
         depositEnabled,
+        baseLtv: 0,
+        liquidationThreshold: 0,
+        collaterals: [],
+      }
+    }
+
+    // Parse collateral config results
+    let collateralIdx = GRANITE_MARKETS.length
+    for (const market of GRANITE_MARKETS) {
+      const marketUid = `${STACKS_CHAIN_ID}:granite:${market.id}`
+      const tokens = GRANITE_COLLATERAL_TOKENS[market.id] ?? []
+      const collaterals: GraniteCollateralConfig[] = []
+
+      for (const token of tokens) {
+        const result = results[collateralIdx++]
+        if (!result?.okay) continue
+        const parsed = decodeCollateralConfig(result, token)
+        if (parsed) collaterals.push(parsed)
+      }
+
+      if (data[marketUid] && collaterals.length > 0) {
+        data[marketUid].collaterals = collaterals
+        const best = collaterals.reduce((a, b) => a.maxLtv > b.maxLtv ? a : b)
+        data[marketUid].baseLtv = best.maxLtv
+        data[marketUid].liquidationThreshold = best.liquidationLtv
       }
     }
 
@@ -147,4 +173,26 @@ function getBool(tuple: Record<string, any> | null, key: string): boolean {
     if (!v) return false
     return v.value === true || v.type === 'bool' && v.value === true
   } catch { return false }
+}
+
+function decodeCollateralConfig(
+  result: StacksCallResult,
+  token: string,
+): GraniteCollateralConfig | null {
+  try {
+    const decoded = decodeClarityValue(result.result)
+    let inner = decoded
+    if (inner?.value !== undefined && inner?.value !== null) inner = inner.value
+    if (inner?.value !== undefined && inner?.value !== null) inner = inner.value
+    if (!inner || typeof inner !== 'object') return null
+
+    const maxLtv = Number(inner['max-ltv']?.value ?? 0) / GRANITE_COLLATERAL_PRECISION
+    const liquidationLtv = Number(inner['liquidation-ltv']?.value ?? 0) / GRANITE_COLLATERAL_PRECISION
+    const liquidationPremium = Number(inner['liquidation-premium']?.value ?? 0) / GRANITE_COLLATERAL_PRECISION
+    const decimals = Number(inner['decimals']?.value ?? 8)
+
+    return { token, maxLtv, liquidationLtv, liquidationPremium, decimals }
+  } catch {
+    return null
+  }
 }
