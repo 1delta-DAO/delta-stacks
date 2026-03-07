@@ -28,10 +28,10 @@ describe('lending-reader-v2 integration', { timeout: 120_000 }, () => {
     expect(result.v2!.chainId).toBe('stacks-mainnet')
     expect(Object.keys(result.v2!.data).length).toBe(6)
 
-    // Granite: 2 markets
+    // Granite: 2 borrowable markets + 2 collateral entries (sBTC per market)
     expect(result.granite).toBeDefined()
     expect(result.granite!.chainId).toBe('stacks-mainnet')
-    expect(Object.keys(result.granite!.data).length).toBe(2)
+    expect(Object.keys(result.granite!.data).length).toBe(4)
   })
 
   it('V1 reader returns valid reserve data for all 9 assets', async () => {
@@ -70,7 +70,7 @@ describe('lending-reader-v2 integration', { timeout: 120_000 }, () => {
 
     expect(granite).toBeDefined()
     const markets = Object.values(granite!.data)
-    expect(markets.length).toBe(2)
+    expect(markets.length).toBe(4) // 2 borrowable + 2 collateral (sBTC)
 
     const aeusdc = granite!.data['stacks-mainnet:granite:aeusdc']
     const usdcx = granite!.data['stacks-mainnet:granite:usdcx']
@@ -78,10 +78,29 @@ describe('lending-reader-v2 integration', { timeout: 120_000 }, () => {
     expect(aeusdc).toBeDefined()
     expect(aeusdc.symbol).toBe('aeUSDC')
     expect(aeusdc.totalAssets).toBeGreaterThan(0)
+    expect(aeusdc.isCollateral).toBe(false)
+    expect(aeusdc.baseLtv).toBe(0)
 
     expect(usdcx).toBeDefined()
     expect(usdcx.symbol).toBe('USDCx')
     expect(usdcx.totalAssets).toBeGreaterThanOrEqual(0)
+    expect(usdcx.isCollateral).toBe(false)
+
+    // sBTC collateral entries
+    const sbtcAeusdc = granite!.data['stacks-mainnet:granite:aeusdc:sbtc']
+    const sbtcUsdcx = granite!.data['stacks-mainnet:granite:usdcx:sbtc']
+
+    expect(sbtcAeusdc).toBeDefined()
+    expect(sbtcAeusdc.symbol).toBe('sBTC')
+    expect(sbtcAeusdc.isCollateral).toBe(true)
+    expect(sbtcAeusdc.parentMarketId).toBe('aeusdc')
+    expect(sbtcAeusdc.baseLtv).toBeGreaterThan(0)
+    expect(sbtcAeusdc.borrowRate).toBe(0)
+
+    expect(sbtcUsdcx).toBeDefined()
+    expect(sbtcUsdcx.symbol).toBe('sBTC')
+    expect(sbtcUsdcx.isCollateral).toBe(true)
+    expect(sbtcUsdcx.parentMarketId).toBe('usdcx')
   })
 
   // Individual calls fallback is tested by the unit tests (no network needed).

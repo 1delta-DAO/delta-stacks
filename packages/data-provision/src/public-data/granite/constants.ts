@@ -77,4 +77,9 @@ export const GRANITE_COLLATERAL_READER_FNS: Record<string, string> = {
   'usdcx:SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token': 'read-granite-usdcx-collateral-sbtc',
 }
 
+/** Map token principal to display symbol and decimals */
+export const GRANITE_COLLATERAL_META: Record<string, { symbol: string; decimals: number }> = {
+  'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token': { symbol: 'sBTC', decimals: 8 },
+}
+
 export const GRANITE_COLLATERAL_PRECISION = 1e8

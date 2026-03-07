@@ -109,7 +109,9 @@ export function parseGraniteAggregatorResult(
         // Collateral config not available from aggregator — populated via get-collateral calls
         baseLtv: 0,
         liquidationThreshold: 0,
+        liquidationPremium: 0,
         collaterals: [],
+        isCollateral: false,
       }
     }
 

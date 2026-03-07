@@ -1,6 +1,6 @@
 import { StacksCallResult } from '../../stacks-call'
 import { decodeClarityValue, extractTuple } from '../../stacks-call'
-import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_PRECISION } from './constants'
+import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_PRECISION, GRANITE_COLLATERAL_META } from './constants'
 import type { GraniteMarketData, GranitePublicResponse, GraniteCollateralConfig } from './publicCallParse'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
@@ -106,11 +106,14 @@ export function parseGraniteReaderResults(
         depositEnabled,
         baseLtv: 0,
         liquidationThreshold: 0,
+        liquidationPremium: 0,
         collaterals: [],
+        isCollateral: false,
       }
     }
 
     // Parse collateral config results
+    // Emit separate collateral entries (e.g. sBTC) with LTV data and 0 rates
     let collateralIdx = GRANITE_MARKETS.length
     for (const market of GRANITE_MARKETS) {
       const marketUid = `${STACKS_CHAIN_ID}:granite:${market.id}`
@@ -124,11 +127,45 @@ export function parseGraniteReaderResults(
         if (parsed) collaterals.push(parsed)
       }
 
-      if (data[marketUid] && collaterals.length > 0) {
+      if (data[marketUid]) {
         data[marketUid].collaterals = collaterals
-        const best = collaterals.reduce((a, b) => a.maxLtv > b.maxLtv ? a : b)
-        data[marketUid].baseLtv = best.maxLtv
-        data[marketUid].liquidationThreshold = best.liquidationLtv
+      }
+
+      // Emit a collateral-only entry per collateral token
+      for (const col of collaterals) {
+        const meta = GRANITE_COLLATERAL_META[col.token]
+        if (!meta) continue
+        const colUid = `${STACKS_CHAIN_ID}:granite:${market.id}:${meta.symbol.toLowerCase()}`
+        data[colUid] = {
+          marketUid: colUid,
+          name: `Granite ${meta.symbol} (${market.symbol})`,
+          marketId: `${market.id}:${meta.symbol.toLowerCase()}`,
+          symbol: meta.symbol,
+          deployer: market.deployer,
+          totalAssets: 0,
+          totalShares: 0,
+          openInterest: 0,
+          totalDebtShares: 0,
+          reserveBalance: 0,
+          assetCap: 0,
+          protocolReservePercentage: 0,
+          availableLiquidity: 0,
+          utilization: 0,
+          totalAssetsUSD: 0,
+          openInterestUSD: 0,
+          availableLiquidityUSD: 0,
+          borrowRate: 0,
+          supplyRate: 0,
+          irParams: { baseIr: 0, irSlope1: 0, irSlope2: 0, utilizationKink: 0 },
+          borrowEnabled: false,
+          depositEnabled: true,
+          baseLtv: col.maxLtv,
+          liquidationThreshold: col.liquidationLtv,
+          liquidationPremium: col.liquidationPremium,
+          collaterals: [],
+          isCollateral: true,
+          parentMarketId: market.id,
+        }
       }
     }
 
