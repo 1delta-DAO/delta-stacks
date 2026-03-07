@@ -11,6 +11,8 @@ interface UnifiedMarket {
   symbol: string
   totalDeposits: number
   totalBorrows: number
+  totalDepositsUSD: number | null
+  totalBorrowsUSD: number | null
   supplyRate: number
   borrowRate: number
   baseLtv: number
@@ -28,6 +30,8 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         symbol: m.symbol,
         totalDeposits: m.totalDeposits,
         totalBorrows: m.totalDebt,
+        totalDepositsUSD: m.totalDepositsUSD || null,
+        totalBorrowsUSD: m.totalDebtUSD || null,
         supplyRate: m.depositRate,
         borrowRate: m.variableBorrowRate,
         baseLtv: m.baseLtv,
@@ -44,6 +48,8 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         symbol: m.symbol,
         totalDeposits: m.totalDeposits,
         totalBorrows: m.totalBorrows,
+        totalDepositsUSD: m.totalDepositsUSD || null,
+        totalBorrowsUSD: m.totalBorrowsUSD || null,
         supplyRate: m.supplyRate,
         borrowRate: m.borrowRate,
         baseLtv: m.baseLtv,
@@ -62,6 +68,8 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         symbol: m.symbol,
         totalDeposits: m.totalAssets,
         totalBorrows: m.openInterest,
+        totalDepositsUSD: m.totalAssetsUSD || null,
+        totalBorrowsUSD: m.openInterestUSD || null,
         supplyRate: m.supplyRate,
         borrowRate: m.borrowRate,
         baseLtv: m.baseLtv,
@@ -82,6 +90,13 @@ function formatNumber(n: number, decimals = 2): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(decimals)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(decimals)}K`
   return n.toFixed(decimals)
+}
+
+function formatUSD(n: number | null): string | null {
+  if (n === null || n === 0) return null
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(2)}K`
+  return `$${n.toFixed(2)}`
 }
 
 function MarketsTable({ markets }: { markets: UnifiedMarket[] }) {
@@ -107,8 +122,18 @@ function MarketsTable({ markets }: { markets: UnifiedMarket[] }) {
             <tr key={m.marketUid} className="hover:bg-surface-alt transition-colors">
               <td className="py-3 px-4 font-medium">{m.symbol}</td>
               <td className="py-3 px-4 text-text-muted text-xs">{m.protocol}</td>
-              <td className="py-3 px-4 text-right font-mono">{formatNumber(m.totalDeposits)}</td>
-              <td className="py-3 px-4 text-right font-mono">{formatNumber(m.totalBorrows)}</td>
+              <td className="py-3 px-4 text-right font-mono">
+                {formatNumber(m.totalDeposits)}
+                {formatUSD(m.totalDepositsUSD) && (
+                  <div className="text-xs text-text-muted">{formatUSD(m.totalDepositsUSD)}</div>
+                )}
+              </td>
+              <td className="py-3 px-4 text-right font-mono">
+                {formatNumber(m.totalBorrows)}
+                {formatUSD(m.totalBorrowsUSD) && (
+                  <div className="text-xs text-text-muted">{formatUSD(m.totalBorrowsUSD)}</div>
+                )}
+              </td>
               <td className="py-3 px-4 text-right text-positive">{formatRate(m.supplyRate)}</td>
               <td className="py-3 px-4 text-right text-negative">{formatRate(m.borrowRate)}</td>
               <td className="py-3 px-4 text-right">{formatRate(m.baseLtv)}</td>
