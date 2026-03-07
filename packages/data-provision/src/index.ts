@@ -9,5 +9,19 @@ export type { ZestReserveData, ZestPublicResponse, ZestEModeConfig } from './pub
 export type { ZestV2ReserveData, ZestV2PublicResponse, ZestV2AssetStatus } from './public-data/zest-v2'
 export type { GraniteMarketData, GranitePublicResponse, GraniteCollateralConfig } from './public-data/granite'
 export { executeStacksReadCalls, type StacksCall } from './stacks-call'
+export {
+  fetchOraclePrices,
+  fetchAllPrices,
+  selectAssetGroupPrices,
+  PRICE_SOURCES,
+  PYTH_FEED_IDS,
+  STACKS_CHAIN_ID,
+  MARKET_REGISTRY,
+  type FetchPricesOptions,
+  type OraclePriceEntry,
+  type StructuredOraclePrices,
+  type USDPriceMap,
+  type StacksPriorityConfig,
+} from './prices'
 export { fetchStacksTokenList, toTokenKey, parseStacksAddress, isValidStacksAddress } from './token-list'
 export type { StacksToken, StacksTokenList, ParsedStacksAddress } from './token-list'
