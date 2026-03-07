@@ -2,10 +2,10 @@ import { describe, it, expect } from "vitest";
 import { Cl, ClarityType, cvToJSON } from "@stacks/transactions";
 import {
   GraniteLending,
-  GRANITE_STX_MARKET,
+  GRANITE_AEUSDC_MARKET,
   GRANITE_USDCX_MARKET,
   GRANITE_CORE_DEPLOYER,
-  GRANITE_STX_DEPLOYER,
+  GRANITE_AEUSDC_DEPLOYER,
   GRANITE_USDCX_DEPLOYER,
 } from "../../packages/calldata-sdk-stacks/src";
 import type { StacksContractCall } from "../../packages/calldata-sdk-stacks/src";
@@ -15,8 +15,8 @@ const deployer = accounts.get("deployer")!;
 
 const SBTC = "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token";
 
-const DEPOSIT_AMOUNT = 100_000_000; // 100 STX
-const BORROW_AMOUNT = 10_000_000; // 10 STX
+const DEPOSIT_AMOUNT = 100_000_000; // 100 aeUSDC
+const BORROW_AMOUNT = 10_000_000; // 10 aeUSDC
 
 /** Execute a StacksContractCall via simnet */
 function execCall(call: StacksContractCall, sender: string) {
@@ -44,11 +44,11 @@ function tryExecCall(call: StacksContractCall, sender: string) {
 }
 
 describe("granite fork test (via SDK)", () => {
-  // === LP operations (STX market) ===
+  // === LP operations (aeUSDC market) ===
 
-  it("reads STX market state before deposit", () => {
+  it("reads aeUSDC market state before deposit", () => {
     const result = simnet.callReadOnlyFn(
-      `${GRANITE_STX_DEPLOYER}.state-v1`,
+      `${GRANITE_AEUSDC_DEPLOYER}.state-v1`,
       "get-lp-params",
       [],
       deployer
@@ -68,7 +68,7 @@ describe("granite fork test (via SDK)", () => {
 
   it("calls deposit via SDK encoder", { timeout: 30_000 }, () => {
     const call = GraniteLending.encodeDeposit(
-      GRANITE_STX_MARKET,
+      GRANITE_AEUSDC_MARKET,
       DEPOSIT_AMOUNT,
       deployer
     );
@@ -92,7 +92,7 @@ describe("granite fork test (via SDK)", () => {
 
   it("calls withdraw via SDK encoder", { timeout: 30_000 }, () => {
     const call = GraniteLending.encodeWithdraw(
-      GRANITE_STX_MARKET,
+      GRANITE_AEUSDC_MARKET,
       DEPOSIT_AMOUNT,
       deployer
     );
@@ -118,7 +118,7 @@ describe("granite fork test (via SDK)", () => {
 
   it("calls add-collateral via SDK encoder", { timeout: 30_000 }, () => {
     const call = GraniteLending.encodeAddCollateral(
-      GRANITE_STX_MARKET,
+      GRANITE_AEUSDC_MARKET,
       SBTC,
       100_000, // 0.001 sBTC
     );
@@ -142,7 +142,7 @@ describe("granite fork test (via SDK)", () => {
 
   it("calls borrow via SDK encoder", { timeout: 30_000 }, () => {
     const call = GraniteLending.encodeBorrow(
-      GRANITE_STX_MARKET,
+      GRANITE_AEUSDC_MARKET,
       BORROW_AMOUNT,
     );
 
@@ -164,7 +164,7 @@ describe("granite fork test (via SDK)", () => {
 
   it("calls repay via SDK encoder", { timeout: 30_000 }, () => {
     const call = GraniteLending.encodeRepay(
-      GRANITE_STX_MARKET,
+      GRANITE_AEUSDC_MARKET,
       BORROW_AMOUNT,
     );
 

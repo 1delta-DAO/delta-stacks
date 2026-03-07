@@ -4,13 +4,13 @@ import { Cl, ClarityType, cvToJSON } from "@stacks/transactions";
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer")!;
 
-const GRANITE_STX = "SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA";
+const GRANITE_AEUSDC = "SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA";
 const GRANITE_USDCX = "SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE";
 
 describe("granite mainnet fork", () => {
-  it("reads STX market LP params", () => {
+  it("reads aeUSDC market LP params", () => {
     const result = simnet.callReadOnlyFn(
-      `${GRANITE_STX}.state-v1`,
+      `${GRANITE_AEUSDC}.state-v1`,
       "get-lp-params",
       [],
       deployer
@@ -21,9 +21,9 @@ describe("granite mainnet fork", () => {
     expect(BigInt(json.value["total-shares"].value)).toBeGreaterThan(0n);
   });
 
-  it("reads STX market debt params", () => {
+  it("reads aeUSDC market debt params", () => {
     const result = simnet.callReadOnlyFn(
-      `${GRANITE_STX}.state-v1`,
+      `${GRANITE_AEUSDC}.state-v1`,
       "get-debt-params",
       [],
       deployer
@@ -33,9 +33,9 @@ describe("granite mainnet fork", () => {
     expect(BigInt(json.value["open-interest"].value)).toBeGreaterThan(0n);
   });
 
-  it("reads STX market IR params", () => {
+  it("reads aeUSDC market IR params", () => {
     const result = simnet.callReadOnlyFn(
-      `${GRANITE_STX}.linear-kinked-ir-v1`,
+      `${GRANITE_AEUSDC}.linear-kinked-ir-v1`,
       "get-ir-params",
       [],
       deployer
@@ -58,9 +58,9 @@ describe("granite mainnet fork", () => {
     expect(BigInt(json.value["total-assets"].value)).toBeGreaterThan(0n);
   });
 
-  it("reads STX market borrow-enabled flag", () => {
+  it("reads aeUSDC market borrow-enabled flag", () => {
     const result = simnet.callReadOnlyFn(
-      `${GRANITE_STX}.state-v1`,
+      `${GRANITE_AEUSDC}.state-v1`,
       "is-borrow-enabled",
       [],
       deployer
@@ -90,7 +90,7 @@ describe("granite mainnet fork", () => {
     const json = cvToJSON(result.result);
     const data = json.value.value;
 
-    // STX market
+    // aeUSDC market
     expect(data.stx).toBeDefined();
     const stxLp = data.stx.value["lp-params"].value;
     expect(BigInt(stxLp["total-assets"].value)).toBeGreaterThan(0n);

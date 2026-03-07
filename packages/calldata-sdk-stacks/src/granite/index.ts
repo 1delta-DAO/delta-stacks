@@ -3,10 +3,10 @@ import { principal, uint, optionalPrincipal, someCV, noneCV, bufferCV, listCV, t
 import type { ClarityValue } from '../types/clarity-args'
 import {
   GRANITE_MARKETS,
-  GRANITE_STX_MARKET,
+  GRANITE_AEUSDC_MARKET,
   GRANITE_USDCX_MARKET,
   GRANITE_CORE_DEPLOYER,
-  GRANITE_STX_DEPLOYER,
+  GRANITE_AEUSDC_DEPLOYER,
   GRANITE_USDCX_DEPLOYER,
   splitContract,
 } from './constants'
@@ -17,10 +17,10 @@ import { PYTH_FEED_IDS } from '../pyth/feed-ids'
 
 export {
   GRANITE_CORE_DEPLOYER,
-  GRANITE_STX_DEPLOYER,
+  GRANITE_AEUSDC_DEPLOYER,
   GRANITE_USDCX_DEPLOYER,
   GRANITE_MARKETS,
-  GRANITE_STX_MARKET,
+  GRANITE_AEUSDC_MARKET,
   GRANITE_USDCX_MARKET,
 }
 export type { GraniteMarketContracts }
@@ -42,8 +42,8 @@ function call(contractId: string, functionName: string, functionArgs: ClarityVal
  * Granite uses isolated markets: each encoder takes a `market` parameter
  * (GraniteMarketContracts) to target the right contracts.
  *
- * Use GRANITE_STX_MARKET or GRANITE_USDCX_MARKET, or look up by ID
- * via GRANITE_MARKETS['stx'] / GRANITE_MARKETS['usdcx'].
+ * Use GRANITE_AEUSDC_MARKET or GRANITE_USDCX_MARKET, or look up by ID
+ * via GRANITE_MARKETS['aeusdc'] / GRANITE_MARKETS['usdcx'].
  */
 export namespace GraniteLending {
   // =================================================================
@@ -246,10 +246,10 @@ export namespace GraniteLending {
 
   /**
    * Pyth feed IDs relevant to Granite markets.
-   * STX market uses STX + BTC feeds; USDCx market uses USDC + BTC feeds.
+   * Both aeUSDC and USDCx markets use USDC + BTC feeds (collateral is sBTC).
    */
   export const PRICE_FEEDS = {
-    stx: [PYTH_FEED_IDS.STX, PYTH_FEED_IDS.BTC],
+    aeusdc: [PYTH_FEED_IDS.USDC, PYTH_FEED_IDS.BTC],
     usdcx: [PYTH_FEED_IDS.USDC, PYTH_FEED_IDS.BTC],
   } as const
 
@@ -258,11 +258,11 @@ export namespace GraniteLending {
    * Returns a Uint8Array ready to pass as `priceFeedData` to
    * `encodeBorrow`, `encodeRemoveCollateral`, or `encodeLiquidate`.
    *
-   * @param marketId - 'stx' or 'usdcx'
+   * @param marketId - 'aeusdc' or 'usdcx'
    * @param options  - optional Hermes URL override
    */
   export async function fetchPriceFeedData(
-    marketId: 'stx' | 'usdcx',
+    marketId: 'aeusdc' | 'usdcx',
     options?: PythFetchOptions,
   ): Promise<Uint8Array> {
     const feedIds = PRICE_FEEDS[marketId]

@@ -34,9 +34,9 @@ function mockReserveStateTuple(overrides: Partial<{
     'current-liquidity-rate': uintCV(3000000),
     'current-variable-borrow-rate': uintCV(5000000),
     'current-stable-borrow-rate': uintCV(0),
-    'base-ltv-as-collateral': uintCV(overrides.baseLtvAsCollateral ?? 7500),
-    'liquidation-threshold': uintCV(overrides.liquidationThreshold ?? 8000),
-    'liquidation-bonus': uintCV(overrides.liquidationBonus ?? 10500),
+    'base-ltv-as-collateral': uintCV(overrides.baseLtvAsCollateral ?? 75000000),
+    'liquidation-threshold': uintCV(overrides.liquidationThreshold ?? 80000000),
+    'liquidation-bonus': uintCV(overrides.liquidationBonus ?? 105000000),
     decimals: uintCV(overrides.decimals ?? 6),
     'borrowing-enabled': overrides.borrowingEnabled === false ? falseCV() : trueCV(),
     'usage-as-collateral-enabled': overrides.usageAsCollateralEnabled === false ? falseCV() : trueCV(),
@@ -72,8 +72,8 @@ function buildMockV1AggregatorResult(): StacksCallResult {
 
   const emodeConfig1 = responseOkCV(tupleCV({
     label: uintCV(1),
-    ltv: uintCV(9000),
-    'liquidation-threshold': uintCV(9500),
+    ltv: uintCV(90000000),
+    'liquidation-threshold': uintCV(95000000),
   }))
 
   const responseTuple = tupleCV({
@@ -138,14 +138,14 @@ describe('Zest V1 aggregator parser', () => {
     expect(wstx.totalDebt).toBeCloseTo(1000000000 / 1e6, 2)
   })
 
-  it('extracts APY rates', () => {
+  it('extracts rates from reserve-state', () => {
     const parsed = parseV1AggregatorResult(buildMockV1AggregatorResult())!
     const wstxAsset = getZestAssets()[0]
     const wstx = parsed.data[`stacks-mainnet:zest-v1:${wstxAsset}`]
 
-    // supply-apy: 3000000 / 1e8 = 0.03
+    // current-liquidity-rate: 3000000 / 1e8 = 0.03
     expect(wstx.depositRate).toBeCloseTo(0.03, 6)
-    // borrow-apy: 5000000 / 1e8 = 0.05
+    // current-variable-borrow-rate: 5000000 / 1e8 = 0.05
     expect(wstx.variableBorrowRate).toBeCloseTo(0.05, 6)
   })
 
@@ -157,9 +157,9 @@ describe('Zest V1 aggregator parser', () => {
     expect(wstx.collateralActive).toBe(true)
     expect(wstx.isActive).toBe(true)
     expect(wstx.isFrozen).toBe(false)
-    expect(wstx.baseLtv).toBeCloseTo(7500 / 10000, 4)
-    expect(wstx.liquidationThreshold).toBeCloseTo(8000 / 10000, 4)
-    expect(wstx.liquidationBonus).toBeCloseTo(10500 / 10000, 4)
+    expect(wstx.baseLtv).toBeCloseTo(0.75, 4)
+    expect(wstx.liquidationThreshold).toBeCloseTo(0.80, 4)
+    expect(wstx.liquidationBonus).toBeCloseTo(1.05, 4)
   })
 
   it('marks non-borrowable assets correctly', () => {

@@ -27,10 +27,10 @@ export {
 export {
   GraniteLending,
   GRANITE_CORE_DEPLOYER,
-  GRANITE_STX_DEPLOYER,
+  GRANITE_AEUSDC_DEPLOYER,
   GRANITE_USDCX_DEPLOYER,
   GRANITE_MARKETS,
-  GRANITE_STX_MARKET,
+  GRANITE_AEUSDC_MARKET,
   GRANITE_USDCX_MARKET,
 } from './granite'
 export type { GraniteMarketContracts } from './granite'

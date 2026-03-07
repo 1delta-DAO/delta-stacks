@@ -120,6 +120,9 @@ export function parseAggregatorResult(
         zTokenId,
         zTokenSymbol,
         zTokenCollateralEnabled: assetStatuses[zTokenId]?.collateralEnabled ?? false,
+        // LTV (not available from aggregator — populated via egroup resolve)
+        baseLtv: 0,
+        liquidationThreshold: 0,
         // Metadata
         oracleType: null,
         principal: null,

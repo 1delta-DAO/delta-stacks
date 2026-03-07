@@ -27,7 +27,8 @@ export function parseV1ReaderResults(
   prices: Record<string, number> = {},
 ): ZestPublicResponse | undefined {
   const assets = getZestAssets()
-  const expectedCount = assets.length + 2 // 9 assets + 2 emode configs
+  const zTokenCount = assets.filter((a) => ZEST_Z_TOKENS[a]).length
+  const expectedCount = assets.length + 2 + zTokenCount // 9 assets + 2 emode + z-token supplies
 
   if (results.length !== expectedCount) {
     console.warn(`V1 reader: expected ${expectedCount} results, got ${results.length}`)
@@ -85,12 +86,27 @@ export function parseV1ReaderResults(
       const totalBorrowsStable = extractNum(t['total-borrows-stable']) / divisor
       const totalDebt = totalBorrowsVariable
       const totalDebtStable = totalBorrowsStable
-      const totalDeposits = totalDebt + totalDebtStable
 
-      // supply-apy and borrow-apy include a 1.0 base (e.g. 100000698 = 1.00000698x)
-      // Subtract 1.0 to get the actual rate as a decimal
-      const supplyApy = extractNum(v['supply-apy']) / RATE_PRECISION - 1
-      const borrowApy = extractNum(v['borrow-apy']) / RATE_PRECISION - 1
+      // Total deposits from z-token total supply (appended after emode calls)
+      const zTokenStart = assets.length + 2 // after asset results + 2 emode configs
+      const zToken = ZEST_Z_TOKENS[asset]
+      let totalDeposits = totalDebt + totalDebtStable // fallback
+      if (zToken) {
+        const zTokenIdx = assets.slice(0, i).filter((a) => ZEST_Z_TOKENS[a]).length
+        const zSupplyResult = results[zTokenStart + zTokenIdx]
+        if (zSupplyResult?.okay) {
+          const decoded = decodeClarityValue(zSupplyResult.result)
+          // get-total-supply returns (ok uint) — unwrap the response
+          const inner = unwrapValue(decoded)
+          totalDeposits = extractNum(inner) / divisor
+        }
+      }
+
+      // Use annualized rates from reserve-state (current-liquidity-rate / current-variable-borrow-rate)
+      // These are already annualized in 1e8 fixed point (e.g. 9955730 = 9.96%)
+      // Note: supply-apy/borrow-apy from the reader are per-block multipliers, NOT annualized
+      const supplyRate = extractNum(t['current-liquidity-rate']) / RATE_PRECISION
+      const borrowRate = extractNum(t['current-variable-borrow-rate']) / RATE_PRECISION
 
       // e-mode-type is plain (buff 1)
       const eModeType = extractBuff1(v['e-mode-type'])
@@ -130,13 +146,13 @@ export function parseV1ReaderResults(
         totalDeposits,
         totalDebtStable,
         totalDebt,
-        totalLiquidity: 0,
+        totalLiquidity: totalDeposits - totalDebt - totalDebtStable,
         totalDepositsUSD: totalDeposits * price,
         totalDebtStableUSD: totalDebtStable * price,
         totalDebtUSD: totalDebt * price,
-        totalLiquidityUSD: 0,
-        depositRate: supplyApy,
-        variableBorrowRate: borrowApy,
+        totalLiquidityUSD: (totalDeposits - totalDebt - totalDebtStable) * price,
+        depositRate: supplyRate,
+        variableBorrowRate: borrowRate,
         stableBorrowRate: 0,
         decimals,
         config,

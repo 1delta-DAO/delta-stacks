@@ -1,8 +1,8 @@
 [project]
 name = "delta-stacks"
 
-[contracts.lending-reader-v1]
-path = "contracts/lending-reader-v1.clar"
+[contracts.lending-reader-v2]
+path = "contracts/lending-reader-v2.clar"
 clarity_version = 3
 epoch = 3.0
 

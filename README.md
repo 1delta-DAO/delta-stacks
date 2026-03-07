@@ -28,7 +28,7 @@ Fetches and parses on-chain lending market data for all three protocols.
 - **`stacks-call/`** - Generic Stacks RPC call executor with Clarity encoding/decoding
 - **`public-data/zest-v1/`** - Zest V1 reserve data (6 pools, 6 calls per pool)
 - **`public-data/zest-v2/`** - Zest V2 reserve data with e-mode support
-- **`public-data/granite/`** - Granite isolated market data (STX + USDCx, 9 calls per market)
+- **`public-data/granite/`** - Granite isolated market data (aeUSDC + USDCx, 9 calls per market)
 - **`token-list/`** - Stacks token list fetcher and address utilities
 
 Each protocol module follows the same pattern:
@@ -58,9 +58,9 @@ Encodes Stacks contract call transactions for all lending operations. Returns `S
 
 Usage:
 ```typescript
-import { GraniteLending, GRANITE_STX_MARKET } from '@delta-stacks/calldata-sdk-stacks'
+import { GraniteLending, GRANITE_AEUSDC_MARKET } from '@delta-stacks/calldata-sdk-stacks'
 
-const call = GraniteLending.encodeDeposit(GRANITE_STX_MARKET, 100_000_000, senderAddress)
+const call = GraniteLending.encodeDeposit(GRANITE_AEUSDC_MARKET, 100_000_000, senderAddress)
 // -> { contractAddress, contractName, functionName, functionArgs }
 ```
 
@@ -119,4 +119,4 @@ cd packages/data-provision && pnpm test
 |---|---|---|
 | **Zest V1** | Pool-based lending | STX, sBTC, USDA, xBTC, DIKO, Welsh |
 | **Zest V2** | Pool-based lending with e-mode | Multiple pools with efficiency grouping |
-| **Granite** | Isolated markets (Compound V3 style) | STX, USDCx |
+| **Granite** | Isolated markets (Compound V3 style) | aeUSDC, USDCx |

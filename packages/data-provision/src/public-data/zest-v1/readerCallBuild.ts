@@ -1,8 +1,9 @@
 import { StacksCall } from '../../stacks-call'
 import { READER_CONTRACT_ADDRESS, READER_CONTRACT_NAME } from '../fetchStacksLender'
+import { getZestAssets, ZEST_Z_TOKENS } from './constants'
 
 /**
- * Reader function names in the deployed lending-reader-v1 contract,
+ * Reader function names in the deployed lending-reader-v2 contract,
  * matching the order of getZestAssets().
  */
 const V1_READER_FUNCTIONS = [
@@ -18,7 +19,7 @@ const V1_READER_FUNCTIONS = [
 ] as const
 
 /**
- * Build calls to the per-asset reader functions in lending-reader-v1.
+ * Build calls to the per-asset reader functions in lending-reader-v2.
  * Each call bundles 4 sub-calls (reserve-state, supply-apy, borrow-apy, e-mode-type)
  * into a single read-only call.
  *
@@ -48,5 +49,21 @@ export function buildV1ReaderCalls(readerAddress = READER_CONTRACT_ADDRESS): Sta
     },
   ]
 
-  return [...assetCalls, ...emodeCalls]
+  // Z-token total supply calls (to get actual deposit amounts)
+  const assets = getZestAssets()
+  const zTokenCalls: StacksCall[] = assets
+    .map((asset) => {
+      const zToken = ZEST_Z_TOKENS[asset]
+      if (!zToken) return null
+      const [addr, name] = zToken.split('.')
+      return {
+        contractAddress: addr,
+        contractName: name,
+        functionName: 'get-total-supply',
+        args: [] as string[],
+      }
+    })
+    .filter((c): c is StacksCall => c !== null)
+
+  return [...assetCalls, ...emodeCalls, ...zTokenCalls]
 }

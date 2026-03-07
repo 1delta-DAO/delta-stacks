@@ -27,8 +27,8 @@ describe('Zest V2 call builder', () => {
         nAll +
         EGROUP_CALLS,
     )
-    // 6*3 + 6*5 + 12 + 6 = 18 + 30 + 12 + 6 = 66
-    expect(expected).toBe(66)
+    // 6*3 + 6*6 + 12 + 6 = 18 + 36 + 12 + 6 = 72
+    expect(expected).toBe(72)
   })
 
   it('section 1: asset registry calls (3 per underlying)', () => {
@@ -45,20 +45,21 @@ describe('Zest V2 call builder', () => {
     }
   })
 
-  it('section 2: vault calls (5 per underlying)', () => {
+  it('section 2: vault calls (6 per underlying)', () => {
     const section2Start = nUnderlying * ASSET_REGISTRY_CALLS_PER_ASSET
     for (let i = 0; i < nUnderlying; i++) {
       const base = section2Start + i * VAULT_CALLS_PER_UNDERLYING
       const aid = ZEST_V2_UNDERLYING_IDS[i]
       const vault = ZEST_V2_VAULT_FOR_ASSET[aid]
 
-      expect(calls[base].functionName).toBe('get-supply-rate')
+      expect(calls[base].functionName).toBe('get-interest-rate')
       expect(calls[base].contractName).toBe(vault.name)
 
-      expect(calls[base + 1].functionName).toBe('get-borrow-rate')
-      expect(calls[base + 2].functionName).toBe('get-total-supply')
-      expect(calls[base + 3].functionName).toBe('get-total-borrows')
-      expect(calls[base + 4].functionName).toBe('get-available-liquidity')
+      expect(calls[base + 1].functionName).toBe('get-utilization')
+      expect(calls[base + 2].functionName).toBe('get-fee-reserve')
+      expect(calls[base + 3].functionName).toBe('get-total-supply')
+      expect(calls[base + 4].functionName).toBe('get-debt')
+      expect(calls[base + 5].functionName).toBe('get-available-assets')
     }
   })
 

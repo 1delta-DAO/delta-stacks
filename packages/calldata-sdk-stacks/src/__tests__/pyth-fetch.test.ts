@@ -132,14 +132,14 @@ describe('fetchPythPriceUpdates (multiple buffers)', () => {
 })
 
 describe('GraniteLending.fetchPriceFeedData', () => {
-  it('fetches STX market feeds (STX + BTC)', async () => {
+  it('fetches aeUSDC market feeds (USDC + BTC)', async () => {
     mockHermesResponse()
 
-    const result = await GraniteLending.fetchPriceFeedData('stx')
+    const result = await GraniteLending.fetchPriceFeedData('aeusdc')
 
     expect(result).toBeInstanceOf(Uint8Array)
     const url = mockFetch.mock.calls[0][0] as string
-    expect(url).toContain(encodeURIComponent(PYTH_FEED_IDS.STX))
+    expect(url).toContain(encodeURIComponent(PYTH_FEED_IDS.USDC))
     expect(url).toContain(encodeURIComponent(PYTH_FEED_IDS.BTC))
   })
 
@@ -155,9 +155,9 @@ describe('GraniteLending.fetchPriceFeedData', () => {
   })
 
   it('exposes PRICE_FEEDS mapping', () => {
-    expect(GraniteLending.PRICE_FEEDS.stx).toHaveLength(2)
+    expect(GraniteLending.PRICE_FEEDS.aeusdc).toHaveLength(2)
     expect(GraniteLending.PRICE_FEEDS.usdcx).toHaveLength(2)
-    expect(GraniteLending.PRICE_FEEDS.stx[0]).toBe(PYTH_FEED_IDS.STX)
+    expect(GraniteLending.PRICE_FEEDS.aeusdc[0]).toBe(PYTH_FEED_IDS.USDC)
     expect(GraniteLending.PRICE_FEEDS.usdcx[0]).toBe(PYTH_FEED_IDS.USDC)
   })
 })

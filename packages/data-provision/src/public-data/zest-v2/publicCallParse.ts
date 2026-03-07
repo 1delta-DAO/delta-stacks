@@ -15,10 +15,10 @@ import {
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 
 /**
- * V2 rate precision.
- * Vault rates use 8-decimal fixed point (1e8 = 100%).
+ * V2 rate/utilization/fee precision.
+ * Vault rates, utilization, and fees use BPS (10000 = 100%).
  */
-const RATE_PRECISION = 1e8
+const BPS = 10_000
 
 /**
  * Index precision.
@@ -159,11 +159,12 @@ export function getZestV2ReservesDataConverter(
 
       // Section 2: vault calls
       const vaultBase = section2Start + i * VAULT_CALLS_PER_UNDERLYING
-      const supplyRate = decodeUintResult(results[vaultBase])
-      const borrowRate = decodeUintResult(results[vaultBase + 1])
-      const totalSupplyShares = decodeUintResult(results[vaultBase + 2])
-      const totalBorrows = decodeUintResult(results[vaultBase + 3])
-      const availableLiquidity = decodeUintResult(results[vaultBase + 4])
+      const interestRate = decodeOkUintResult(results[vaultBase])
+      const utilization = decodeOkUintResult(results[vaultBase + 1])
+      const feeReserve = decodeOkUintResult(results[vaultBase + 2])
+      const totalSupplyShares = decodeOkUintResult(results[vaultBase + 3])
+      const totalBorrows = decodeOkUintResult(results[vaultBase + 4])
+      const availableLiquidity = decodeUintResult(results[vaultBase + 5])
 
       const decimals = assetLookup?.decimals ?? 8
 
@@ -192,9 +193,13 @@ export function getZestV2ReservesDataConverter(
         totalDepositsUSD: totalDepositsNum * price,
         totalBorrowsUSD: totalBorrowsNum * price,
         availableLiquidityUSD: availableLiquidityNum * price,
-        // Rates
-        supplyRate: Number(supplyRate) / RATE_PRECISION,
-        borrowRate: Number(borrowRate) / RATE_PRECISION,
+        // Rates (BPS: 10000 = 100%)
+        // supplyRate = borrowRate * utilization * (1 - feeReserve)
+        supplyRate:
+          (Number(interestRate) / BPS) *
+          (Number(utilization) / BPS) *
+          (1 - Number(feeReserve) / BPS),
+        borrowRate: Number(interestRate) / BPS,
         // Indexes
         borrowIndex: Number(cachedIndexes?.index ?? 0) / INDEX_PRECISION,
         liquidityIndex:
@@ -303,6 +308,21 @@ function decodeUintResult(result: StacksCallResult): bigint {
   try {
     const decoded = decodeClarityValue(result.result)
     return extractUint(decoded)
+  } catch {
+    return 0n
+  }
+}
+
+/** Decode a (response uint ...) result, unwrapping the ok wrapper */
+function decodeOkUintResult(result: StacksCallResult): bigint {
+  try {
+    const decoded = decodeClarityValue(result.result)
+    // (ok uint) → { success: true, value: { type: "uint128", value: "..." } }
+    const inner = decoded?.success === true ? decoded.value : decoded
+    if (inner?.value !== undefined && typeof inner.value !== 'object') {
+      return BigInt(inner.value)
+    }
+    return extractUint(inner)
   } catch {
     return 0n
   }

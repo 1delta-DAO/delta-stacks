@@ -134,8 +134,7 @@ export function getGraniteReservesDataConverter(
       // 8: get-protocol-reserve-percentage -> uint
       const protocolReservePercentage = decodeUintValue(results[base + 8])
 
-      // STX has 6 decimals, USDCx has 8 decimals
-      const decimals = market.id === 'stx' ? 6 : 8
+      const decimals = 6 // both aeUSDC and USDCx use 6 decimals
       const divisor = 10 ** decimals
 
       const totalAssetsNum = Number(totalAssets) / divisor

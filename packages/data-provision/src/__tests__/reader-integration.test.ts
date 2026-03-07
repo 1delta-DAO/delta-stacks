@@ -5,16 +5,16 @@ import {
 } from '../public-data/fetchStacksLender'
 
 const API_URL = 'https://api.hiro.so'
-const opts = { apiUrl: API_URL, concurrency: 5 }
+const opts = { apiUrl: API_URL, concurrency: 2 }
 
 /**
  * Integration test — hits mainnet reader contract.
  * Run with: npx vitest run src/__tests__/reader-integration.test.ts
  *
- * These tests call the deployed lending-reader-v1 contract on Stacks mainnet
+ * These tests call the deployed lending-reader-v2 contract on Stacks mainnet
  * via per-asset reader functions (19 calls total instead of 117).
  */
-describe('lending-reader-v1 integration', { timeout: 120_000 }, () => {
+describe('lending-reader-v2 integration', { timeout: 120_000 }, () => {
   it('getAllLendingData returns data for all 3 protocols via reader contract', async () => {
     const result = await getAllLendingData({}, opts)
 
@@ -72,12 +72,12 @@ describe('lending-reader-v1 integration', { timeout: 120_000 }, () => {
     const markets = Object.values(granite!.data)
     expect(markets.length).toBe(2)
 
-    const stx = granite!.data['stacks-mainnet:granite:stx']
+    const aeusdc = granite!.data['stacks-mainnet:granite:aeusdc']
     const usdcx = granite!.data['stacks-mainnet:granite:usdcx']
 
-    expect(stx).toBeDefined()
-    expect(stx.symbol).toBe('STX')
-    expect(stx.totalAssets).toBeGreaterThan(0)
+    expect(aeusdc).toBeDefined()
+    expect(aeusdc.symbol).toBe('aeUSDC')
+    expect(aeusdc.totalAssets).toBeGreaterThan(0)
 
     expect(usdcx).toBeDefined()
     expect(usdcx.symbol).toBe('USDCx')

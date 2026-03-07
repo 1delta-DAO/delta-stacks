@@ -1,6 +1,6 @@
 import { StacksCallResult } from '../../stacks-call'
 import { decodeClarityValue, extractTuple, extractUint } from '../../stacks-call'
-import { CALLS_PER_ASSET, getExpectedCallCount, ZEST_EMODE_TYPES } from './publicCallBuild'
+import { CALLS_PER_ASSET, getExpectedCallCount, ZEST_EMODE_TYPES, getZTokenCallCount } from './publicCallBuild'
 import {
   getZestAssets,
   ZEST_ASSET_SYMBOLS,
@@ -141,14 +141,20 @@ export function getZestReservesDataConverter(
       const totalDebtStable =
         Number(reserveState.totalBorrowsStable) / divisor
 
-      // Total deposits = we need to derive from z-token supply or use
-      // total borrows + available liquidity conceptually.
-      // The reserve state gives us borrows; supply is borrows + available liquidity.
-      // We approximate from the rate model: supply ~= totalBorrows / utilization
-      // But more accurately, we read the a-token total supply.
-      // For now, we use the available data.
-      const totalDeposits = totalDebt + totalDebtStable // placeholder - will be enriched
-      const totalLiquidity = 0 // will be calculated when we have supply data
+      // Total deposits from z-token total supply (appended after emode + global calls)
+      const zTokenStart = assets.length * CALLS_PER_ASSET + ZEST_EMODE_TYPES.length + 1
+      const zToken = ZEST_Z_TOKENS[asset]
+      let totalDeposits = totalDebt + totalDebtStable // fallback if no z-token
+      if (zToken) {
+        // Find the z-token index: count assets with z-tokens before this one
+        const zTokenIdx = assets.slice(0, i).filter((a) => ZEST_Z_TOKENS[a]).length
+        const zSupplyResult = results[zTokenStart + zTokenIdx]
+        if (zSupplyResult?.okay) {
+          const zSupply = decodeOkUint(zSupplyResult)
+          totalDeposits = zSupply / divisor
+        }
+      }
+      const totalLiquidity = totalDeposits - totalDebt - totalDebtStable
 
       const price = prices[symbol.toLowerCase()] ?? prices[asset] ?? 0
 
@@ -196,9 +202,9 @@ export function getZestReservesDataConverter(
         totalDebtStableUSD: totalDebtStable * price,
         totalDebtUSD: totalDebt * price,
         totalLiquidityUSD: totalLiquidity * price,
-        // rates
-        depositRate: supplyApy / RATE_PRECISION - 1,
-        variableBorrowRate: borrowApy / RATE_PRECISION - 1,
+        // rates — use annualized rates from reserve-state, not per-block supply-apy/borrow-apy
+        depositRate: Number(reserveState.currentLiquidityRate) / RATE_PRECISION,
+        variableBorrowRate: Number(reserveState.currentVariableBorrowRate) / RATE_PRECISION,
         stableBorrowRate: 0, // Zest doesn't have stable rates
         // config
         decimals,
@@ -292,6 +298,18 @@ function decodeRate(result: StacksCallResult): number {
   try {
     const decoded = decodeClarityValue(result.result)
     return Number(extractUint(decoded))
+  } catch {
+    return 0
+  }
+}
+
+/** Decode a (response uint ...) result, unwrapping the ok wrapper */
+function decodeOkUint(result: StacksCallResult): number {
+  try {
+    const decoded = decodeClarityValue(result.result)
+    // cvToJSON for (ok uint) => { success: true, value: { type: "uint128", value: "..." } }
+    const inner = decoded?.success === true ? decoded.value : decoded
+    return Number(inner?.value ?? inner ?? 0)
   } catch {
     return 0
   }

@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest'
 import {
   buildZestReserveCalls,
   getExpectedCallCount,
+  getZTokenCallCount,
   CALLS_PER_ASSET,
   ZEST_EMODE_TYPES,
 } from '../public-data/zest-v1/publicCallBuild'
-import { getZestAssets, ZEST_CONTRACTS } from '../public-data/zest-v1/constants'
+import { getZestAssets, ZEST_CONTRACTS, ZEST_Z_TOKENS } from '../public-data/zest-v1/constants'
 
 describe('Zest V1 call builder', () => {
   const calls = buildZestReserveCalls()
@@ -14,9 +15,9 @@ describe('Zest V1 call builder', () => {
   it('produces the expected number of calls', () => {
     const expected = getExpectedCallCount()
     expect(calls.length).toBe(expected)
-    // N assets * 4 calls/asset + M emodes + 1 global
+    // N assets * 4 calls/asset + M emodes + 1 global + z-token supply calls
     expect(expected).toBe(
-      assets.length * CALLS_PER_ASSET + ZEST_EMODE_TYPES.length + 1,
+      assets.length * CALLS_PER_ASSET + ZEST_EMODE_TYPES.length + 1 + getZTokenCallCount(),
     )
   })
 
@@ -57,10 +58,19 @@ describe('Zest V1 call builder', () => {
     }
   })
 
-  it('ends with get-assets-read', () => {
-    const lastCall = calls[calls.length - 1]
-    expect(lastCall.functionName).toBe('get-assets-read')
-    expect(lastCall.args.length).toBe(0)
+  it('has get-assets-read before z-token calls', () => {
+    const globalIdx = assets.length * CALLS_PER_ASSET + ZEST_EMODE_TYPES.length
+    expect(calls[globalIdx].functionName).toBe('get-assets-read')
+    expect(calls[globalIdx].args.length).toBe(0)
+  })
+
+  it('has z-token total supply calls at the end', () => {
+    const zTokenStart = assets.length * CALLS_PER_ASSET + ZEST_EMODE_TYPES.length + 1
+    const zTokenCount = getZTokenCallCount()
+    expect(zTokenCount).toBeGreaterThan(0)
+    for (let i = 0; i < zTokenCount; i++) {
+      expect(calls[zTokenStart + i].functionName).toBe('get-total-supply')
+    }
   })
 
   it('all calls have valid contract addresses', () => {

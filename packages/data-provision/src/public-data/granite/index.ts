@@ -10,7 +10,7 @@ export { buildGraniteReaderCalls } from './readerCallBuild'
 export { parseGraniteReaderResults } from './readerCallParse'
 export {
   GRANITE_MARKETS,
-  GRANITE_STX_DEPLOYER,
+  GRANITE_AEUSDC_DEPLOYER,
   GRANITE_USDCX_DEPLOYER,
   GRANITE_CORE_DEPLOYER,
   GRANITE_CONTRACT_NAMES,

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { ClarityType } from "@stacks/transactions";
 import {
   GraniteLending,
-  GRANITE_STX_MARKET,
+  GRANITE_AEUSDC_MARKET,
   GRANITE_USDCX_MARKET,
   ZestV2Lending,
   PYTH_FEED_IDS,
@@ -104,7 +104,7 @@ describe("granite with pyth oracle data", () => {
       const priceFeed = await GraniteLending.fetchPriceFeedData("stx");
 
       const call = GraniteLending.encodeBorrow(
-        GRANITE_STX_MARKET,
+        GRANITE_AEUSDC_MARKET,
         10_000_000,
         undefined,
         priceFeed
@@ -134,7 +134,7 @@ describe("granite with pyth oracle data", () => {
       const priceFeed = await GraniteLending.fetchPriceFeedData("stx");
 
       const call = GraniteLending.encodeRemoveCollateral(
-        GRANITE_STX_MARKET,
+        GRANITE_AEUSDC_MARKET,
         SBTC,
         50_000,
         undefined,
@@ -164,7 +164,7 @@ describe("granite with pyth oracle data", () => {
       const priceFeed = await GraniteLending.fetchPriceFeedData("stx");
 
       const call = GraniteLending.encodeLiquidate(
-        GRANITE_STX_MARKET,
+        GRANITE_AEUSDC_MARKET,
         SBTC,
         deployer,
         5_000_000,

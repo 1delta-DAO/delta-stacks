@@ -120,6 +120,36 @@
 )
 
 ;; -------------------------------------------------------------------
+;; V1 z-token total supply helpers (for actual deposit amounts)
+;; -------------------------------------------------------------------
+
+(define-read-only (read-v1-ztoken-wstx)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zwstx-v2-0 get-total-supply)
+)
+(define-read-only (read-v1-ztoken-ststx)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zststx-v2-0 get-total-supply)
+)
+;; sBTC has no z-token
+(define-read-only (read-v1-ztoken-aeusdc)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zaeusdc-v2-0 get-total-supply)
+)
+(define-read-only (read-v1-ztoken-diko)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zdiko-v2-0 get-total-supply)
+)
+(define-read-only (read-v1-ztoken-usdh)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zusdh-v2-0 get-total-supply)
+)
+(define-read-only (read-v1-ztoken-susdt)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zsusdt-v1-2 get-total-supply)
+)
+(define-read-only (read-v1-ztoken-alex)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zalex-v2-0 get-total-supply)
+)
+(define-read-only (read-v1-ztoken-ststxbtc)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zststxbtc-v2_v2-0 get-total-supply)
+)
+
+;; -------------------------------------------------------------------
 ;; V1 main aggregator: returns all 9 assets + e-mode configs in one call
 ;; -------------------------------------------------------------------
 
@@ -158,6 +188,7 @@
 ;;   cap-debt:       uint  -max borrow cap
 ;;   cap-supply:     uint  -max supply cap
 ;;   fee-reserve:    uint  -reserve fee (protocol take)
+;;   utilization:    uint  -current utilization ratio (BPS)
 ;; }
 
 ;; -------------------------------------------------------------------
@@ -175,7 +206,8 @@
     lindex:         (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-stx get-liquidity-index)),
     cap-debt:       (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-stx get-cap-debt)),
     cap-supply:     (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-stx get-cap-supply)),
-    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-stx get-fee-reserve))
+    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-stx get-fee-reserve)),
+    utilization:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-stx get-utilization))
   }
 )
 
@@ -190,7 +222,8 @@
     lindex:         (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-sbtc get-liquidity-index)),
     cap-debt:       (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-sbtc get-cap-debt)),
     cap-supply:     (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-sbtc get-cap-supply)),
-    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-sbtc get-fee-reserve))
+    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-sbtc get-fee-reserve)),
+    utilization:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-sbtc get-utilization))
   }
 )
 
@@ -205,7 +238,8 @@
     lindex:         (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststx get-liquidity-index)),
     cap-debt:       (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststx get-cap-debt)),
     cap-supply:     (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststx get-cap-supply)),
-    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststx get-fee-reserve))
+    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststx get-fee-reserve)),
+    utilization:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststx get-utilization))
   }
 )
 
@@ -220,7 +254,8 @@
     lindex:         (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc get-liquidity-index)),
     cap-debt:       (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc get-cap-debt)),
     cap-supply:     (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc get-cap-supply)),
-    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc get-fee-reserve))
+    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc get-fee-reserve)),
+    utilization:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc get-utilization))
   }
 )
 
@@ -235,7 +270,8 @@
     lindex:         (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdh get-liquidity-index)),
     cap-debt:       (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdh get-cap-debt)),
     cap-supply:     (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdh get-cap-supply)),
-    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdh get-fee-reserve))
+    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdh get-fee-reserve)),
+    utilization:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdh get-utilization))
   }
 )
 
@@ -250,7 +286,8 @@
     lindex:         (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststxbtc get-liquidity-index)),
     cap-debt:       (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststxbtc get-cap-debt)),
     cap-supply:     (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststxbtc get-cap-supply)),
-    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststxbtc get-fee-reserve))
+    fee-reserve:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststxbtc get-fee-reserve)),
+    utilization:    (unwrap-panic (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-ststxbtc get-utilization))
   }
 )
 
@@ -297,7 +334,7 @@
 ;; Granite per-market helpers
 ;; -------------------------------------------------------------------
 
-(define-read-only (read-granite-stx)
+(define-read-only (read-granite-aeusdc)
   {
     lp-params:            (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1 get-lp-params),
     debt-params:          (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1 get-debt-params),
@@ -331,7 +368,48 @@
 
 (define-read-only (get-granite-reserve-data)
   (ok {
-    stx:   (read-granite-stx),
+    aeusdc: (read-granite-aeusdc),
     usdcx: (read-granite-usdcx),
   })
+)
+
+;; -------------------------------------------------------------------
+;; Granite collateral config helpers
+;; -------------------------------------------------------------------
+;; Returns (optional (tuple (decimals uint) (liquidation-ltv uint)
+;;                          (liquidation-premium uint) (max-ltv uint)))
+
+(define-read-only (read-granite-aeusdc-collateral-sbtc)
+  (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1
+    get-collateral 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token)
+)
+
+(define-read-only (read-granite-usdcx-collateral-sbtc)
+  (contract-call? 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1
+    get-collateral 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token)
+)
+
+;; ===================================================================
+;; V2 EGROUP RESOLVE - LTV parameters from efficiency groups
+;; ===================================================================
+;; resolve(mask) where mask = 2^zTokenId, zTokenId = underlyingId + 1
+;; Returns (ok tuple) with LTV-BORROW, LTV-LIQ-PARTIAL as (buff 2) BPS
+
+(define-read-only (read-v2-egroup-stx)
+  (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-egroup resolve u2)
+)
+(define-read-only (read-v2-egroup-sbtc)
+  (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-egroup resolve u8)
+)
+(define-read-only (read-v2-egroup-ststx)
+  (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-egroup resolve u32)
+)
+(define-read-only (read-v2-egroup-usdc)
+  (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-egroup resolve u128)
+)
+(define-read-only (read-v2-egroup-usdh)
+  (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-egroup resolve u512)
+)
+(define-read-only (read-v2-egroup-ststxbtc)
+  (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-egroup resolve u2048)
 )

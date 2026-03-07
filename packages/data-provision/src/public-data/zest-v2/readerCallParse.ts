@@ -4,7 +4,7 @@ import { ZEST_V2_SYMBOLS, ZEST_V2_UNDERLYING_IDS, ZEST_V2_VAULT_FOR_ASSET } from
 import type { ZestV2ReserveData, ZestV2PublicResponse, ZestV2AssetStatus } from './publicCallParse'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
-const RATE_PRECISION = 1e8
+const BPS = 10_000
 const INDEX_PRECISION = 1e8
 
 const ASSET_DECIMALS: Record<number, number> = {
@@ -90,7 +90,7 @@ export function parseV2ReaderResults(
         totalBorrowsUSD: debt * price,
         availableLiquidityUSD: available * price,
         supplyRate: 0,
-        borrowRate: extractNum(v['interest-rate']) / RATE_PRECISION,
+        borrowRate: extractNum(v['interest-rate']) / BPS,
         borrowIndex: extractNum(v['index']) / INDEX_PRECISION,
         liquidityIndex: extractNum(v['lindex']) / INDEX_PRECISION,
         decimals,
@@ -105,9 +105,11 @@ export function parseV2ReaderResults(
         liquidationThreshold: egroupLtvs[aid]?.liquidationThreshold ?? 0,
       }
 
-      // Derive supply rate
-      const feeReserve = extractNum(v['fee-reserve']) / RATE_PRECISION
-      const utilization = totalAssets > 0 ? debt / totalAssets : 0
+      // Derive supply rate: borrowRate * utilization * (1 - feeReserve)
+      const feeReserve = extractNum(v['fee-reserve']) / BPS
+      // Use utilization from reader tuple if available, otherwise derive
+      const readerUtil = extractNum(v['utilization'])
+      const utilization = readerUtil > 0 ? readerUtil / BPS : (totalAssets > 0 ? debt / totalAssets : 0)
       reserveData[marketUid].supplyRate =
         reserveData[marketUid].borrowRate * utilization * (1 - feeReserve)
     }

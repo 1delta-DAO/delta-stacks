@@ -11,7 +11,7 @@ import {
 } from '@stacks/transactions'
 import { getZestReservesDataConverter } from '../public-data/zest-v1/publicCallParse'
 import { getExpectedCallCount, CALLS_PER_ASSET, ZEST_EMODE_TYPES } from '../public-data/zest-v1/publicCallBuild'
-import { getZestAssets } from '../public-data/zest-v1/constants'
+import { getZestAssets, ZEST_Z_TOKENS } from '../public-data/zest-v1/constants'
 import { StacksCallResult } from '../stacks-call'
 
 /**
@@ -106,6 +106,14 @@ function buildMockResults(): StacksCallResult[] {
     ),
   )
 
+  // Z-token total supply calls (for assets that have z-tokens)
+  for (let i = 0; i < assets.length; i++) {
+    if (ZEST_Z_TOKENS[assets[i]]) {
+      // Total supply > borrows to give meaningful deposit/liquidity values
+      results.push(mockUint(1000000000 * (i + 1)))
+    }
+  }
+
   return results
 }
 
@@ -181,8 +189,9 @@ describe('Zest V1 parser', () => {
     const firstUid = Object.keys(parsed.data)[0]
     const reserve = parsed.data[firstUid]
 
-    // Rate = raw / 1e8 - 1, so 103500000 / 1e8 - 1 = 0.035
+    // Rate = currentLiquidityRate / 1e8 = 3500000 / 1e8 = 0.035
     expect(reserve.depositRate).toBeCloseTo(0.035, 10)
+    // Rate = currentVariableBorrowRate / 1e8 = 5000000 / 1e8 = 0.05
     expect(reserve.variableBorrowRate).toBeCloseTo(0.05, 10)
   })
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tupleCV, uintCV, trueCV, falseCV, bufferCV, cvToHex } from '@stacks/transactions'
+import { tupleCV, uintCV, trueCV, falseCV, bufferCV, responseOkCV, cvToHex } from '@stacks/transactions'
 import {
   getZestV2ReservesDataConverter,
 } from '../public-data/zest-v2/publicCallParse'
@@ -21,6 +21,11 @@ function okResult(hex: string): StacksCallResult {
 
 function mockUint(value: number | bigint): StacksCallResult {
   return okResult(cvToHex(uintCV(value)))
+}
+
+/** Mock an (ok uint) response — wraps in responseOkCV */
+function mockOkUint(value: number | bigint): StacksCallResult {
+  return okResult(cvToHex(responseOkCV(uintCV(value))))
 }
 
 /** Mock asset lookup result (registry tuple) */
@@ -82,13 +87,14 @@ function buildMockResults(): StacksCallResult[] {
     results.push(mockCachedIndexes(100000000 + i * 1000000, 100000000 + i * 500000))
   }
 
-  // Section 2: vault calls (5 per underlying)
+  // Section 2: vault calls (6 per underlying)
   for (let i = 0; i < nUnderlying; i++) {
-    results.push(mockUint(3000000 + i * 200000)) // supply rate
-    results.push(mockUint(5000000 + i * 300000)) // borrow rate
-    results.push(mockUint(10000000000 * (i + 1))) // total supply shares
-    results.push(mockUint(5000000000 * (i + 1))) // total borrows
-    results.push(mockUint(5000000000 * (i + 1))) // available liquidity
+    results.push(mockOkUint(300 + i * 20))                // interest-rate (BPS, e.g. 300 = 3%)
+    results.push(mockOkUint(5000 + i * 100))              // utilization (BPS, e.g. 5000 = 50%)
+    results.push(mockOkUint(1000))                        // fee-reserve (BPS, 1000 = 10%)
+    results.push(mockOkUint(10000000000 * (i + 1)))       // total supply shares
+    results.push(mockOkUint(5000000000 * (i + 1)))        // debt
+    results.push(mockUint(5000000000 * (i + 1)))          // available-assets (plain uint)
   }
 
   // Section 3: status for all 12 assets
@@ -134,8 +140,8 @@ describe('Zest V2 parser', () => {
     const [converter, count] = getZestV2ReservesDataConverter()
     expect(typeof converter).toBe('function')
     expect(count).toBe(getExpectedCallCount())
-    // 6*3 registry + 6*5 vault + 12 statuses + 6 egroup = 66
-    expect(count).toBe(66)
+    // 6*3 registry + 6*6 vault + 12 statuses + 6 egroup = 72
+    expect(count).toBe(72)
   })
 
   it('rejects results with wrong length', () => {
@@ -182,10 +188,11 @@ describe('Zest V2 parser', () => {
     const parsed = converter(buildMockResults())!
     const first = parsed.data['stacks-mainnet:zest-v2:0']
 
-    // supply rate: 3000000 / 1e8 = 0.03
-    expect(first.supplyRate).toBe(3000000 / 1e8)
-    // borrow rate: 5000000 / 1e8 = 0.05
-    expect(first.borrowRate).toBe(5000000 / 1e8)
+    // borrow rate: 300 BPS / 10000 = 0.03
+    expect(first.borrowRate).toBe(300 / 10000)
+    // supply rate = borrowRate * utilization * (1 - feeReserve)
+    // = (300/10000) * (5000/10000) * (1 - 1000/10000) = 0.03 * 0.5 * 0.9 = 0.0135
+    expect(first.supplyRate).toBeCloseTo(0.03 * 0.5 * 0.9, 6)
   })
 
   it('parses z-token info', () => {

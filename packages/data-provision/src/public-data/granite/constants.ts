@@ -5,12 +5,12 @@
  * borrowable asset with multiple accepted collateral tokens.
  *
  * Markets:
- *   - STX market:   borrow STX against sBTC/stSTX collateral
- *   - USDCx market: borrow USDCx against sBTC/stSTX collateral
+ *   - aeUSDC market: borrow aeUSDC against sBTC collateral
+ *   - USDCx market:  borrow USDCx against sBTC collateral
  */
 
 /** Market deployer addresses (each market is its own deployer) */
-export const GRANITE_STX_DEPLOYER = 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA'
+export const GRANITE_AEUSDC_DEPLOYER = 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA'
 export const GRANITE_USDCX_DEPLOYER = 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE'
 
 /** Core protocol deployer (borrower, governance, flash loan) */
@@ -29,11 +29,11 @@ export interface GraniteMarket {
 
 export const GRANITE_MARKETS: GraniteMarket[] = [
   {
-    id: 'stx',
-    symbol: 'STX',
-    deployer: GRANITE_STX_DEPLOYER,
-    state: `${GRANITE_STX_DEPLOYER}.state-v1`,
-    ir: `${GRANITE_STX_DEPLOYER}.linear-kinked-ir-v1`,
+    id: 'aeusdc',
+    symbol: 'aeUSDC',
+    deployer: GRANITE_AEUSDC_DEPLOYER,
+    state: `${GRANITE_AEUSDC_DEPLOYER}.state-v1`,
+    ir: `${GRANITE_AEUSDC_DEPLOYER}.linear-kinked-ir-v1`,
     borrower: `${GRANITE_CORE_DEPLOYER}.borrower-v1`,
     liquidator: `${GRANITE_CORE_DEPLOYER}.liquidator-v1`,
     lpProvider: `${GRANITE_CORE_DEPLOYER}.liquidity-provider-v1`,
@@ -64,9 +64,17 @@ export const GRANITE_CONTRACT_NAMES = {
  * Values use 1e8 precision (50000000 = 50%).
  */
 export const GRANITE_COLLATERAL_TOKENS: Record<string, string[]> = {
-  stx: ['SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token'],
-  // USDCx market not yet deployed
-  usdcx: [],
+  aeusdc: ['SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token'],
+  usdcx: ['SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token'],
+}
+
+/**
+ * Reader function names for collateral config calls.
+ * Maps market-id:token-principal -> reader function name in lending-reader-v2.
+ */
+export const GRANITE_COLLATERAL_READER_FNS: Record<string, string> = {
+  'aeusdc:SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token': 'read-granite-aeusdc-collateral-sbtc',
+  'usdcx:SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token': 'read-granite-usdcx-collateral-sbtc',
 }
 
 export const GRANITE_COLLATERAL_PRECISION = 1e8

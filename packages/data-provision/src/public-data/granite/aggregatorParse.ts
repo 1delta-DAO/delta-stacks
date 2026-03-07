@@ -12,9 +12,9 @@ const RATE_PRECISION = 1e18
  *
  * The aggregator returns:
  *   (ok {
- *     stx:   { lp-params, debt-params, open-interest, reserve-balance, asset-cap,
- *              borrow-enabled, deposit-enabled, ir-params, protocol-reserve-pct },
- *     usdcx: { ... same ... },
+ *     aeusdc: { lp-params, debt-params, open-interest, reserve-balance, asset-cap,
+ *               borrow-enabled, deposit-enabled, ir-params, protocol-reserve-pct },
+ *     usdcx:  { ... same ... },
  *   })
  */
 export function parseGraniteAggregatorResult(
@@ -61,7 +61,7 @@ export function parseGraniteAggregatorResult(
       const irSlope2 = getBigInt(irParams, 'ir-slope-2')
       const utilizationKink = getBigInt(irParams, 'utilization-kink')
 
-      const decimals = market.id === 'stx' ? 6 : 8
+      const decimals = 6 // both aeUSDC and USDCx use 6 decimals
       const divisor = 10 ** decimals
 
       const totalAssetsNum = Number(totalAssets) / divisor
@@ -106,6 +106,10 @@ export function parseGraniteAggregatorResult(
         },
         borrowEnabled,
         depositEnabled,
+        // Collateral config not available from aggregator — populated via get-collateral calls
+        baseLtv: 0,
+        liquidationThreshold: 0,
+        collaterals: [],
       }
     }
 

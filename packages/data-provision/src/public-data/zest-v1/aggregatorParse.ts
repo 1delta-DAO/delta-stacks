@@ -9,7 +9,6 @@ import {
 import type { ZestReserveData, ZestPublicResponse, ZestEModeConfig } from './publicCallParse'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
-const BPS = 10_000
 const RATE_PRECISION = 1e8
 
 /**
@@ -102,10 +101,12 @@ export function parseV1AggregatorResult(
       const totalBorrowsStable = extractNum(t['total-borrows-stable']) / divisor
       const totalDebt = totalBorrowsVariable
       const totalDebtStable = totalBorrowsStable
+      // Deposits = borrows only as fallback; aggregator doesn't have z-token supply
       const totalDeposits = totalDebt + totalDebtStable
 
-      const supplyApy = extractResponseNum(supplyApyRaw) / RATE_PRECISION
-      const borrowApy = extractResponseNum(borrowApyRaw) / RATE_PRECISION
+      // Use annualized rates from reserve-state, not per-block supply-apy/borrow-apy
+      const supplyRate = extractNum(t['current-liquidity-rate']) / RATE_PRECISION
+      const borrowRate = extractNum(t['current-variable-borrow-rate']) / RATE_PRECISION
 
       // e-mode-type is (response (buff 1) uint)
       const eModeType = extractResponseBuff1(eModeTypeRaw)
@@ -117,8 +118,8 @@ export function parseV1AggregatorResult(
       config[0] = {
         category: 0,
         label: 'Disabled',
-        borrowCollateralFactor: extractNum(t['base-ltv-as-collateral']) / BPS,
-        collateralFactor: extractNum(t['liquidation-threshold']) / BPS,
+        borrowCollateralFactor: extractNum(t['base-ltv-as-collateral']) / RATE_PRECISION,
+        collateralFactor: extractNum(t['liquidation-threshold']) / RATE_PRECISION,
         borrowFactor: 1,
         collateralDisabled: extractBoolField(t['usage-as-collateral-enabled']) === false,
         debtDisabled: extractBoolField(t['borrowing-enabled']) === false,
@@ -129,8 +130,8 @@ export function parseV1AggregatorResult(
         config[eModeType] = {
           category: eModeType,
           label: eCfg.label,
-          borrowCollateralFactor: eCfg.ltv / BPS,
-          collateralFactor: eCfg.liquidationThreshold / BPS,
+          borrowCollateralFactor: eCfg.ltv / RATE_PRECISION,
+          collateralFactor: eCfg.liquidationThreshold / RATE_PRECISION,
           borrowFactor: 1,
           collateralDisabled: extractBoolField(t['usage-as-collateral-enabled']) === false,
           debtDisabled: ZEST_NON_BORROWABLE.has(asset),
@@ -151,8 +152,8 @@ export function parseV1AggregatorResult(
         totalDebtStableUSD: totalDebtStable * price,
         totalDebtUSD: totalDebt * price,
         totalLiquidityUSD: 0,
-        depositRate: supplyApy,
-        variableBorrowRate: borrowApy,
+        depositRate: supplyRate,
+        variableBorrowRate: borrowRate,
         stableBorrowRate: 0,
         decimals,
         config,
@@ -164,9 +165,9 @@ export function parseV1AggregatorResult(
         supplyCap: extractNum(t['supply-cap']),
         borrowCap: extractNum(t['borrow-cap']),
         debtCeiling: extractNum(t['debt-ceiling']),
-        liquidationThreshold: extractNum(t['liquidation-threshold']) / BPS,
-        liquidationBonus: extractNum(t['liquidation-bonus']) / BPS,
-        baseLtv: extractNum(t['base-ltv-as-collateral']) / BPS,
+        liquidationThreshold: extractNum(t['liquidation-threshold']) / RATE_PRECISION,
+        liquidationBonus: extractNum(t['liquidation-bonus']) / RATE_PRECISION,
+        baseLtv: extractNum(t['base-ltv-as-collateral']) / RATE_PRECISION,
         zToken: ZEST_Z_TOKENS[asset],
       }
     }

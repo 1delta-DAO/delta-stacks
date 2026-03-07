@@ -39,8 +39,8 @@ plan:
   - id: 0
     transactions:
     - transaction-type: emulated-contract-publish
-      contract-name: zest-reader
+      contract-name: lending-reader-v2
       emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
-      path: contracts/zest-reader.clar
+      path: contracts/lending-reader-v2.clar
       clarity-version: 3
     epoch: '3.0'

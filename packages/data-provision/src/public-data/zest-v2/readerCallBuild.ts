@@ -4,7 +4,7 @@ import { READER_CONTRACT_ADDRESS, READER_CONTRACT_NAME } from '../fetchStacksLen
 import { ZEST_V2_CONTRACTS, ZEST_V2_UNDERLYING_IDS } from './constants'
 
 /**
- * Reader function names in lending-reader-v1, matching ZEST_V2_UNDERLYING_IDS order.
+ * Reader function names in lending-reader-v2, matching ZEST_V2_UNDERLYING_IDS order.
  */
 const V2_READER_FUNCTIONS = [
   'read-vault-stx',      // asset ID 0
@@ -16,7 +16,7 @@ const V2_READER_FUNCTIONS = [
 ] as const
 
 /**
- * Build calls to the per-vault reader functions in lending-reader-v1,
+ * Build calls to the per-vault reader functions in lending-reader-v2,
  * plus egroup resolve calls for each underlying's z-token.
  *
  * Layout: [0..6) per-vault reader calls, [6..12) egroup resolve calls

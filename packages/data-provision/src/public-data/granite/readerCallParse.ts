@@ -59,7 +59,7 @@ export function parseGraniteReaderResults(
       const irSlope2 = getBigInt(irParams, 'ir-slope-2')
       const utilizationKink = getBigInt(irParams, 'utilization-kink')
 
-      const decimals = market.id === 'stx' ? 6 : 8
+      const decimals = 6 // both aeUSDC and USDCx use 6 decimals
       const divisor = 10 ** decimals
 
       const totalAssetsNum = Number(totalAssets) / divisor

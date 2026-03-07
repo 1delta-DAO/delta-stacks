@@ -14,14 +14,15 @@ import {
  *   2: get-cached-indexes (market)        — borrow index + liquidity index
  *
  * Calls per vault (1 per underlying):
- *   0: get-supply-rate (vault)            — current supply interest rate
- *   1: get-borrow-rate (vault)            — current borrow interest rate
- *   2: get-total-supply (vault)           — total z-token supply (shares)
- *   3: get-total-borrows (vault)          — total borrowed amount
- *   4: get-available-liquidity (vault)    — available to borrow
+ *   0: get-interest-rate (vault)          — current borrow interest rate (BPS)
+ *   1: get-utilization (vault)            — current utilization ratio (BPS)
+ *   2: get-fee-reserve (vault)            — protocol reserve fee (BPS)
+ *   3: get-total-supply (vault)           — total z-token supply (shares)
+ *   4: get-debt (vault)                   — total borrowed amount
+ *   5: get-available-assets (vault)       — available to borrow
  */
 export const ASSET_REGISTRY_CALLS_PER_ASSET = 3
-export const VAULT_CALLS_PER_UNDERLYING = 5
+export const VAULT_CALLS_PER_UNDERLYING = 6
 /** Number of egroup resolve calls (one per underlying's z-token) */
 export const EGROUP_CALLS = ZEST_V2_UNDERLYING_IDS.length
 
@@ -30,9 +31,9 @@ export const EGROUP_CALLS = ZEST_V2_UNDERLYING_IDS.length
  *
  * Call layout:
  *   Section 1: [0, N_underlying * 3)                    — asset registry calls
- *   Section 2: [N_underlying * 3, N_underlying * 8)     — vault calls (5 per underlying)
- *   Section 3: [N_underlying * 8, N_underlying * 8 + N_all)  — all asset statuses
- *   Section 4: [N_underlying * 8 + N_all, ... + N_underlying) — egroup resolve per z-token
+ *   Section 2: [N_underlying * 3, N_underlying * 9)     — vault calls (6 per underlying)
+ *   Section 3: [N_underlying * 9, N_underlying * 9 + N_all)  — all asset statuses
+ *   Section 4: [N_underlying * 9 + N_all, ... + N_underlying) — egroup resolve per z-token
  *
  * Where N_underlying = 6, N_all = 12
  */
@@ -70,13 +71,19 @@ export function buildZestV2ReserveCalls(): StacksCall[] {
       {
         contractAddress: vault.address,
         contractName: vault.name,
-        functionName: 'get-supply-rate',
+        functionName: 'get-interest-rate',
         args: [],
       },
       {
         contractAddress: vault.address,
         contractName: vault.name,
-        functionName: 'get-borrow-rate',
+        functionName: 'get-utilization',
+        args: [],
+      },
+      {
+        contractAddress: vault.address,
+        contractName: vault.name,
+        functionName: 'get-fee-reserve',
         args: [],
       },
       {
@@ -88,13 +95,13 @@ export function buildZestV2ReserveCalls(): StacksCall[] {
       {
         contractAddress: vault.address,
         contractName: vault.name,
-        functionName: 'get-total-borrows',
+        functionName: 'get-debt',
         args: [],
       },
       {
         contractAddress: vault.address,
         contractName: vault.name,
-        functionName: 'get-available-liquidity',
+        functionName: 'get-available-assets',
         args: [],
       },
     ]

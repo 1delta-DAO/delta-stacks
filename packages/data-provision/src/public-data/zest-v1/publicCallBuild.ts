@@ -1,6 +1,6 @@
 import { StacksCall } from '../../stacks-call'
 import { encodeClarityPrincipal } from '../../stacks-call'
-import { getZestAssets, ZEST_CONTRACTS } from './constants'
+import { getZestAssets, ZEST_CONTRACTS, ZEST_Z_TOKENS } from './constants'
 
 /**
  * Number of calls per asset in the Zest call sequence:
@@ -78,17 +78,38 @@ export function buildZestReserveCalls(): StacksCall[] {
     },
   ]
 
-  return [...assetCalls, ...emodeCalls, ...globalCalls]
+  // Z-token total supply calls (to get actual deposit amounts)
+  const zTokenCalls: StacksCall[] = assets
+    .map((asset) => {
+      const zToken = ZEST_Z_TOKENS[asset]
+      if (!zToken) return null
+      const [addr, name] = zToken.split('.')
+      return {
+        contractAddress: addr,
+        contractName: name,
+        functionName: 'get-total-supply',
+        args: [] as string[],
+      }
+    })
+    .filter((c): c is StacksCall => c !== null)
+
+  return [...assetCalls, ...emodeCalls, ...globalCalls, ...zTokenCalls]
 }
 
 /**
  * Returns the expected number of call results for validation.
  */
+/** Number of z-token supply calls (assets with z-tokens) */
+export function getZTokenCallCount(): number {
+  return getZestAssets().filter((a) => ZEST_Z_TOKENS[a]).length
+}
+
 export function getExpectedCallCount(): number {
   return (
     getZestAssets().length * CALLS_PER_ASSET +
     ZEST_EMODE_TYPES.length +
-    1
+    1 +
+    getZTokenCallCount()
   )
 }
 

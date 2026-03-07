@@ -23,9 +23,9 @@ import { parseGraniteReaderResults } from './granite/readerCallParse'
 
 export type StacksLender = 'zest-v1' | 'zest-v2' | 'granite'
 
-/** Deployed lending-reader-v1 contract address on mainnet */
+/** Deployed lending-reader-v2 contract address on mainnet */
 export const READER_CONTRACT_ADDRESS = 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H'
-export const READER_CONTRACT_NAME = 'lending-reader-v1'
+export const READER_CONTRACT_NAME = 'lending-reader-v2'
 
 export interface StacksLenderOptions {
   apiUrl?: string
@@ -49,7 +49,7 @@ export interface AllLendingData {
 /**
  * Fetch public reserve data for a Stacks-based lending protocol.
  *
- * By default uses the deployed lending-reader-v1 contract which bundles
+ * By default uses the deployed lending-reader-v2 contract which bundles
  * multiple sub-calls per asset into single read-only calls:
  *   - V1: 11 calls (9 assets + 2 emode) instead of 39
  *   - V2: 6 calls (6 vaults) instead of 60

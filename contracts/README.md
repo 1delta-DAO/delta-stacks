@@ -102,7 +102,7 @@ Each asset/vault/market also has its own read-only function if you only need one
 ```
 read-v1-wstx, read-v1-ststx, read-v1-sbtc, read-v1-aeusdc, ...
 read-vault-stx, read-vault-sbtc, read-vault-ststx, ...
-read-granite-stx, read-granite-usdcx
+read-granite-aeusdc, read-granite-usdcx
 ```
 
 ## Querying User Lending Positions
