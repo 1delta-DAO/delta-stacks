@@ -5,11 +5,10 @@ import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_PRECISIO
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 
-/**
- * Granite uses 18-decimal fixed point for rates and interest.
- * 1e18 = 100% per year.
- */
-const RATE_PRECISION = 1e18
+/** Granite IR params use 1e12 precision (1e12 = 100%) */
+const IR_PRECISION = 1e12
+/** Protocol reserve percentage uses 1e8 precision */
+const RESERVE_PCT_PRECISION = 1e8
 
 export interface GraniteMarketData {
   marketUid: string
@@ -160,7 +159,7 @@ export function getGraniteReservesDataConverter(
       )
 
       // Supply rate = borrow rate * utilization * (1 - protocol reserve %)
-      const protocolReservePct = Number(protocolReservePercentage) / RATE_PRECISION
+      const protocolReservePct = Number(protocolReservePercentage) / RESERVE_PCT_PRECISION
       const supplyRate = borrowRate * utilization * (1 - protocolReservePct)
 
       const price =
@@ -187,10 +186,10 @@ export function getGraniteReservesDataConverter(
         borrowRate,
         supplyRate,
         irParams: {
-          baseIr: Number(baseIr) / RATE_PRECISION,
-          irSlope1: Number(irSlope1) / RATE_PRECISION,
-          irSlope2: Number(irSlope2) / RATE_PRECISION,
-          utilizationKink: Number(utilizationKink) / RATE_PRECISION,
+          baseIr: Number(baseIr) / IR_PRECISION,
+          irSlope1: Number(irSlope1) / IR_PRECISION,
+          irSlope2: Number(irSlope2) / IR_PRECISION,
+          utilizationKink: Number(utilizationKink) / IR_PRECISION,
         },
         borrowEnabled,
         depositEnabled,
@@ -280,10 +279,10 @@ function computeBorrowRate(
   kink: number,
   utilization: number,
 ): number {
-  const base = baseIr / RATE_PRECISION
-  const s1 = slope1 / RATE_PRECISION
-  const s2 = slope2 / RATE_PRECISION
-  const k = kink / RATE_PRECISION
+  const base = baseIr / IR_PRECISION
+  const s1 = slope1 / IR_PRECISION
+  const s2 = slope2 / IR_PRECISION
+  const k = kink / IR_PRECISION
 
   if (utilization <= k) {
     return base + s1 * utilization

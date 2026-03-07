@@ -4,7 +4,8 @@ import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_PRECISIO
 import type { GraniteMarketData, GranitePublicResponse, GraniteCollateralConfig } from './publicCallParse'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
-const RATE_PRECISION = 1e18
+const IR_PRECISION = 1e12
+const RESERVE_PCT_PRECISION = 1e8
 
 /**
  * Parse results from the per-market reader calls + collateral config calls.
@@ -71,7 +72,7 @@ export function parseGraniteReaderResults(
         Number(baseIr), Number(irSlope1), Number(irSlope2),
         Number(utilizationKink), utilization,
       )
-      const protocolReservePct = Number(protocolReservePercentage) / RATE_PRECISION
+      const protocolReservePct = Number(protocolReservePercentage) / RESERVE_PCT_PRECISION
       const supplyRate = borrowRate * utilization * (1 - protocolReservePct)
 
       const price = prices[market.symbol.toLowerCase()] ?? prices[market.symbol] ?? 0
@@ -97,10 +98,10 @@ export function parseGraniteReaderResults(
         borrowRate,
         supplyRate,
         irParams: {
-          baseIr: Number(baseIr) / RATE_PRECISION,
-          irSlope1: Number(irSlope1) / RATE_PRECISION,
-          irSlope2: Number(irSlope2) / RATE_PRECISION,
-          utilizationKink: Number(utilizationKink) / RATE_PRECISION,
+          baseIr: Number(baseIr) / IR_PRECISION,
+          irSlope1: Number(irSlope1) / IR_PRECISION,
+          irSlope2: Number(irSlope2) / IR_PRECISION,
+          utilizationKink: Number(utilizationKink) / IR_PRECISION,
         },
         borrowEnabled,
         depositEnabled,
@@ -180,10 +181,10 @@ function computeBorrowRate(
   baseIr: number, slope1: number, slope2: number,
   kink: number, utilization: number,
 ): number {
-  const base = baseIr / RATE_PRECISION
-  const s1 = slope1 / RATE_PRECISION
-  const s2 = slope2 / RATE_PRECISION
-  const k = kink / RATE_PRECISION
+  const base = baseIr / IR_PRECISION
+  const s1 = slope1 / IR_PRECISION
+  const s2 = slope2 / IR_PRECISION
+  const k = kink / IR_PRECISION
   if (utilization <= k) return base + s1 * utilization
   return base + s1 * k + s2 * (utilization - k)
 }
