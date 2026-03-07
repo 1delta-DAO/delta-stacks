@@ -176,7 +176,7 @@ export function getZestV2ReservesDataConverter(
       const totalDepositsNum = totalBorrowsNum + availableLiquidityNum
 
       const price =
-        prices[symbol.toLowerCase()] ?? prices[symbol] ?? 0
+        prices[marketUid] ?? prices[symbol.toLowerCase()] ?? prices[symbol] ?? 0
 
       reserveData[marketUid] = {
         marketUid,

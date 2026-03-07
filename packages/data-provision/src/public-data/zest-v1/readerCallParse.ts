@@ -111,7 +111,7 @@ export function parseV1ReaderResults(
       // e-mode-type is plain (buff 1)
       const eModeType = extractBuff1(v['e-mode-type'])
 
-      const price = prices[symbol.toLowerCase()] ?? prices[asset] ?? 0
+      const price = prices[marketUid] ?? prices[symbol.toLowerCase()] ?? prices[asset] ?? 0
 
       const config: Record<number, ZestEModeConfig> = {}
       config[0] = {

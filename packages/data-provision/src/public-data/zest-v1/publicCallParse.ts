@@ -156,7 +156,7 @@ export function getZestReservesDataConverter(
       }
       const totalLiquidity = totalDeposits - totalDebt - totalDebtStable
 
-      const price = prices[symbol.toLowerCase()] ?? prices[asset] ?? 0
+      const price = prices[marketUid] ?? prices[symbol.toLowerCase()] ?? prices[asset] ?? 0
 
       // Build e-mode config map
       const config: Record<number, ZestEModeConfig> = {}

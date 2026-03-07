@@ -111,7 +111,7 @@ export function parseV1AggregatorResult(
       // e-mode-type is (response (buff 1) uint)
       const eModeType = extractResponseBuff1(eModeTypeRaw)
 
-      const price = prices[symbol.toLowerCase()] ?? prices[asset] ?? 0
+      const price = prices[marketUid] ?? prices[symbol.toLowerCase()] ?? prices[asset] ?? 0
 
       // Build e-mode config map
       const config: Record<number, ZestEModeConfig> = {}

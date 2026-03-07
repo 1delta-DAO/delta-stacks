@@ -89,7 +89,7 @@ export function parseAggregatorResult(
       const debt = extractNum(v['debt']) / divisor
       const available = extractNum(v['available']) / divisor
 
-      const price = prices[symbol.toLowerCase()] ?? prices[symbol] ?? 0
+      const price = prices[marketUid] ?? prices[symbol.toLowerCase()] ?? prices[symbol] ?? 0
 
       reserveData[marketUid] = {
         marketUid,

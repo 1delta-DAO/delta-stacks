@@ -1,7 +1,9 @@
 import {
   getStacksLenderPublicData,
+  fetchAllPrices,
   type StacksLender,
   type AllLendingData,
+  type USDPriceMap,
 } from '@delta-stacks/data-provision'
 
 interface Env {
@@ -10,26 +12,42 @@ interface Env {
 
 const LENDERS: StacksLender[] = ['zest-v1', 'zest-v2', 'granite']
 const ROTATION_KEY = 'cron:next-lender-index'
+const PRICES_KEY = 'prices'
 
 /**
- * Cron trigger: fetches one lender per invocation, rotating through
- * zest-v1 -> zest-v2 -> granite to stay under Hiro rate limits.
- * Each lender's data is stored under its own KV key.
- * With a 2-minute cron, all 3 lenders refresh every 6 minutes.
+ * Cron trigger (every 2 min):
+ *   1. Always refresh prices (Pyth API + on-chain — fast)
+ *   2. Rotate through one lender per invocation, fetching WITH cached prices
+ *
+ * Prices refresh every 2 min. Each lender refreshes every 6 min.
  */
 async function handleScheduled(env: Env): Promise<void> {
   const idxStr = await env.LENDING_KV.get(ROTATION_KEY)
   const idx = idxStr ? parseInt(idxStr, 10) % LENDERS.length : 0
   const lender = LENDERS[idx]
 
-  console.log(`Cron: fetching ${lender} (index ${idx})`)
-
+  // Step 1: Refresh prices (always — they're lightweight)
+  let prices: USDPriceMap = {}
   try {
-    const data = await getStacksLenderPublicData(lender, {}, { concurrency: 2 })
+    prices = await fetchAllPrices({ concurrency: 2 })
+    await env.LENDING_KV.put(PRICES_KEY, JSON.stringify(prices), {
+      expirationTtl: 600,
+    })
+    console.log(`Cron: prices refreshed (${Object.keys(prices).length} entries)`)
+  } catch (e) {
+    console.error('Cron: failed to fetch prices, loading from cache', e)
+    const cached = await env.LENDING_KV.get(PRICES_KEY)
+    if (cached) prices = JSON.parse(cached)
+  }
+
+  // Step 2: Fetch lender data with prices
+  console.log(`Cron: fetching ${lender} (index ${idx})`)
+  try {
+    const data = await getStacksLenderPublicData(lender, prices, { concurrency: 2 })
 
     if (data) {
       await env.LENDING_KV.put(`lending:${lender}`, JSON.stringify(data), {
-        expirationTtl: 600, // expire after 10 min if not refreshed
+        expirationTtl: 600,
       })
       console.log(`Cron: stored ${lender} data`)
     } else {
@@ -44,8 +62,10 @@ async function handleScheduled(env: Env): Promise<void> {
 }
 
 /**
- * GET / — returns all cached lending data from KV.
- * GET /:lender — returns data for a specific lender (zest-v1, zest-v2, granite).
+ * GET /           — all cached lending data
+ * GET /lending    — same as above
+ * GET /prices     — cached USD price map
+ * GET /:lender    — data for a specific lender
  */
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url)
@@ -55,6 +75,18 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'public, max-age=60',
+  }
+
+  // Prices endpoint
+  if (path === 'prices') {
+    const raw = await env.LENDING_KV.get(PRICES_KEY)
+    if (!raw) {
+      return new Response(JSON.stringify({ error: 'No cached prices' }), {
+        status: 404,
+        headers,
+      })
+    }
+    return new Response(raw, { headers })
   }
 
   // Single lender

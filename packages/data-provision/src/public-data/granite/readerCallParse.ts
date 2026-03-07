@@ -75,7 +75,7 @@ export function parseGraniteReaderResults(
       const protocolReservePct = Number(protocolReservePercentage) / RESERVE_PCT_PRECISION
       const supplyRate = borrowRate * utilization * (1 - protocolReservePct)
 
-      const price = prices[market.symbol.toLowerCase()] ?? prices[market.symbol] ?? 0
+      const price = prices[marketUid] ?? prices[market.symbol.toLowerCase()] ?? prices[market.symbol] ?? 0
 
       data[marketUid] = {
         marketUid,
