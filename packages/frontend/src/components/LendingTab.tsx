@@ -3,7 +3,7 @@ import { Tabs } from './Tabs'
 import { useLendingData } from '../hooks/useLendingData'
 import type { AllLendingData } from '@delta-stacks/data-provision'
 
-const LENDERS = ['All', 'Zest V1', 'Zest V2', 'Granite']
+const LENDERS = ['All', 'Zest V1', 'Zest V2', 'Granite aeUSDC', 'Granite USDCx']
 
 interface UnifiedMarket {
   marketUid: string
@@ -54,9 +54,11 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
 
   if (data.granite) {
     for (const m of Object.values(data.granite.data)) {
+      const parentId = m.parentMarketId ?? m.marketId
+      const graniteLabel = parentId.startsWith('usdcx') ? 'Granite USDCx' : 'Granite aeUSDC'
       markets.push({
         marketUid: m.marketUid,
-        protocol: 'Granite',
+        protocol: graniteLabel,
         symbol: m.symbol,
         totalDeposits: m.totalAssets,
         totalBorrows: m.openInterest,
