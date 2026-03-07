@@ -4,9 +4,16 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "echo 'TODO: add backend framework'",
-    "build": "echo 'TODO: add backend framework'"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "@delta-stacks/data-provision": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.99.0"
+  }
 }
