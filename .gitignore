@@ -11,3 +11,6 @@ coverage/
 history.txt
 settings/Mainnet.toml
 settings/Testnet.toml
+
+# Cloudflare
+packages/backend/wrangler.toml

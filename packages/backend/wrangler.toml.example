@@ -1,0 +1,10 @@
+name = "delta-stacks-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[triggers]
+crons = ["*/2 * * * *"]
+
+[[kv_namespaces]]
+binding = "LENDING_KV"
+id = "your-kv-namespace-id"
