@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@delta-stacks/calldata-sdk-stacks": "file:../calldata-sdk-stacks",
     "@delta-stacks/data-provision": "file:../data-provision",
     "@stacks/connect": "^8.2.5",
     "@stacks/network": "^7.3.1",

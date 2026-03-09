@@ -1,12 +1,12 @@
 import type { StacksContractCall } from '../types'
 import { principal, uint, optionalPrincipal, noneCV, someCV, listCV, bufferCV, tupleCV } from '../types/clarity-args'
 import type { ClarityValue } from '../types/clarity-args'
-import { ZEST_V2_DEPLOYER, ZEST_V2_CONTRACTS, ZEST_V2_VAULT_FEED_KEYS, splitContract } from './constants'
+import { ZEST_V2_DEPLOYER, ZEST_V2_CONTRACTS, ZEST_V2_VAULT_FEED_KEYS, ZEST_V2_VAULT_TO_UNDERLYING, splitContract } from './constants'
 import { fetchPythPriceUpdates } from '../pyth/fetch'
 import type { PythFetchOptions } from '../pyth/fetch'
 import { PYTH_FEED_IDS } from '../pyth/feed-ids'
 
-export { ZEST_V2_DEPLOYER, ZEST_V2_CONTRACTS }
+export { ZEST_V2_DEPLOYER, ZEST_V2_CONTRACTS, ZEST_V2_VAULT_TO_UNDERLYING }
 
 const [MARKET_ADDR, MARKET_NAME] = splitContract(ZEST_V2_CONTRACTS.market)
 const [EGROUP_ADDR, EGROUP_NAME] = splitContract(ZEST_V2_CONTRACTS.egroup)

@@ -1,13 +1,22 @@
 import { useState } from 'react'
 import { Tabs } from './Tabs'
+import { ActionPanel } from './ActionPanel'
 import { useLendingData } from '../hooks/useLendingData'
 import type { AllLendingData } from '@delta-stacks/data-provision'
+import {
+  ZEST_V1_CONTRACTS,
+  ZEST_V2_CONTRACTS,
+} from '@delta-stacks/calldata-sdk-stacks'
 
 const LENDERS = ['All', 'Zest V1', 'Zest V2', 'Granite aeUSDC', 'Granite USDCx']
 
-interface UnifiedMarket {
+/** Lender key used internally */
+type LenderKey = 'zest-v1' | 'zest-v2' | 'granite'
+
+export interface UnifiedMarket {
   marketUid: string
   protocol: string
+  lender: LenderKey
   symbol: string
   totalDeposits: number
   totalBorrows: number
@@ -17,6 +26,35 @@ interface UnifiedMarket {
   borrowRate: number
   baseLtv: number
   liquidationThreshold: number
+  decimals: number
+  // Protocol-specific identifiers for SDK
+  v1Asset?: { underlying: string; lpToken: string }
+  v2Vault?: string
+  graniteMarketId?: 'aeusdc' | 'usdcx'
+}
+
+/** Map Zest V2 vault name -> full contract principal */
+const V2_VAULT_MAP: Record<string, string> = {
+  'v0-vault-stx': ZEST_V2_CONTRACTS.vaultStx,
+  'v0-vault-sbtc': ZEST_V2_CONTRACTS.vaultSbtc,
+  'v0-vault-ststx': ZEST_V2_CONTRACTS.vaultStstx,
+  'v0-vault-usdc': ZEST_V2_CONTRACTS.vaultUsdc,
+  'v0-vault-usdh': ZEST_V2_CONTRACTS.vaultUsdh,
+  'v0-vault-ststxbtc': ZEST_V2_CONTRACTS.vaultStstxbtc,
+}
+
+/** Z-token addresses for Zest V1 (keyed by asset principal) */
+const V1_DEPLOYER = ZEST_V1_CONTRACTS.poolBorrow.split('.')[0]
+const V1_Z_TOKENS: Record<string, string> = {
+  [`${V1_DEPLOYER}.wstx`]: `${V1_DEPLOYER}.zwstx-v2-0`,
+  'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token': `${V1_DEPLOYER}.zststx-v2-0`,
+  'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token': `${V1_DEPLOYER}.zsbtc-v2-0`,
+  'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc': `${V1_DEPLOYER}.zaeusdc-v2-0`,
+  'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.arkadiko-token': `${V1_DEPLOYER}.zdiko-v2-0`,
+  'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1': `${V1_DEPLOYER}.zusdh-v2-0`,
+  'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt': `${V1_DEPLOYER}.zsusdt-v1-2`,
+  'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex': `${V1_DEPLOYER}.zalex-v2-0`,
+  'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2': `${V1_DEPLOYER}.zststxbtc-v2_v2-0`,
 }
 
 function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
@@ -24,9 +62,11 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
 
   if (data.v1) {
     for (const m of Object.values(data.v1.data)) {
+      const underlying = m.poolId || m.underlying
       markets.push({
         marketUid: m.marketUid,
         protocol: 'Zest V1',
+        lender: 'zest-v1',
         symbol: m.symbol,
         totalDeposits: m.totalDeposits,
         totalBorrows: m.totalDebt,
@@ -36,15 +76,21 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         borrowRate: m.variableBorrowRate,
         baseLtv: m.baseLtv,
         liquidationThreshold: m.liquidationThreshold,
+        decimals: m.decimals,
+        v1Asset: underlying
+          ? { underlying, lpToken: V1_Z_TOKENS[underlying] || '' }
+          : undefined,
       })
     }
   }
 
   if (data.v2) {
     for (const m of Object.values(data.v2.data)) {
+      const vaultPrincipal = V2_VAULT_MAP[m.vault] ?? ''
       markets.push({
         marketUid: m.marketUid,
         protocol: 'Zest V2',
+        lender: 'zest-v2',
         symbol: m.symbol,
         totalDeposits: m.totalDeposits,
         totalBorrows: m.totalBorrows,
@@ -54,6 +100,8 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         borrowRate: m.borrowRate,
         baseLtv: m.baseLtv,
         liquidationThreshold: m.liquidationThreshold,
+        decimals: m.decimals,
+        v2Vault: vaultPrincipal || undefined,
       })
     }
   }
@@ -65,6 +113,7 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
       markets.push({
         marketUid: m.marketUid,
         protocol: graniteLabel,
+        lender: 'granite',
         symbol: m.symbol,
         totalDeposits: m.totalAssets,
         totalBorrows: m.openInterest,
@@ -74,6 +123,10 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         borrowRate: m.borrowRate,
         baseLtv: m.baseLtv,
         liquidationThreshold: m.liquidationThreshold,
+        decimals: 6, // Granite markets are USDC-denominated (6 decimals)
+        graniteMarketId: m.isCollateral
+          ? undefined
+          : (parentId as 'aeusdc' | 'usdcx'),
       })
     }
   }
@@ -99,7 +152,15 @@ function formatUSD(n: number | null): string | null {
   return `$${n.toFixed(2)}`
 }
 
-function MarketsTable({ markets }: { markets: UnifiedMarket[] }) {
+function MarketsTable({
+  markets,
+  selected,
+  onSelect,
+}: {
+  markets: UnifiedMarket[]
+  selected: string | null
+  onSelect: (m: UnifiedMarket) => void
+}) {
   if (!markets.length) return <EmptyState />
 
   return (
@@ -114,12 +175,19 @@ function MarketsTable({ markets }: { markets: UnifiedMarket[] }) {
             <th className="text-right py-3 px-4">Supply APR</th>
             <th className="text-right py-3 px-4">Borrow APR</th>
             <th className="text-right py-3 px-4">LTV</th>
-            <th className="text-right py-3 px-4">Liq. Threshold</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {markets.map((m) => (
-            <tr key={m.marketUid} className="hover:bg-surface-alt transition-colors">
+            <tr
+              key={m.marketUid}
+              onClick={() => onSelect(m)}
+              className={`cursor-pointer transition-colors ${
+                selected === m.marketUid
+                  ? 'bg-surface-alt border-l-2 border-l-primary'
+                  : 'hover:bg-surface-alt'
+              }`}
+            >
               <td className="py-3 px-4 font-medium">{m.symbol}</td>
               <td className="py-3 px-4 text-text-muted text-xs">{m.protocol}</td>
               <td className="py-3 px-4 text-right font-mono">
@@ -137,7 +205,6 @@ function MarketsTable({ markets }: { markets: UnifiedMarket[] }) {
               <td className="py-3 px-4 text-right text-positive">{formatRate(m.supplyRate)}</td>
               <td className="py-3 px-4 text-right text-negative">{formatRate(m.borrowRate)}</td>
               <td className="py-3 px-4 text-right">{formatRate(m.baseLtv)}</td>
-              <td className="py-3 px-4 text-right">{formatRate(m.liquidationThreshold)}</td>
             </tr>
           ))}
         </tbody>
@@ -162,6 +229,7 @@ function LoadingState() {
 
 export function LendingTab() {
   const [lenderTab, setLenderTab] = useState(0)
+  const [selectedMarket, setSelectedMarket] = useState<UnifiedMarket | null>(null)
   const { data, loading, error } = useLendingData()
 
   if (error && !data.v1 && !data.v2 && !data.granite) {
@@ -183,10 +251,32 @@ export function LendingTab() {
     <div className="space-y-4">
       <Tabs tabs={LENDERS} active={lenderTab} onChange={setLenderTab} size="sm" />
 
-      <div className="bg-surface rounded-lg border border-border">
-        {hasAnyData
-          ? <MarketsTable markets={filteredMarkets} />
-          : loading ? <LoadingState /> : <EmptyState />}
+      <div className={`flex gap-4 ${selectedMarket ? '' : ''}`}>
+        {/* Markets table */}
+        <div className={`bg-surface rounded-lg border border-border ${selectedMarket ? 'flex-1 min-w-0' : 'w-full'}`}>
+          {hasAnyData ? (
+            <MarketsTable
+              markets={filteredMarkets}
+              selected={selectedMarket?.marketUid ?? null}
+              onSelect={setSelectedMarket}
+            />
+          ) : loading ? (
+            <LoadingState />
+          ) : (
+            <EmptyState />
+          )}
+        </div>
+
+        {/* Action panel */}
+        {selectedMarket && (
+          <div className="w-80 shrink-0">
+            <ActionPanel
+              key={selectedMarket.marketUid}
+              market={selectedMarket}
+              onClose={() => setSelectedMarket(null)}
+            />
+          </div>
+        )}
       </div>
     </div>
   )

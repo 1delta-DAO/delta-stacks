@@ -21,6 +21,7 @@ export {
   ZestV2EGroup,
   ZEST_V2_DEPLOYER,
   ZEST_V2_CONTRACTS,
+  ZEST_V2_VAULT_TO_UNDERLYING,
 } from './zest-v2'
 
 // Granite
@@ -43,3 +44,12 @@ export {
   fetchPythPriceUpdates,
 } from './pyth'
 export type { PythFeedId, PythFetchOptions } from './pyth'
+
+// Lending e2e handlers
+export { borrow, deposit, withdraw, repay, Lender } from './lending'
+export type {
+  BorrowParams,
+  DepositParams,
+  WithdrawParams,
+  RepayParams,
+} from './lending'
