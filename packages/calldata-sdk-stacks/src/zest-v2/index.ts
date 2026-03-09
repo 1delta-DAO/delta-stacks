@@ -1,7 +1,7 @@
 import type { StacksContractCall } from '../types'
 import { principal, uint, optionalPrincipal, noneCV, someCV, listCV, bufferCV, tupleCV } from '../types/clarity-args'
 import type { ClarityValue } from '../types/clarity-args'
-import { ZEST_V2_DEPLOYER, ZEST_V2_CONTRACTS, splitContract } from './constants'
+import { ZEST_V2_DEPLOYER, ZEST_V2_CONTRACTS, ZEST_V2_VAULT_FEED_KEYS, splitContract } from './constants'
 import { fetchPythPriceUpdates } from '../pyth/fetch'
 import type { PythFetchOptions } from '../pyth/fetch'
 import { PYTH_FEED_IDS } from '../pyth/feed-ids'
@@ -263,6 +263,52 @@ export namespace ZestV2Lending {
     feedIds: string[],
     options?: PythFetchOptions,
   ): Promise<Uint8Array[]> {
+    return fetchPythPriceUpdates(feedIds, options)
+  }
+
+  /**
+   * Resolve the Pyth feed IDs required for a set of vault contract principals.
+   * Deduplicates feeds when multiple vaults share the same underlying price
+   * (e.g. vaultStx and vaultStstx both need STX).
+   *
+   * @param vaults - one or more vault contract principals
+   * @returns deduplicated array of Pyth feed ID hex strings
+   * @throws if a vault principal is not recognized
+   */
+  export function resolveFeedIds(vaults: string[]): string[] {
+    const keys = new Set<string>()
+    for (const vault of vaults) {
+      const feedKeys = ZEST_V2_VAULT_FEED_KEYS[vault]
+      if (!feedKeys) {
+        throw new Error(`Unknown Zest V2 vault: ${vault}`)
+      }
+      for (const k of feedKeys) keys.add(k)
+    }
+    return [...keys].map((k) => PRICE_FEEDS[k as keyof typeof PRICE_FEEDS])
+  }
+
+  /**
+   * Fetch Pyth price feeds for the vaults involved in a transaction.
+   * Automatically resolves which feeds are needed and deduplicates.
+   *
+   * @param vaults  - vault contract principals involved in the operation
+   * @param options - optional Hermes URL override
+   * @returns Uint8Array[] ready to pass as `priceFeeds` parameter
+   *
+   * @example
+   * ```ts
+   * const feeds = await ZestV2Lending.fetchPriceFeedsForVaults([
+   *   ZEST_V2_CONTRACTS.vaultStx,
+   *   ZEST_V2_CONTRACTS.vaultSbtc,
+   * ])
+   * const call = ZestV2Lending.encodeBorrow(vault, amount, undefined, feeds)
+   * ```
+   */
+  export async function fetchPriceFeedsForVaults(
+    vaults: string[],
+    options?: PythFetchOptions,
+  ): Promise<Uint8Array[]> {
+    const feedIds = resolveFeedIds(vaults)
     return fetchPythPriceUpdates(feedIds, options)
   }
 }

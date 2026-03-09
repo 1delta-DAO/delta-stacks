@@ -25,6 +25,16 @@ export const ZEST_V2_VAULT_FOR_ASSET: Record<number, string> = {
   10: ZEST_V2_CONTRACTS.vaultStstxbtc,
 }
 
+/** Map from vault contract principal to the Pyth feed keys needed to price that asset */
+export const ZEST_V2_VAULT_FEED_KEYS: Record<string, readonly string[]> = {
+  [ZEST_V2_CONTRACTS.vaultStx]: ['STX'],
+  [ZEST_V2_CONTRACTS.vaultSbtc]: ['BTC'],
+  [ZEST_V2_CONTRACTS.vaultStstx]: ['STX'],
+  [ZEST_V2_CONTRACTS.vaultUsdc]: ['USDC'],
+  [ZEST_V2_CONTRACTS.vaultUsdh]: ['USDC'],
+  [ZEST_V2_CONTRACTS.vaultStstxbtc]: ['STX', 'BTC'],
+}
+
 /** Split a "deployer.name" string into [address, name] */
 export function splitContract(contractId: string): [string, string] {
   const dot = contractId.indexOf('.')

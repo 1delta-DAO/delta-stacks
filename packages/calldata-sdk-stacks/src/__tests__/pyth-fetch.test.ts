@@ -3,6 +3,7 @@ import { fetchPythPriceUpdate, fetchPythPriceUpdates } from '../pyth/fetch'
 import { PYTH_FEED_IDS, PYTH_HERMES_URL } from '../pyth/feed-ids'
 import { GraniteLending } from '../granite'
 import { ZestV2Lending } from '../zest-v2'
+import { ZEST_V2_CONTRACTS } from '../zest-v2/constants'
 
 // Mock global fetch
 const mockFetch = vi.fn()
@@ -182,5 +183,98 @@ describe('ZestV2Lending.fetchPriceFeeds', () => {
     expect(ZestV2Lending.PRICE_FEEDS.BTC).toBe(PYTH_FEED_IDS.BTC)
     expect(ZestV2Lending.PRICE_FEEDS.USDC).toBe(PYTH_FEED_IDS.USDC)
     expect(ZestV2Lending.PRICE_FEEDS.ETH).toBe(PYTH_FEED_IDS.ETH)
+  })
+})
+
+describe('ZestV2Lending.resolveFeedIds', () => {
+  it('resolves STX vault to STX feed', () => {
+    const ids = ZestV2Lending.resolveFeedIds([ZEST_V2_CONTRACTS.vaultStx])
+    expect(ids).toEqual([PYTH_FEED_IDS.STX])
+  })
+
+  it('resolves sBTC vault to BTC feed', () => {
+    const ids = ZestV2Lending.resolveFeedIds([ZEST_V2_CONTRACTS.vaultSbtc])
+    expect(ids).toEqual([PYTH_FEED_IDS.BTC])
+  })
+
+  it('resolves stSTX vault to STX feed (pegged)', () => {
+    const ids = ZestV2Lending.resolveFeedIds([ZEST_V2_CONTRACTS.vaultStstx])
+    expect(ids).toEqual([PYTH_FEED_IDS.STX])
+  })
+
+  it('resolves USDC vault to USDC feed', () => {
+    const ids = ZestV2Lending.resolveFeedIds([ZEST_V2_CONTRACTS.vaultUsdc])
+    expect(ids).toEqual([PYTH_FEED_IDS.USDC])
+  })
+
+  it('resolves USDH vault to USDC feed (USD stablecoin)', () => {
+    const ids = ZestV2Lending.resolveFeedIds([ZEST_V2_CONTRACTS.vaultUsdh])
+    expect(ids).toEqual([PYTH_FEED_IDS.USDC])
+  })
+
+  it('resolves stSTXBTC vault to both STX and BTC feeds', () => {
+    const ids = ZestV2Lending.resolveFeedIds([ZEST_V2_CONTRACTS.vaultStstxbtc])
+    expect(ids).toContain(PYTH_FEED_IDS.STX)
+    expect(ids).toContain(PYTH_FEED_IDS.BTC)
+    expect(ids).toHaveLength(2)
+  })
+
+  it('deduplicates feeds across multiple vaults', () => {
+    // STX vault + stSTX vault both need STX feed
+    const ids = ZestV2Lending.resolveFeedIds([
+      ZEST_V2_CONTRACTS.vaultStx,
+      ZEST_V2_CONTRACTS.vaultStstx,
+    ])
+    expect(ids).toEqual([PYTH_FEED_IDS.STX])
+  })
+
+  it('collects unique feeds across all vaults', () => {
+    const ids = ZestV2Lending.resolveFeedIds([
+      ZEST_V2_CONTRACTS.vaultStx,
+      ZEST_V2_CONTRACTS.vaultSbtc,
+      ZEST_V2_CONTRACTS.vaultUsdc,
+    ])
+    expect(ids).toHaveLength(3)
+    expect(ids).toContain(PYTH_FEED_IDS.STX)
+    expect(ids).toContain(PYTH_FEED_IDS.BTC)
+    expect(ids).toContain(PYTH_FEED_IDS.USDC)
+  })
+
+  it('throws for unknown vault', () => {
+    expect(() => ZestV2Lending.resolveFeedIds(['SP1234.unknown-vault'])).toThrow(
+      'Unknown Zest V2 vault',
+    )
+  })
+})
+
+describe('ZestV2Lending.fetchPriceFeedsForVaults', () => {
+  it('fetches feeds for STX + sBTC vaults', async () => {
+    const hex2 = bytesToHex(new Uint8Array([0xaa, 0xbb]))
+    mockHermesResponse([SAMPLE_HEX, hex2])
+
+    const result = await ZestV2Lending.fetchPriceFeedsForVaults([
+      ZEST_V2_CONTRACTS.vaultStx,
+      ZEST_V2_CONTRACTS.vaultSbtc,
+    ])
+
+    expect(result).toHaveLength(2)
+    expect(result[0]).toBeInstanceOf(Uint8Array)
+    const url = mockFetch.mock.calls[0][0] as string
+    expect(url).toContain(encodeURIComponent(PYTH_FEED_IDS.STX))
+    expect(url).toContain(encodeURIComponent(PYTH_FEED_IDS.BTC))
+  })
+
+  it('deduplicates: STX + stSTX vaults only fetch STX once', async () => {
+    mockHermesResponse([SAMPLE_HEX])
+
+    await ZestV2Lending.fetchPriceFeedsForVaults([
+      ZEST_V2_CONTRACTS.vaultStx,
+      ZEST_V2_CONTRACTS.vaultStstx,
+    ])
+
+    const url = mockFetch.mock.calls[0][0] as string
+    // STX feed should appear only once
+    const matches = url.match(new RegExp(encodeURIComponent(PYTH_FEED_IDS.STX), 'g'))
+    expect(matches).toHaveLength(1)
   })
 })
