@@ -79,6 +79,16 @@ export const ZEST_V2_VAULT_FOR_ASSET: Record<number, { address: string; name: st
  */
 export const ZEST_V2_ALL_ASSET_IDS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const
 
+/** Token decimals per underlying asset ID */
+export const ZEST_V2_DECIMALS: Record<number, number> = {
+  0: 6,   // STX
+  2: 8,   // sBTC
+  4: 6,   // stSTX
+  6: 6,   // USDC (aeUSDC)
+  8: 6,   // USDH
+  10: 6,  // stSTXbtc
+}
+
 /** Oracle price precision: 8 decimals */
 export const ORACLE_DECIMALS = 8
 

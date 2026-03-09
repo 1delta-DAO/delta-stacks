@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { Tabs } from './Tabs'
 import { ActionPanel } from './ActionPanel'
+import { UserPositions } from './UserPositions'
 import { useLendingData } from '../hooks/useLendingData'
+import { useUserData } from '../hooks/useUserData'
+import { useWallet } from '../context/WalletContext'
 import type { AllLendingData } from '@delta-stacks/data-provision'
 import {
   ZEST_V1_CONTRACTS,
@@ -231,6 +234,8 @@ export function LendingTab() {
   const [lenderTab, setLenderTab] = useState(0)
   const [selectedMarket, setSelectedMarket] = useState<UnifiedMarket | null>(null)
   const { data, loading, error } = useLendingData()
+  const { stxAddress } = useWallet()
+  const { data: userData, loading: userLoading } = useUserData(stxAddress, data)
 
   if (error && !data.v1 && !data.v2 && !data.granite) {
     return (
@@ -249,6 +254,11 @@ export function LendingTab() {
 
   return (
     <div className="space-y-4">
+      {/* User positions (shown above market tables when wallet connected) */}
+      {stxAddress && (
+        <UserPositions data={userData} loading={userLoading} lendingData={data} />
+      )}
+
       <Tabs tabs={LENDERS} active={lenderTab} onChange={setLenderTab} size="sm" />
 
       <div className={`flex gap-4 ${selectedMarket ? '' : ''}`}>

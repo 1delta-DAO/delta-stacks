@@ -8,10 +8,10 @@ plan:
   - id: 0
     transactions:
     - transaction-type: contract-publish
-      contract-name: lending-reader-v2
+      contract-name: user-reader-v1
       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
       cost: 218850
-      path: contracts/lending-reader-v2.clar
+      path: contracts/user-reader-v1.clar
       anchor-block-only: true
       clarity-version: 3
     epoch: '3.0'

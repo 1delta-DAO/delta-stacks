@@ -25,3 +25,16 @@ export {
 } from './prices'
 export { fetchStacksTokenList, toTokenKey, parseStacksAddress, isValidStacksAddress } from './token-list'
 export type { StacksToken, StacksTokenList, ParsedStacksAddress } from './token-list'
+export {
+  getStacksUserData,
+  getAllUserData,
+  type AllUserData,
+} from './lending/user-data/fetchStacksUserData'
+export type {
+  UserData,
+  LenderCrossPoolMeta,
+  LenderYieldComplete,
+  LendingPosition,
+  UserDataPayload,
+} from './lending/user-data/utils/types'
+export { convertPublicDataToMeta } from './lending/user-data/convertPublicToMeta'
