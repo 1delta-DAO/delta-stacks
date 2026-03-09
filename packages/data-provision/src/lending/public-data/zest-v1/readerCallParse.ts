@@ -1,5 +1,5 @@
-import { StacksCallResult } from '../../stacks-call'
-import { decodeClarityValue } from '../../stacks-call'
+import { StacksCallResult } from '../../../stacks-call'
+import { decodeClarityValue } from '../../../stacks-call'
 import {
   getZestAssets,
   ZEST_ASSET_SYMBOLS,
@@ -7,7 +7,7 @@ import {
   ZEST_Z_TOKENS,
 } from './constants'
 import type { ZestReserveData, ZestPublicResponse, ZestEModeConfig } from './publicCallParse'
-import { lookupToken } from '../../token-list'
+import { lookupToken } from '../../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 const RATE_PRECISION = 1e8

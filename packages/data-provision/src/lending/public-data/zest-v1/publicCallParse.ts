@@ -1,5 +1,5 @@
-import { StacksCallResult } from '../../stacks-call'
-import { decodeClarityValue, extractTuple, extractUint } from '../../stacks-call'
+import { StacksCallResult } from '../../../stacks-call'
+import { decodeClarityValue, extractTuple, extractUint } from '../../../stacks-call'
 import { CALLS_PER_ASSET, getExpectedCallCount, ZEST_EMODE_TYPES, getZTokenCallCount } from './publicCallBuild'
 import {
   getZestAssets,
@@ -7,8 +7,8 @@ import {
   ZEST_NON_BORROWABLE,
   ZEST_Z_TOKENS,
 } from './constants'
-import { lookupToken } from '../../token-list'
-import type { StacksToken } from '../../token-list'
+import { lookupToken } from '../../../token-list'
+import type { StacksToken } from '../../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 // Zest uses 8-decimal fixed point for rates and LTV/threshold values (1e8 = 100%)

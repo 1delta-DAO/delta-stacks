@@ -1,9 +1,9 @@
-import { StacksCallResult } from '../../stacks-call'
-import { decodeClarityValue, extractTuple, extractUint, extractBool } from '../../stacks-call'
+import { StacksCallResult } from '../../../stacks-call'
+import { decodeClarityValue, extractTuple, extractUint, extractBool } from '../../../stacks-call'
 import { CALLS_PER_MARKET, getExpectedCallCount } from './publicCallBuild'
 import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_PRECISION, GRANITE_COLLATERAL_META, GRANITE_ASSET_PRINCIPALS } from './constants'
-import { lookupToken } from '../../token-list'
-import type { StacksToken } from '../../token-list'
+import { lookupToken } from '../../../token-list'
+import type { StacksToken } from '../../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 

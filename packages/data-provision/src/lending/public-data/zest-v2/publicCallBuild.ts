@@ -1,5 +1,5 @@
-import { StacksCall } from '../../stacks-call'
-import { encodeClarityUint } from '../../stacks-call'
+import { StacksCall } from '../../../stacks-call'
+import { encodeClarityUint } from '../../../stacks-call'
 import {
   ZEST_V2_CONTRACTS,
   ZEST_V2_UNDERLYING_IDS,

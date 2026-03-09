@@ -1,4 +1,4 @@
-import { StacksCall } from '../../stacks-call'
+import { StacksCall } from '../../../stacks-call'
 import { READER_CONTRACT_ADDRESS, READER_CONTRACT_NAME } from '../fetchStacksLender'
 import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_READER_FNS } from './constants'
 

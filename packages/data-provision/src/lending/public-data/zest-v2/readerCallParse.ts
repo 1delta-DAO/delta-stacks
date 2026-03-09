@@ -1,8 +1,8 @@
-import { StacksCallResult } from '../../stacks-call'
-import { decodeClarityValue, extractTuple } from '../../stacks-call'
+import { StacksCallResult } from '../../../stacks-call'
+import { decodeClarityValue, extractTuple } from '../../../stacks-call'
 import { ZEST_V2_SYMBOLS, ZEST_V2_UNDERLYING_IDS, ZEST_V2_VAULT_FOR_ASSET, ZEST_V2_ASSET_PRINCIPALS } from './constants'
 import type { ZestV2ReserveData, ZestV2PublicResponse, ZestV2AssetStatus } from './publicCallParse'
-import { lookupToken } from '../../token-list'
+import { lookupToken } from '../../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 const BPS = 10_000

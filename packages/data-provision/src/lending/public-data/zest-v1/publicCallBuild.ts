@@ -1,5 +1,5 @@
-import { StacksCall } from '../../stacks-call'
-import { encodeClarityPrincipal } from '../../stacks-call'
+import { StacksCall } from '../../../stacks-call'
+import { encodeClarityPrincipal } from '../../../stacks-call'
 import { getZestAssets, ZEST_CONTRACTS, ZEST_Z_TOKENS } from './constants'
 
 /**

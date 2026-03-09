@@ -1,4 +1,4 @@
-import { executeStacksReadCalls } from '../stacks-call'
+import { executeStacksReadCalls } from '../../stacks-call'
 import { buildZestReserveCalls } from './zest-v1/publicCallBuild'
 import {
   getZestReservesDataConverter,

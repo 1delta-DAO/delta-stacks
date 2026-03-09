@@ -1,4 +1,4 @@
-import { StacksCall } from '../../stacks-call'
+import { StacksCall } from '../../../stacks-call'
 import { READER_CONTRACT_ADDRESS, READER_CONTRACT_NAME } from '../fetchStacksLender'
 import { getZestAssets, ZEST_Z_TOKENS } from './constants'
 

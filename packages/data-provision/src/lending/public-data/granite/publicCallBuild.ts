@@ -1,5 +1,5 @@
-import { StacksCall } from '../../stacks-call'
-import { encodeClarityPrincipal } from '../../stacks-call'
+import { StacksCall } from '../../../stacks-call'
+import { encodeClarityPrincipal } from '../../../stacks-call'
 import { GRANITE_MARKETS, GRANITE_CONTRACT_NAMES, GRANITE_COLLATERAL_TOKENS } from './constants'
 
 /**
