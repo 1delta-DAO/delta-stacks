@@ -81,3 +81,13 @@ export const ZEST_V2_ALL_ASSET_IDS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as c
 
 /** Oracle price precision: 8 decimals */
 export const ORACLE_DECIMALS = 8
+
+/** Known token principals per underlying asset ID (for token list lookup in reader/aggregator) */
+export const ZEST_V2_ASSET_PRINCIPALS: Record<number, string> = {
+  // 0: STX is native, no contract principal
+  2: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
+  4: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token',
+  6: 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc',
+  8: 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1',
+  10: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2',
+}

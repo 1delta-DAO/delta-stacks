@@ -11,6 +11,8 @@ import {
   ZEST_V2_SYMBOLS,
   ZEST_V2_VAULT_FOR_ASSET,
 } from './constants'
+import { lookupToken } from '../../token-list'
+import type { StacksToken } from '../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 
@@ -62,6 +64,20 @@ export interface ZestV2ReserveData {
   // Egroup LTV (from z-token's efficiency group, BPS / 10000)
   baseLtv: number
   liquidationThreshold: number
+  // asset metadata from token list (undefined if not found)
+  asset?: StacksToken
+  // Structured config (matches V1 shape for unified rendering)
+  config: Record<number, ZestV2Config>
+  params?: { metadata: { vault: string; zTokenId: number; zTokenSymbol: string } }
+}
+
+export interface ZestV2Config {
+  category: number
+  borrowCollateralFactor: number
+  collateralFactor: number
+  borrowFactor: number
+  collateralDisabled: boolean
+  debtDisabled: boolean
 }
 
 export interface ZestV2AssetStatus {
@@ -219,6 +235,22 @@ export function getZestV2ReservesDataConverter(
         // Egroup LTV
         baseLtv: egroupLtvs[aid]?.baseLtv ?? 0,
         liquidationThreshold: egroupLtvs[aid]?.liquidationThreshold ?? 0,
+        // Asset metadata from token list
+        asset: assetLookup?.principal ? lookupToken(assetLookup.principal) : undefined,
+        // Structured config
+        config: {
+          0: {
+            category: 0,
+            borrowCollateralFactor: egroupLtvs[aid]?.baseLtv ?? 0,
+            collateralFactor: egroupLtvs[aid]?.liquidationThreshold ?? 0,
+            borrowFactor: 1,
+            collateralDisabled: !(assetStatus?.collateralEnabled ?? false),
+            debtDisabled: !(assetStatus?.debtEnabled ?? false),
+          },
+        },
+        params: {
+          metadata: { vault: vault.name, zTokenId, zTokenSymbol },
+        },
       }
     }
 

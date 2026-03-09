@@ -1,7 +1,8 @@
 import { StacksCallResult } from '../../stacks-call'
 import { decodeClarityValue, extractTuple } from '../../stacks-call'
-import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_PRECISION, GRANITE_COLLATERAL_META } from './constants'
+import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_PRECISION, GRANITE_COLLATERAL_META, GRANITE_ASSET_PRINCIPALS } from './constants'
 import type { GraniteMarketData, GranitePublicResponse, GraniteCollateralConfig } from './publicCallParse'
+import { lookupToken } from '../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 const IR_PRECISION = 1e12
@@ -110,6 +111,8 @@ export function parseGraniteReaderResults(
         liquidationPremium: 0,
         collaterals: [],
         isCollateral: false,
+        asset: GRANITE_ASSET_PRINCIPALS[market.id] ? lookupToken(GRANITE_ASSET_PRINCIPALS[market.id]) : undefined,
+        params: { metadata: { deployer: market.deployer, marketId: market.id } },
       }
     }
 
@@ -166,6 +169,8 @@ export function parseGraniteReaderResults(
           collaterals: [],
           isCollateral: true,
           parentMarketId: market.id,
+          asset: lookupToken(col.token),
+          params: { metadata: { deployer: market.deployer, marketId: `${market.id}:${meta.symbol.toLowerCase()}` } },
         }
       }
     }

@@ -7,6 +7,7 @@ import {
   ZEST_Z_TOKENS,
 } from './constants'
 import type { ZestReserveData, ZestPublicResponse, ZestEModeConfig } from './publicCallParse'
+import { lookupToken } from '../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 const RATE_PRECISION = 1e8
@@ -168,7 +169,9 @@ export function parseV1AggregatorResult(
         liquidationThreshold: extractNum(t['liquidation-threshold']) / RATE_PRECISION,
         liquidationBonus: extractNum(t['liquidation-bonus']) / RATE_PRECISION,
         baseLtv: extractNum(t['base-ltv-as-collateral']) / RATE_PRECISION,
+        asset: lookupToken(asset),
         zToken: ZEST_Z_TOKENS[asset],
+        params: ZEST_Z_TOKENS[asset] ? { metadata: { zToken: ZEST_Z_TOKENS[asset] } } : undefined,
       }
     }
 

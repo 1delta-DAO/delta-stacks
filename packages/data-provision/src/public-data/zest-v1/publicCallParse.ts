@@ -7,6 +7,8 @@ import {
   ZEST_NON_BORROWABLE,
   ZEST_Z_TOKENS,
 } from './constants'
+import { lookupToken } from '../../token-list'
+import type { StacksToken } from '../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 // Zest uses 8-decimal fixed point for rates and LTV/threshold values (1e8 = 100%)
@@ -45,8 +47,11 @@ export interface ZestReserveData {
   liquidationThreshold: number
   liquidationBonus: number
   baseLtv: number
+  // asset metadata from token list (undefined if not found)
+  asset?: StacksToken
   // metadata
   zToken: string | undefined
+  params?: { metadata: { zToken?: string } }
 }
 
 export interface ZestEModeConfig {
@@ -221,8 +226,11 @@ export function getZestReservesDataConverter(
           Number(reserveState.liquidationThreshold) / RATE_PRECISION,
         liquidationBonus: Number(reserveState.liquidationBonus) / RATE_PRECISION,
         baseLtv: Number(reserveState.baseLtvAsCollateral) / RATE_PRECISION,
+        // asset metadata
+        asset: lookupToken(asset),
         // metadata
         zToken: ZEST_Z_TOKENS[asset],
+        params: ZEST_Z_TOKENS[asset] ? { metadata: { zToken: ZEST_Z_TOKENS[asset] } } : undefined,
       }
     }
 

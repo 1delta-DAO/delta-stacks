@@ -1,7 +1,8 @@
 import { StacksCallResult } from '../../stacks-call'
 import { decodeClarityValue, extractTuple } from '../../stacks-call'
-import { ZEST_V2_SYMBOLS, ZEST_V2_UNDERLYING_IDS, ZEST_V2_VAULT_FOR_ASSET } from './constants'
+import { ZEST_V2_SYMBOLS, ZEST_V2_UNDERLYING_IDS, ZEST_V2_VAULT_FOR_ASSET, ZEST_V2_ASSET_PRINCIPALS } from './constants'
 import type { ZestV2ReserveData, ZestV2PublicResponse, ZestV2AssetStatus } from './publicCallParse'
+import { lookupToken } from '../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 const BPS = 10_000
@@ -103,6 +104,20 @@ export function parseV2ReaderResults(
         principal: null,
         baseLtv: egroupLtvs[aid]?.baseLtv ?? 0,
         liquidationThreshold: egroupLtvs[aid]?.liquidationThreshold ?? 0,
+        asset: ZEST_V2_ASSET_PRINCIPALS[aid] ? lookupToken(ZEST_V2_ASSET_PRINCIPALS[aid]) : undefined,
+        config: {
+          0: {
+            category: 0,
+            borrowCollateralFactor: egroupLtvs[aid]?.baseLtv ?? 0,
+            collateralFactor: egroupLtvs[aid]?.liquidationThreshold ?? 0,
+            borrowFactor: 1,
+            collateralDisabled: !(assetStatuses[aid]?.collateralEnabled ?? true),
+            debtDisabled: !(assetStatuses[aid]?.debtEnabled ?? true),
+          },
+        },
+        params: {
+          metadata: { vault: vault.name, zTokenId, zTokenSymbol },
+        },
       }
 
       // Derive supply rate: borrowRate * utilization * (1 - feeReserve)

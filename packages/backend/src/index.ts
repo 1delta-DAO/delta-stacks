@@ -30,9 +30,7 @@ async function handleScheduled(env: Env): Promise<void> {
   let prices: USDPriceMap = {}
   try {
     prices = await fetchAllPrices({ concurrency: 2 })
-    await env.LENDING_KV.put(PRICES_KEY, JSON.stringify(prices), {
-      expirationTtl: 600,
-    })
+    await env.LENDING_KV.put(PRICES_KEY, JSON.stringify(prices))
     console.log(`Cron: prices refreshed (${Object.keys(prices).length} entries)`)
   } catch (e) {
     console.error('Cron: failed to fetch prices, loading from cache', e)
@@ -42,19 +40,18 @@ async function handleScheduled(env: Env): Promise<void> {
 
   // Step 2: Fetch lender data with prices
   console.log(`Cron: fetching ${lender} (index ${idx})`)
+  const kvKey = `lending:${lender}`
   try {
     const data = await getStacksLenderPublicData(lender, prices, { concurrency: 2 })
 
     if (data) {
-      await env.LENDING_KV.put(`lending:${lender}`, JSON.stringify(data), {
-        expirationTtl: 600,
-      })
+      await env.LENDING_KV.put(kvKey, JSON.stringify(data))
       console.log(`Cron: stored ${lender} data`)
     } else {
-      console.warn(`Cron: ${lender} returned no data`)
+      console.warn(`Cron: ${lender} returned no data, keeping cached version`)
     }
   } catch (e) {
-    console.error(`Cron: failed to fetch ${lender}`, e)
+    console.error(`Cron: failed to fetch ${lender}, keeping cached version`, e)
   }
 
   // Advance rotation

@@ -1,7 +1,9 @@
 import { StacksCallResult } from '../../stacks-call'
 import { decodeClarityValue, extractTuple, extractUint, extractBool } from '../../stacks-call'
 import { CALLS_PER_MARKET, getExpectedCallCount } from './publicCallBuild'
-import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_PRECISION, GRANITE_COLLATERAL_META } from './constants'
+import { GRANITE_MARKETS, GRANITE_COLLATERAL_TOKENS, GRANITE_COLLATERAL_PRECISION, GRANITE_COLLATERAL_META, GRANITE_ASSET_PRINCIPALS } from './constants'
+import { lookupToken } from '../../token-list'
+import type { StacksToken } from '../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 
@@ -56,6 +58,10 @@ export interface GraniteMarketData {
   isCollateral: boolean
   /** For collateral entries, the parent borrowable market id (e.g. 'aeusdc') */
   parentMarketId?: string
+  /** Asset metadata from token list (undefined if not found) */
+  asset?: StacksToken
+  /** Protocol-specific metadata */
+  params?: { metadata: { deployer: string; marketId: string } }
 }
 
 export interface GraniteCollateralConfig {
@@ -198,6 +204,8 @@ export function getGraniteReservesDataConverter(
         liquidationPremium: 0,
         collaterals: [],
         isCollateral: false,
+        asset: GRANITE_ASSET_PRINCIPALS[market.id] ? lookupToken(GRANITE_ASSET_PRINCIPALS[market.id]) : undefined,
+        params: { metadata: { deployer: market.deployer, marketId: market.id } },
       }
     }
 
@@ -255,6 +263,8 @@ export function getGraniteReservesDataConverter(
           collaterals: [],
           isCollateral: true,
           parentMarketId: market.id,
+          asset: lookupToken(col.token),
+          params: { metadata: { deployer: market.deployer, marketId: `${market.id}:${meta.symbol.toLowerCase()}` } },
         }
       }
     }

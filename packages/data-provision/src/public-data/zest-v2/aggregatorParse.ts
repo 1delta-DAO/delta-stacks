@@ -1,7 +1,8 @@
 import { StacksCallResult } from '../../stacks-call'
 import { decodeClarityValue, extractTuple } from '../../stacks-call'
-import { ZEST_V2_SYMBOLS, ZEST_V2_UNDERLYING_IDS, ZEST_V2_VAULT_FOR_ASSET } from './constants'
+import { ZEST_V2_SYMBOLS, ZEST_V2_UNDERLYING_IDS, ZEST_V2_VAULT_FOR_ASSET, ZEST_V2_ASSET_PRINCIPALS } from './constants'
 import type { ZestV2ReserveData, ZestV2PublicResponse, ZestV2AssetStatus } from './publicCallParse'
+import { lookupToken } from '../../token-list'
 
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 const RATE_PRECISION = 1e8
@@ -126,6 +127,20 @@ export function parseAggregatorResult(
         // Metadata
         oracleType: null,
         principal: null,
+        asset: ZEST_V2_ASSET_PRINCIPALS[aid] ? lookupToken(ZEST_V2_ASSET_PRINCIPALS[aid]) : undefined,
+        config: {
+          0: {
+            category: 0,
+            borrowCollateralFactor: 0,
+            collateralFactor: 0,
+            borrowFactor: 1,
+            collateralDisabled: !(assetStatuses[aid]?.collateralEnabled ?? false),
+            debtDisabled: !(assetStatuses[aid]?.debtEnabled ?? false),
+          },
+        },
+        params: {
+          metadata: { vault: vault.name, zTokenId, zTokenSymbol },
+        },
       }
 
       // Derive supply rate: supplyRate ≈ borrowRate * utilization * (1 - reserveFee)

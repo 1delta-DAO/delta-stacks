@@ -83,3 +83,9 @@ export const GRANITE_COLLATERAL_META: Record<string, { symbol: string; decimals:
 }
 
 export const GRANITE_COLLATERAL_PRECISION = 1e8
+
+/** Known token principals per borrowable market ID (for token list lookup) */
+export const GRANITE_ASSET_PRINCIPALS: Record<string, string> = {
+  aeusdc: 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc',
+  usdcx: 'SP2M47YGY9SYJAKY14C2C5VG4CJHD5TYBA59BGHZ.USDCx',
+}
