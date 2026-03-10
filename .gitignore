@@ -5,6 +5,8 @@ dist/
 *.log
 coverage/
 .DS_Store
+.temp
+.tmp
 
 # Clarinet
 .cache/
