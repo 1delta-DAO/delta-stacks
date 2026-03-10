@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Tabs } from './Tabs'
 import { useWallet } from '../context/WalletContext'
 import { useTransact } from '../hooks/useTransact'
+import { usePendingTx } from '../hooks/usePendingTx'
 import type { UnifiedMarket } from './LendingTab'
 import {
   deposit,
@@ -30,9 +31,11 @@ export function ActionPanel({ market, onClose }: Props) {
   const [amount, setAmount] = useState('')
   const { connected, stxAddress, connect } = useWallet()
   const tx = useTransact()
+  const pending = usePendingTx()
 
   const op = OPERATIONS[opTab]
   const v1Blocked = market.lender === 'zest-v1' && isV1Unsupported(op)
+  const pendingBlocked = pending.hasPending && (op === 'Withdraw' || op === 'Borrow')
 
   const handleSubmit = useCallback(async () => {
     if (!stxAddress || !amount) return
@@ -57,6 +60,13 @@ export function ActionPanel({ market, onClose }: Props) {
       }
     })
   }, [stxAddress, amount, market, op, tx])
+
+  // Track submitted txs as pending
+  useEffect(() => {
+    if (tx.status === 'submitted' && tx.txId) {
+      pending.addTx(tx.txId)
+    }
+  }, [tx.status, tx.txId, pending])
 
   return (
     <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
@@ -92,8 +102,15 @@ export function ActionPanel({ market, onClose }: Props) {
         </div>
       )}
 
+      {/* Pending tx warning */}
+      {!v1Blocked && pendingBlocked && (
+        <div className="text-xs text-yellow-400 bg-surface-alt rounded p-3">
+          {op} is disabled while {pending.pendingCount} transaction{pending.pendingCount > 1 ? 's are' : ' is'} pending confirmation.
+        </div>
+      )}
+
       {/* Amount input */}
-      {!v1Blocked && (
+      {!v1Blocked && !pendingBlocked && (
         <div className="space-y-2">
           <label className="text-xs text-text-muted block">Amount ({market.symbol})</label>
           <input

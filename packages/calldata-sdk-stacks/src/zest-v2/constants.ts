@@ -28,14 +28,15 @@ export const ZEST_V2_VAULT_FOR_ASSET: Record<number, string> = {
 /**
  * Map from vault contract principal to the underlying SIP-010 token principal.
  *
- * The Zest V2 market contract expects the UNDERLYING token for supply/borrow/repay
- * but the VAULT for collateral-remove/collateral-remove-redeem.
+ * The Zest V2 market contract expects the UNDERLYING token as the `ft` trait
+ * reference for supply, borrow, and repay operations.
+ * The assets registry indexes by underlying token address.
  */
 export const ZEST_V2_VAULT_TO_UNDERLYING: Record<string, string> = {
   [ZEST_V2_CONTRACTS.vaultStx]: `${ZEST_V2_DEPLOYER}.wstx`,
   [ZEST_V2_CONTRACTS.vaultSbtc]: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
   [ZEST_V2_CONTRACTS.vaultStstx]: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token',
-  [ZEST_V2_CONTRACTS.vaultUsdc]: 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc',
+  [ZEST_V2_CONTRACTS.vaultUsdc]: 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx',
   [ZEST_V2_CONTRACTS.vaultUsdh]: 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1',
   [ZEST_V2_CONTRACTS.vaultStstxbtc]: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2',
 }

@@ -44,11 +44,12 @@ async function handleScheduled(env: Env): Promise<void> {
   try {
     const data = await getStacksLenderPublicData(lender, prices, { concurrency: 2 })
 
-    if (data) {
+    const hasMarkets = data && Object.keys(data.data).length > 0
+    if (hasMarkets) {
       await env.LENDING_KV.put(kvKey, JSON.stringify(data))
-      console.log(`Cron: stored ${lender} data`)
+      console.log(`Cron: stored ${lender} data (${Object.keys(data.data).length} markets)`)
     } else {
-      console.warn(`Cron: ${lender} returned no data, keeping cached version`)
+      console.warn(`Cron: ${lender} returned no data or empty markets, keeping cached version`)
     }
   } catch (e) {
     console.error(`Cron: failed to fetch ${lender}, keeping cached version`, e)

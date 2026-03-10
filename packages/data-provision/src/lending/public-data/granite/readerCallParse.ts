@@ -175,6 +175,10 @@ export function parseGraniteReaderResults(
       }
     }
 
+    if (Object.keys(data).length === 0) {
+      console.warn('Granite reader: all markets failed to parse, falling back')
+      return undefined
+    }
     return { data, chainId: STACKS_CHAIN_ID }
   } catch (e) {
     console.warn('Granite reader: parse error', e)

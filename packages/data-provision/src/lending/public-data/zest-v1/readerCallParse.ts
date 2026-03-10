@@ -174,6 +174,10 @@ export function parseV1ReaderResults(
       }
     }
 
+    if (Object.keys(reserveData).length === 0) {
+      console.warn('V1 reader: all assets failed to parse, falling back')
+      return undefined
+    }
     return { data: reserveData, chainId: STACKS_CHAIN_ID }
   } catch (e) {
     console.warn('Failed to parse V1 reader results:', e)

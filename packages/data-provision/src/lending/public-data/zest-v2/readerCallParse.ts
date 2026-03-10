@@ -129,6 +129,10 @@ export function parseV2ReaderResults(
         reserveData[marketUid].borrowRate * utilization * (1 - feeReserve)
     }
 
+    if (Object.keys(reserveData).length === 0) {
+      console.warn('V2 reader: all assets failed to parse, falling back')
+      return undefined
+    }
     return { data: reserveData, assetStatuses, chainId: STACKS_CHAIN_ID }
   } catch (e) {
     console.warn('Failed to parse V2 reader results:', e)
