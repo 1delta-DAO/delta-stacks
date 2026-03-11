@@ -330,6 +330,7 @@ export function LendingTab() {
           allMarkets={allMarkets}
           selectedMarketUid={selectedMarket?.marketUid ?? null}
           onSelectMarket={setSelectedMarket}
+          v1PositionAssets={v1PositionAssets}
         />
       )}
 
