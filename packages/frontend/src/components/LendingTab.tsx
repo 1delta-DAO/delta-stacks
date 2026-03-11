@@ -323,7 +323,14 @@ export function LendingTab() {
     <div className="space-y-4">
       {/* User positions (shown above market tables when wallet connected) */}
       {stxAddress && (
-        <UserPositions data={userData} loading={userLoading} lendingData={data} />
+        <UserPositions
+          data={userData}
+          loading={userLoading}
+          lendingData={data}
+          allMarkets={allMarkets}
+          selectedMarketUid={selectedMarket?.marketUid ?? null}
+          onSelectMarket={setSelectedMarket}
+        />
       )}
 
       <Tabs tabs={LENDERS} active={lenderTab} onChange={setLenderTab} size="sm" />
