@@ -11,10 +11,13 @@ import {
   repay,
   Lender,
   ZEST_V1_CONTRACTS,
+  GraniteLending,
+  GRANITE_MARKETS,
 } from '@delta-stacks/calldata-sdk-stacks'
 import type { AssetOracleLp } from '@delta-stacks/calldata-sdk-stacks'
 
 const OPERATIONS = ['Deposit', 'Withdraw', 'Borrow', 'Repay'] as const
+const COLLATERAL_OPERATIONS = ['Deposit', 'Withdraw'] as const
 
 interface Props {
   market: UnifiedMarket
@@ -29,7 +32,8 @@ export function ActionPanel({ market, v1PositionAssets = [], onClose }: Props) {
   const tx = useTransact()
   const pending = usePendingTx()
 
-  const op = OPERATIONS[opTab]
+  const ops = market.isCollateral ? COLLATERAL_OPERATIONS : OPERATIONS
+  const op = ops[opTab]
   const pendingBlocked = pending.hasPending && (op === 'Withdraw' || op === 'Borrow')
 
   const handleSubmit = useCallback(async () => {
@@ -81,7 +85,7 @@ export function ActionPanel({ market, v1PositionAssets = [], onClose }: Props) {
 
       {/* Operation tabs */}
       <Tabs
-        tabs={[...OPERATIONS]}
+        tabs={[...ops]}
         active={opTab}
         onChange={(i) => {
           setOpTab(i)
@@ -184,8 +188,14 @@ function buildDeposit(m: UnifiedMarket, amount: bigint, sender: string) {
     case 'zest-v2':
       if (!m.v2Vault) throw new Error('Missing V2 vault')
       return deposit({ lender: Lender.ZestV2, amount, vault: m.v2Vault })
-    case 'granite':
+    case 'granite-aeusdc':
+    case 'granite-usdcx':
       if (!m.graniteMarketId) throw new Error('Missing Granite market ID')
+      if (m.isCollateral) {
+        if (!m.collateralToken) throw new Error('Missing collateral token')
+        const market = GRANITE_MARKETS[m.graniteMarketId]
+        return GraniteLending.encodeAddCollateral(market, m.collateralToken, amount, sender)
+      }
       return deposit({
         lender: Lender.Granite,
         amount,
@@ -197,7 +207,7 @@ function buildDeposit(m: UnifiedMarket, amount: bigint, sender: string) {
   }
 }
 
-function buildWithdraw(m: UnifiedMarket, amount: bigint, sender: string, v1Assets: AssetOracleLp[]) {
+async function buildWithdraw(m: UnifiedMarket, amount: bigint, sender: string, v1Assets: AssetOracleLp[]) {
   switch (m.lender) {
     case 'zest-v1':
       if (!m.v1Asset) throw new Error('Missing V1 asset info')
@@ -216,8 +226,15 @@ function buildWithdraw(m: UnifiedMarket, amount: bigint, sender: string, v1Asset
     case 'zest-v2':
       if (!m.v2Vault) throw new Error('Missing V2 vault')
       return withdraw({ lender: Lender.ZestV2, amount, vault: m.v2Vault, receiver: sender })
-    case 'granite':
+    case 'granite-aeusdc':
+    case 'granite-usdcx':
       if (!m.graniteMarketId) throw new Error('Missing Granite market ID')
+      if (m.isCollateral) {
+        if (!m.collateralToken) throw new Error('Missing collateral token')
+        const market = GRANITE_MARKETS[m.graniteMarketId]
+        const priceFeed = await GraniteLending.fetchPriceFeedData(m.graniteMarketId)
+        return GraniteLending.encodeRemoveCollateral(market, m.collateralToken, amount, sender, priceFeed)
+      }
       return withdraw({
         lender: Lender.Granite,
         amount,
@@ -250,7 +267,8 @@ function buildBorrow(m: UnifiedMarket, amount: bigint, sender: string, v1Assets:
     case 'zest-v2':
       if (!m.v2Vault) throw new Error('Missing V2 vault')
       return borrow({ lender: Lender.ZestV2, amount, vault: m.v2Vault })
-    case 'granite':
+    case 'granite-aeusdc':
+    case 'granite-usdcx':
       if (!m.graniteMarketId) throw new Error('Missing Granite market ID')
       return borrow({ lender: Lender.Granite, amount, marketId: m.graniteMarketId })
     default:
@@ -272,7 +290,8 @@ function buildRepay(m: UnifiedMarket, amount: bigint, sender: string) {
     case 'zest-v2':
       if (!m.v2Vault) throw new Error('Missing V2 vault')
       return repay({ lender: Lender.ZestV2, amount, vault: m.v2Vault })
-    case 'granite':
+    case 'granite-aeusdc':
+    case 'granite-usdcx':
       if (!m.graniteMarketId) throw new Error('Missing Granite market ID')
       return repay({ lender: Lender.Granite, amount, marketId: m.graniteMarketId })
     default:

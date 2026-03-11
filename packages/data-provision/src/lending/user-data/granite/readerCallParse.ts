@@ -14,24 +14,62 @@ import {
 const STACKS_CHAIN_ID = 'stacks-mainnet'
 const LENDER_ID = 'granite'
 
+/** Safely extract a uint value from a decoded Clarity value. */
+function safeUint(val: any): number {
+  if (val == null) return 0
+  if (val?.type?.startsWith('uint')) return Number(val.value ?? 0)
+  if (typeof val === 'string' || typeof val === 'number') return Number(val)
+  if (val.value != null) return safeUint(val.value)
+  return 0
+}
+
+/** Unwrap (optional ...) — returns null for none, inner value for some. */
+function unwrapOptional(val: any): any {
+  if (val == null) return null
+  if (val.value === null || val.value === undefined) return null
+  return val.value
+}
+
+/** Filter metaMap to only include entries for a specific Granite market. */
+function filterMetaForMarket(metaMap: LenderCrossPoolMeta, marketId: string): LenderCrossPoolMeta {
+  const prefix = `${STACKS_CHAIN_ID}:${LENDER_ID}:${marketId}`
+  const filtered: LenderCrossPoolMeta = {}
+  for (const [key, val] of Object.entries(metaMap)) {
+    if (key === prefix || key.startsWith(`${prefix}:`)) {
+      filtered[key] = val
+    }
+  }
+  return filtered
+}
+
 /**
- * Parse Granite user reader results.
+ * Per-market Granite user data result.
+ * Keys are market IDs (e.g. 'aeusdc', 'usdcx').
+ */
+export type GranitePerMarketUserData = Record<string, UserData>
+
+/**
+ * Parse Granite user reader results into per-market UserData.
+ *
  * Each result is a tuple from a per-market reader function containing:
  *   { position, collateral-sbtc, borrow-params }
+ *
+ * Actual on-chain types (from state-v1):
+ *   position:        (optional { borrowed-amount, borrowed-block, collaterals, debt-shares })
+ *   collateral-sbtc: (optional { amount: uint })
+ *   borrow-params:   { total-borrowed-amount: uint, user-position: (optional { ... }) }
  */
 export function parseGraniteUserReaderResults(
   results: StacksCallResult[],
   account: string,
   metaMap?: LenderCrossPoolMeta,
   prices?: Record<string, number>,
-): UserData | undefined {
+): GranitePerMarketUserData | undefined {
   if (results.length !== GRANITE_MARKETS.length) return undefined
   if (results.some((r) => !r.okay)) return undefined
 
   try {
-    const lendingPositions: Record<string, any> = {}
-    let totalDebt24h = 0
-    let totalDeposits24h = 0
+    const perMarket: GranitePerMarketUserData = {}
 
     for (let i = 0; i < GRANITE_MARKETS.length; i++) {
       const market = GRANITE_MARKETS[i]
@@ -40,15 +78,28 @@ export function parseGraniteUserReaderResults(
       if (!outerTuple) continue
 
       const collaterals = GRANITE_COLLATERAL_TOKENS[market.id] ?? []
+      const lendingPositions: Record<string, any> = {}
+      let totalDebt24h = 0
+      let totalDeposits24h = 0
 
-      // Parse debt from borrow-params
-      const borrowTuple = extractTuple(outerTuple['borrow-params'])
-      const currentDebtRaw = String(borrowTuple?.['current-debt']?.value ?? 0)
+      // --- Parse debt from borrow-params.user-position ---
+      let borrowedAmountRaw = '0'
+      try {
+        const borrowParams = outerTuple['borrow-params']
+        const borrowTuple = borrowParams?.value ?? borrowParams
+        if (borrowTuple && typeof borrowTuple === 'object') {
+          const userPos = unwrapOptional(borrowTuple['user-position'])
+          if (userPos) {
+            const userPosTuple = userPos.value ?? userPos
+            borrowedAmountRaw = String(safeUint(userPosTuple?.['borrowed-amount'] ?? userPosTuple?.['debt-shares']) || 0)
+          }
+        }
+      } catch { /* no borrow position */ }
 
       const borrowMarketUid = `${STACKS_CHAIN_ID}:${LENDER_ID}:${market.id}`
       const borrowMeta = metaMap?.[borrowMarketUid]
       const borrowDecimals = borrowMeta?.asset?.decimals ?? 6
-      const debt = parseRawAmount(currentDebtRaw, borrowDecimals)
+      const debt = parseRawAmount(borrowedAmountRaw, borrowDecimals)
       const borrowSymbol = market.symbol.toLowerCase()
       const borrowPrice = prices?.[borrowMarketUid] ?? prices?.[borrowSymbol] ?? getDisplayPrice(borrowMeta ?? {})
       const borrowOPrice = getOraclePrice(borrowMeta ?? {})
@@ -73,24 +124,29 @@ export function parseGraniteUserReaderResults(
         totalDebt24h += Number(debt) * borrowPriceHist
       }
 
-      // Parse collateral: currently only sBTC
+      // --- Parse collateral ---
       for (const collateral of collaterals) {
         const collateralMeta = GRANITE_COLLATERAL_META[collateral]
         const collSymbol = collateralMeta?.symbol ?? 'unknown'
         const collKey = `collateral-${collSymbol.toLowerCase()}`
 
         let rawAmount = 0
-        const collVal = outerTuple[collKey]
-        if (collVal) {
-          try {
-            const inner = collVal?.success === true ? collVal.value : collVal
-            rawAmount = Number(inner?.value ?? inner ?? 0)
-          } catch {
-            rawAmount = 0
+        try {
+          const collVal = outerTuple[collKey]
+          const inner = unwrapOptional(collVal)
+          if (inner) {
+            const innerTuple = inner.value ?? inner
+            if (innerTuple && typeof innerTuple === 'object' && innerTuple['amount']) {
+              rawAmount = safeUint(innerTuple['amount'])
+            } else {
+              rawAmount = safeUint(inner)
+            }
           }
+        } catch {
+          rawAmount = 0
         }
 
-        if (rawAmount === 0) continue
+        if (rawAmount === 0 || isNaN(rawAmount)) continue
 
         const collDecimals = collateralMeta?.decimals ?? 8
         const collMarketUid = `${STACKS_CHAIN_ID}:${LENDER_ID}:${market.id}:${collSymbol.toLowerCase()}`
@@ -117,17 +173,22 @@ export function parseGraniteUserReaderResults(
         }
         totalDeposits24h += Number(deposits) * collPriceHist
       }
+
+      // Only emit market if user has any positions
+      if (Object.keys(lendingPositions).length > 0) {
+        const marketMeta = filterMetaForMarket(metaMap ?? {}, market.id)
+        const payload = {
+          chainId: STACKS_CHAIN_ID,
+          account,
+          lendingPositions,
+          rewards: [],
+          userEMode: 0,
+        }
+        perMarket[market.id] = createBaseTypeUserState(payload, marketMeta, totalDeposits24h, totalDebt24h)
+      }
     }
 
-    const payload = {
-      chainId: STACKS_CHAIN_ID,
-      account,
-      lendingPositions,
-      rewards: [],
-      userEMode: 0,
-    }
-
-    return createBaseTypeUserState(payload, metaMap ?? {}, totalDeposits24h, totalDebt24h)
+    return Object.keys(perMarket).length > 0 ? perMarket : undefined
   } catch (e) {
     console.warn('Failed to parse Granite user reader results:', e)
     return undefined

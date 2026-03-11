@@ -3,7 +3,8 @@ import type { AllLendingData, AllUserData, UserData, LendingPosition } from '@de
 const LENDER_LABELS: Record<string, string> = {
   'zest-v1': 'Zest V1',
   'zest-v2': 'Zest V2',
-  'granite': 'Granite',
+  'granite-aeusdc': 'Granite aeUSDC',
+  'granite-usdcx': 'Granite USDCx',
 }
 
 /** Build a marketUid → symbol lookup from public lending data */
@@ -167,7 +168,7 @@ export function UserPositions({
 
   // Collect lenders that have real positions (deposits or debt > 0)
   const lenders: { key: string; userData: UserData }[] = []
-  for (const [key, ud] of [['zest-v1', data.v1], ['zest-v2', data.v2], ['granite', data.granite]] as const) {
+  for (const [key, ud] of [['zest-v1', data.v1], ['zest-v2', data.v2], ['granite-aeusdc', data['granite-aeusdc']], ['granite-usdcx', data['granite-usdcx']]] as const) {
     if (!ud) continue
     const positions = ud.data[0]?.positions
     if (positions?.some(p => p.depositsUSD > 0 || p.debtUSD > 0)) {

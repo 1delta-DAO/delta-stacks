@@ -15,7 +15,7 @@ import type { AssetOracleLp } from '@delta-stacks/calldata-sdk-stacks'
 const LENDERS = ['All', 'Zest V1', 'Zest V2', 'Granite aeUSDC', 'Granite USDCx']
 
 /** Lender key used internally */
-type LenderKey = 'zest-v1' | 'zest-v2' | 'granite'
+type LenderKey = 'zest-v1' | 'zest-v2' | 'granite-aeusdc' | 'granite-usdcx'
 
 export interface UnifiedMarket {
   marketUid: string
@@ -35,6 +35,10 @@ export interface UnifiedMarket {
   v1Asset?: { underlying: string; lpToken: string; oracle: string }
   v2Vault?: string
   graniteMarketId?: 'aeusdc' | 'usdcx'
+  /** True for Granite collateral entries (e.g. sBTC) */
+  isCollateral?: boolean
+  /** Collateral token contract principal (e.g. sbtc-token) for encodeAddCollateral */
+  collateralToken?: string
 }
 
 /** Map Zest V2 vault name -> full contract principal */
@@ -145,11 +149,13 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
   if (data.granite) {
     for (const m of Object.values(data.granite.data)) {
       const parentId = m.parentMarketId ?? m.marketId
-      const graniteLabel = parentId.startsWith('usdcx') ? 'Granite USDCx' : 'Granite aeUSDC'
+      const isUsdcx = parentId.startsWith('usdcx')
+      const graniteLabel = isUsdcx ? 'Granite USDCx' : 'Granite aeUSDC'
+      const lenderKey: LenderKey = isUsdcx ? 'granite-usdcx' : 'granite-aeusdc'
       markets.push({
         marketUid: m.marketUid,
         protocol: graniteLabel,
-        lender: 'granite',
+        lender: lenderKey,
         symbol: m.symbol,
         totalDeposits: m.totalAssets,
         totalBorrows: m.openInterest,
@@ -159,10 +165,10 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         borrowRate: m.borrowRate,
         baseLtv: m.baseLtv,
         liquidationThreshold: m.liquidationThreshold,
-        decimals: 6, // Granite markets are USDC-denominated (6 decimals)
-        graniteMarketId: m.isCollateral
-          ? undefined
-          : (parentId as 'aeusdc' | 'usdcx'),
+        decimals: m.isCollateral ? (m.asset?.decimals ?? 8) : 6,
+        graniteMarketId: (m.parentMarketId ?? m.marketId) as 'aeusdc' | 'usdcx',
+        isCollateral: m.isCollateral || undefined,
+        collateralToken: m.isCollateral ? m.asset?.address : undefined,
       })
     }
   }

@@ -1,6 +1,7 @@
 import { executeStacksReadCalls } from '../../stacks-call'
 import type { StacksLender, StacksLenderOptions } from '../public-data/fetchStacksLender'
 import type { LenderCrossPoolMeta, UserData } from './utils/types'
+import type { GranitePerMarketUserData } from './granite/readerCallParse'
 import { USER_READER_CONTRACT_ADDRESS } from './constants'
 
 // Individual call builders
@@ -31,7 +32,8 @@ import { parseGraniteUserReaderResults } from './granite/readerCallParse'
 export interface AllUserData {
   v1: UserData | undefined
   v2: UserData | undefined
-  granite: UserData | undefined
+  'granite-aeusdc': UserData | undefined
+  'granite-usdcx': UserData | undefined
 }
 
 /**
@@ -62,21 +64,21 @@ export async function getStacksUserData(
   metaMap: LenderCrossPoolMeta,
   prices?: Record<string, number>,
   options?: StacksLenderOptions,
-): Promise<UserData | undefined>
+): Promise<GranitePerMarketUserData | undefined>
 export async function getStacksUserData(
   lender: StacksLender,
   account: string,
   metaMap: LenderCrossPoolMeta,
   prices?: Record<string, number>,
   options?: StacksLenderOptions,
-): Promise<UserData | undefined>
+): Promise<UserData | GranitePerMarketUserData | undefined>
 export async function getStacksUserData(
   lender: StacksLender,
   account: string,
   metaMap: LenderCrossPoolMeta,
   prices: Record<string, number> = {},
   options?: StacksLenderOptions,
-): Promise<UserData | undefined> {
+): Promise<UserData | GranitePerMarketUserData | undefined> {
   const useReader = options?.aggregatorAddress !== false
   const readerAddr = typeof options?.aggregatorAddress === 'string'
     ? options.aggregatorAddress
@@ -137,7 +139,7 @@ export async function getStacksUserData(
       const calls = buildGraniteUserCalls(account)
       const results = await executeStacksReadCalls(calls, options)
       const [converter] = getGraniteUserDataConverter(account, metaMap, prices)
-      return converter(results)
+      return converter(results) // returns GranitePerMarketUserData
     }
     default:
       throw new Error(`Unknown Stacks lender: ${lender}`)
@@ -173,18 +175,23 @@ export async function getAllUserData(
 
   let v1 = parseV1UserReaderResults(v1Results, account, metaMap, prices)
   let v2 = parseV2UserReaderResults(v2Results, account, metaMap, prices)
-  let granite = parseGraniteUserReaderResults(graniteResults, account, metaMap, prices)
+  let granitePerMarket = parseGraniteUserReaderResults(graniteResults, account, metaMap, prices)
 
   // Fallback to individual calls
   if (!v1) {
-    v1 = await getStacksUserData('zest-v1', account, metaMap, prices, { ...options, aggregatorAddress: false })
+    v1 = await getStacksUserData('zest-v1', account, metaMap, prices, { ...options, aggregatorAddress: false }) as UserData | undefined
   }
   if (!v2) {
-    v2 = await getStacksUserData('zest-v2', account, metaMap, prices, { ...options, aggregatorAddress: false })
+    v2 = await getStacksUserData('zest-v2', account, metaMap, prices, { ...options, aggregatorAddress: false }) as UserData | undefined
   }
-  if (!granite) {
-    granite = await getStacksUserData('granite', account, metaMap, prices, { ...options, aggregatorAddress: false })
+  if (!granitePerMarket) {
+    granitePerMarket = await getStacksUserData('granite', account, metaMap, prices, { ...options, aggregatorAddress: false }) as GranitePerMarketUserData | undefined
   }
 
-  return { v1, v2, granite }
+  return {
+    v1,
+    v2,
+    'granite-aeusdc': granitePerMarket?.aeusdc,
+    'granite-usdcx': granitePerMarket?.usdcx,
+  }
 }

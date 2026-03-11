@@ -6,7 +6,7 @@ import {
 } from '@delta-stacks/data-provision'
 import type { AllLendingData, AllUserData } from '@delta-stacks/data-provision'
 
-const EMPTY: AllUserData = { v1: undefined, v2: undefined, granite: undefined }
+const EMPTY: AllUserData = { v1: undefined, v2: undefined, 'granite-aeusdc': undefined, 'granite-usdcx': undefined }
 const FETCH_OPTIONS = { apiUrl: 'https://api.hiro.so', concurrency: 5 }
 
 async function fetchUserData(
@@ -24,6 +24,7 @@ async function fetchUserData(
  */
 export function useUserData(address: string | null, lendingData: AllLendingData) {
   const hasLendingData = !!(lendingData.v1 || lendingData.v2 || lendingData.granite)
+
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['user-data', address],

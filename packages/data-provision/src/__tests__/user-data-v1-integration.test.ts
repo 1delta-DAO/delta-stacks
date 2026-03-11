@@ -176,7 +176,8 @@ describe('user-data Zest V1 integration', { timeout: 120_000 }, () => {
     console.log('\n[getAllUserData] Results:')
     console.log(`  V1: ${allData.v1 ? 'present' : 'undefined'}`)
     console.log(`  V2: ${allData.v2 ? 'present' : 'undefined'}`)
-    console.log(`  Granite: ${allData.granite ? 'present' : 'undefined'}`)
+    console.log(`  Granite aeUSDC: ${allData['granite-aeusdc'] ? 'present' : 'undefined'}`)
+    console.log(`  Granite USDCx: ${allData['granite-usdcx'] ? 'present' : 'undefined'}`)
 
     if (allData.v1) {
       const pool = allData.v1.data[0]
