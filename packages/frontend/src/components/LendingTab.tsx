@@ -9,6 +9,7 @@ import type { AllLendingData, AllUserData } from '@delta-stacks/data-provision'
 import {
   ZEST_V1_CONTRACTS,
   ZEST_V2_CONTRACTS,
+  ZEST_V2_VAULT_TO_UNDERLYING,
 } from '@delta-stacks/calldata-sdk-stacks'
 import type { AssetOracleLp } from '@delta-stacks/calldata-sdk-stacks'
 
@@ -31,6 +32,8 @@ export interface UnifiedMarket {
   baseLtv: number
   liquidationThreshold: number
   decimals: number
+  /** Underlying token principal for wallet balance lookups (e.g. SP...token-aeusdc) */
+  underlying?: string
   // Protocol-specific identifiers for SDK
   v1Asset?: { underlying: string; lpToken: string; oracle: string }
   v2Vault?: string
@@ -117,6 +120,7 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         baseLtv: m.baseLtv,
         liquidationThreshold: m.liquidationThreshold,
         decimals: m.decimals,
+        underlying: underlying || undefined,
         v1Asset: underlying
           ? { underlying, lpToken: V1_Z_TOKENS[underlying] || '', oracle: V1_ORACLES[underlying] || m.oracle || '' }
           : undefined,
@@ -141,6 +145,7 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         baseLtv: m.baseLtv,
         liquidationThreshold: m.liquidationThreshold,
         decimals: m.decimals,
+        underlying: vaultPrincipal ? ZEST_V2_VAULT_TO_UNDERLYING[vaultPrincipal] : undefined,
         v2Vault: vaultPrincipal || undefined,
       })
     }
@@ -166,6 +171,7 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         baseLtv: m.baseLtv,
         liquidationThreshold: m.liquidationThreshold,
         decimals: m.isCollateral ? (m.asset?.decimals ?? 8) : 6,
+        underlying: m.isCollateral ? m.asset?.address : m.underlying,
         graniteMarketId: (m.parentMarketId ?? m.marketId) as 'aeusdc' | 'usdcx',
         isCollateral: m.isCollateral || undefined,
         collateralToken: m.isCollateral ? m.asset?.address : undefined,
@@ -344,6 +350,7 @@ export function LendingTab() {
             <ActionPanel
               key={selectedMarket.marketUid}
               market={selectedMarket}
+              userData={userData}
               v1PositionAssets={v1PositionAssets}
               onClose={() => setSelectedMarket(null)}
             />
