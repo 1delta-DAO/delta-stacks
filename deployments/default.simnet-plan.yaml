@@ -44,8 +44,18 @@ plan:
       path: contracts/lending-reader-v2.clar
       clarity-version: 3
     - transaction-type: emulated-contract-publish
+      contract-name: mock-token
+      emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
+      path: contracts/mock-token.clar
+      clarity-version: 3
+    - transaction-type: emulated-contract-publish
       contract-name: user-reader-v1
       emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
       path: contracts/user-reader-v1.clar
+      clarity-version: 3
+    - transaction-type: emulated-contract-publish
+      contract-name: vault-usdcx
+      emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
+      path: contracts/vault-usdcx.clar
       clarity-version: 3
     epoch: '3.0'

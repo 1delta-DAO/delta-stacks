@@ -11,6 +11,16 @@ path = "contracts/user-reader-v1.clar"
 clarity_version = 3
 epoch = 3.0
 
+[contracts.mock-token]
+path = "contracts/mock-token.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.vault-usdcx]
+path = "contracts/vault-usdcx.clar"
+clarity_version = 3
+epoch = 3.0
+
 [repl.remote_data]
 enabled = true
 initial_height = 6972000
