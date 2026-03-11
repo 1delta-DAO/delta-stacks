@@ -1,6 +1,7 @@
 ;; vault-usdcx-v2.clar
 ;;
 ;; ERC-4626-style yield vault for mock-usdcx with a constrained allocation layer.
+;; Vault shares are a SIP-010 fungible token (dUSDCx), transferable between users.
 ;;
 ;; The vault tracks three positions:
 ;;   idle      -- tokens sitting undeployed in the vault contract
@@ -45,6 +46,11 @@
 ;; phantom shares and phantom assets to prevent first-depositor price manipulation.
 
 (use-trait lat .lending-adapter-trait.lending-adapter-trait)
+(impl-trait 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait)
+
+;; SIP-010 fungible token for vault shares.
+;; ft-get-balance and ft-get-supply replace the old balances map and total-supply var.
+(define-fungible-token vault-shares)
 
 ;; ---------------------------------------------------------------------------
 ;; Error codes
@@ -84,16 +90,10 @@
 ;; State
 ;; ---------------------------------------------------------------------------
 
-;; Total shares in circulation (excludes virtual-shares phantom supply).
-(define-data-var total-supply uint u0)
-
 ;; Canonical vault value: idle tokens + all deployed positions.
 ;; Updated on deposit/withdraw and on yield harvest.
 ;; Allocation moves do NOT change this (assets are relocated, not consumed).
 (define-data-var total-assets-bookkeeping uint u0)
-
-;; Share balances per depositor.
-(define-map balances principal uint)
 
 ;; Address permitted to execute allocation operations.
 (define-data-var vault-owner principal tx-sender)
@@ -109,20 +109,39 @@
 (define-data-var adapter-zest-v2-usdc  (optional principal) none)
 
 ;; ---------------------------------------------------------------------------
+;; SIP-010 interface
+;; ---------------------------------------------------------------------------
+
+(define-read-only (get-name)   (ok "Delta USDCx Vault"))
+(define-read-only (get-symbol) (ok "dUSDCx"))
+(define-read-only (get-decimals) (ok u6))
+(define-read-only (get-token-uri) (ok none))
+
+;; SIP-010: share balance of `who`.
+(define-read-only (get-balance (who principal))
+  (ok (ft-get-balance vault-shares who)))
+
+;; SIP-010: total shares in circulation (excludes virtual-shares phantom supply).
+(define-read-only (get-total-supply)
+  (ok (ft-get-supply vault-shares)))
+
+;; SIP-010: transfer shares from sender to recipient.
+;; Shares represent proportional vault ownership; transferring them hands over
+;; the economic interest without touching the underlying assets.
+(define-public (transfer (amount uint) (sender principal) (recipient principal)
+               (memo (optional (buff 34))))
+  (begin
+    (asserts! (is-eq tx-sender sender) err-owner-only)
+    (try! (ft-transfer? vault-shares amount sender recipient))
+    (match memo m (begin (print m) true) true)
+    (ok true)))
+
+;; ---------------------------------------------------------------------------
 ;; Read-only helpers
 ;; ---------------------------------------------------------------------------
 
-(define-read-only (get-asset)
-  (some .mock-token))
-
-(define-read-only (get-total-supply)
-  (var-get total-supply))
-
 (define-read-only (get-total-assets)
   (var-get total-assets-bookkeeping))
-
-(define-read-only (get-balance (owner principal))
-  (default-to u0 (map-get? balances owner)))
 
 (define-read-only (get-vault-owner)
   (var-get vault-owner))
@@ -213,7 +232,7 @@
 
 ;; Preview: shares minted for a deposit of `amount`.
 (define-read-only (convert-to-shares (amount uint))
-  (let ((supply (var-get total-supply))
+  (let ((supply (ft-get-supply vault-shares))
         (total  (var-get total-assets-bookkeeping)))
     (if (is-eq total u0)
       amount
@@ -221,7 +240,7 @@
 
 ;; Preview: assets returned for a redemption of `shares`.
 (define-read-only (convert-to-assets (shares uint))
-  (let ((supply (var-get total-supply))
+  (let ((supply (ft-get-supply vault-shares))
         (total  (var-get total-assets-bookkeeping)))
     (if (is-eq supply u0)
       u0
@@ -284,14 +303,13 @@
                u0)))
       (try! (contract-call? .mock-token transfer amount tx-sender (as-contract tx-sender) none))
       ;; Read bookkeeping after sync -- now includes harvested yield.
-      (let ((supply    (var-get total-supply))
+      (let ((supply    (ft-get-supply vault-shares))
             (new-total (+ (var-get total-assets-bookkeeping) amount)))
         ;; shares = amount * (supply + virtual) / (new-total + 1)
         (let ((shares (/ (* amount (+ supply virtual-shares)) (+ new-total u1))))
           (asserts! (> shares u0) err-shares-zero)
-          (var-set total-supply (+ supply shares))
+          (try! (ft-mint? vault-shares shares owner))
           (var-set total-assets-bookkeeping new-total)
-          (map-set balances owner (+ (get-balance owner) shares))
           (ok shares))))))
 
 ;; Withdraw exactly `amount` assets to `receiver`, burning shares proportionally
@@ -324,9 +342,9 @@
                            err-invalid-adapter)
                  (try! (do-sync-zest-v2 zest-v2)))
                u0)))
-    (let ((supply (var-get total-supply))
+    (let ((supply (ft-get-supply vault-shares))
           (total  (var-get total-assets-bookkeeping))
-          (bal    (get-balance owner))
+          (bal    (ft-get-balance vault-shares owner))
           (ag     (var-get alloc-granite))
           (az     (var-get alloc-zest-v2)))
       (asserts! (> amount u0) err-amount-zero)
@@ -373,9 +391,8 @@
                                        err-transfer-failed)
                               amount)
                           err-insufficient-balance)
-                        (var-set total-supply (- supply shares-to-burn))
+                        (try! (ft-burn? vault-shares shares-to-burn owner))
                         (var-set total-assets-bookkeeping (- total-after amount))
-                        (map-set balances owner (- bal shares-to-burn))
                         (match (contract-call? .mock-token transfer amount (as-contract tx-sender) receiver none)
                           success (ok shares-to-burn)
                           e       (err e)))))))))))))))
@@ -404,9 +421,9 @@
                            err-invalid-adapter)
                  (try! (do-sync-zest-v2 zest-v2)))
                u0)))
-    (let ((supply (var-get total-supply))
+    (let ((supply (ft-get-supply vault-shares))
           (total  (var-get total-assets-bookkeeping))
-          (bal    (get-balance owner))
+          (bal    (ft-get-balance vault-shares owner))
           (ag     (var-get alloc-granite))
           (az     (var-get alloc-zest-v2)))
       (asserts! (> shares u0) err-shares-zero)
@@ -446,9 +463,8 @@
                                      err-transfer-failed)
                             amt)
                         err-insufficient-balance)
-                      (var-set total-supply (- supply shares))
+                      (try! (ft-burn? vault-shares shares owner))
                       (var-set total-assets-bookkeeping (- total-after amt))
-                      (map-set balances owner (- bal shares))
                       (match (contract-call? .mock-token transfer amt (as-contract tx-sender) receiver none)
                         success (ok amt)
                         e       (err e))))))))))))))
