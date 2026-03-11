@@ -21,6 +21,21 @@ path = "contracts/vault-usdcx.clar"
 clarity_version = 3
 epoch = 3.0
 
+[contracts.lending-adapter-trait]
+path = "contracts/lending-adapter-trait.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.vault-usdcx-v2]
+path = "contracts/vault-usdcx-v2.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.mock-adapter]
+path = "contracts/mock-adapter.clar"
+clarity_version = 3
+epoch = 3.0
+
 [repl.remote_data]
 enabled = true
 initial_height = 6972000

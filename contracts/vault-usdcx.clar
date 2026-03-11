@@ -79,7 +79,7 @@
         (map-set balances owner (- bal shares-to-burn))
         (match (contract-call? .mock-token transfer amount (as-contract tx-sender) receiver none)
           success (ok shares-to-burn)
-          e (err e))))))) 
+          e (err e)))))))
 
 (define-public (redeem (shares uint) (receiver principal) (owner principal))
   (begin
