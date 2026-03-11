@@ -137,11 +137,62 @@
     (ok true)))
 
 ;; ---------------------------------------------------------------------------
-;; Read-only helpers
+;; ERC-4626 vault interface -- accounting and preview functions
 ;; ---------------------------------------------------------------------------
 
+;; The underlying asset managed by this vault.
+(define-read-only (get-asset)
+  (ok .mock-token))
+
+;; Total assets under management.
 (define-read-only (get-total-assets)
   (var-get total-assets-bookkeeping))
+
+;; Maximum assets that can be deposited by receiver. No protocol cap.
+(define-read-only (max-deposit (receiver principal))
+  u340282366920938463463374607431768211455)
+
+;; Shares minted for a given deposit amount (no fee vault: identical to convert-to-shares).
+(define-read-only (preview-deposit (assets uint))
+  (convert-to-shares assets))
+
+;; Maximum shares that can be minted by receiver. No protocol cap.
+(define-read-only (max-mint (receiver principal))
+  u340282366920938463463374607431768211455)
+
+;; Assets required to mint exactly `shares`.
+;; Uses ceiling division so the vault is never underfunded.
+;; Formula: ceil(shares * (total + 1) / (supply + virtual))
+(define-read-only (preview-mint (shares uint))
+  (let ((supply (ft-get-supply vault-shares))
+        (total  (var-get total-assets-bookkeeping)))
+    (if (is-eq supply u0)
+      shares
+      (/ (+ (* shares (+ total u1)) (- (+ supply virtual-shares) u1))
+         (+ supply virtual-shares)))))
+
+;; Maximum assets withdrawable by owner (their proportional entitlement).
+(define-read-only (max-withdraw (owner principal))
+  (convert-to-assets (ft-get-balance vault-shares owner)))
+
+;; Shares burned when withdrawing `assets`.
+;; Uses ceiling division (vault-protective): same formula as the withdraw function.
+;; Formula: ceil(assets * (supply + virtual) / (total + 1))
+(define-read-only (preview-withdraw (assets uint))
+  (let ((supply (ft-get-supply vault-shares))
+        (total  (var-get total-assets-bookkeeping)))
+    (if (is-eq total u0)
+      u0
+      (/ (+ (* assets (+ supply virtual-shares)) total)
+         (+ total u1)))))
+
+;; Maximum shares redeemable by owner (their full balance).
+(define-read-only (max-redeem (owner principal))
+  (ft-get-balance vault-shares owner))
+
+;; Assets returned for redeeming `shares` (no fee vault: identical to convert-to-assets).
+(define-read-only (preview-redeem (shares uint))
+  (convert-to-assets shares))
 
 (define-read-only (get-vault-owner)
   (var-get vault-owner))
@@ -231,12 +282,11 @@
   (contract-call? market adapter-get-position))
 
 ;; Preview: shares minted for a deposit of `amount`.
+;; Formula is valid for all states including empty vault (total=0, supply=0).
 (define-read-only (convert-to-shares (amount uint))
   (let ((supply (ft-get-supply vault-shares))
         (total  (var-get total-assets-bookkeeping)))
-    (if (is-eq total u0)
-      amount
-      (/ (* amount (+ supply virtual-shares)) (+ total amount u1)))))
+    (/ (* amount (+ supply virtual-shares)) (+ total amount u1))))
 
 ;; Preview: assets returned for a redemption of `shares`.
 (define-read-only (convert-to-assets (shares uint))
@@ -311,6 +361,42 @@
           (try! (ft-mint? vault-shares shares owner))
           (var-set total-assets-bookkeeping new-total)
           (ok shares))))))
+
+;; Mint exactly `shares` vault shares to `receiver` by pulling the required assets
+;; from tx-sender (who must equal `receiver`).  Asset amount is calculated via
+;; ceiling division so the vault receives at least the fair value of the shares.
+;;
+;; Returns: (ok assets-consumed)
+(define-public (mint (shares uint) (receiver principal)
+               (granite <lat>) (zest-v2 <lat>))
+  (begin
+    (asserts! (is-eq tx-sender receiver) err-deposit-owner-only)
+    (asserts! (> shares u0) err-shares-zero)
+    ;; Auto-sync yields before computing asset cost so share price is current.
+    (let ((sg (if (> (var-get alloc-granite) u0)
+               (begin
+                 (asserts! (is-eq (some (contract-of granite))
+                                  (var-get adapter-granite-usdcx))
+                           err-invalid-adapter)
+                 (try! (do-sync-granite granite)))
+               u0))
+          (sz (if (> (var-get alloc-zest-v2) u0)
+               (begin
+                 (asserts! (is-eq (some (contract-of zest-v2))
+                                  (var-get adapter-zest-v2-usdc))
+                           err-invalid-adapter)
+                 (try! (do-sync-zest-v2 zest-v2)))
+               u0)))
+      ;; assets = ceil(shares * (total + 1) / (supply + virtual))
+      (let ((supply (ft-get-supply vault-shares))
+            (total  (var-get total-assets-bookkeeping)))
+        (let ((assets (/ (+ (* shares (+ total u1)) (- (+ supply virtual-shares) u1))
+                         (+ supply virtual-shares))))
+          (asserts! (> assets u0) err-amount-zero)
+          (try! (contract-call? .mock-token transfer assets tx-sender (as-contract tx-sender) none))
+          (try! (ft-mint? vault-shares shares receiver))
+          (var-set total-assets-bookkeeping (+ total assets))
+          (ok assets))))))
 
 ;; Withdraw exactly `amount` assets to `receiver`, burning shares proportionally
 ;; from `owner`.  Pulls from all three positions in proportion to their

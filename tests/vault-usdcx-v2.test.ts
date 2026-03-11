@@ -412,6 +412,111 @@ describe('vault-usdcx-v2 — yield sync', () => {
   })
 })
 
+describe('vault-usdcx-v2 — ERC-4626 preview / max / mint', () => {
+  it('preview-deposit matches shares returned by deposit', () => {
+    mint(deployer, AMOUNT)
+    const preview = uint(simnet.callReadOnlyFn(VAULT, 'preview-deposit', [Cl.uint(AMOUNT)], deployer).result as any)
+    const result  = deposit(AMOUNT, deployer)
+    expect(preview).toBe(uint(result.result as any))
+  })
+
+  it('preview-redeem matches assets returned by redeem', () => {
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+    const shares  = vaultShares(deployer)
+    const preview = uint(simnet.callReadOnlyFn(VAULT, 'preview-redeem', [Cl.uint(shares)], deployer).result as any)
+    const result  = redeem(shares, wallet2, deployer)
+    expect(preview).toBe(uint(result.result as any))
+  })
+
+  it('preview-withdraw returns shares >= burned by withdraw', () => {
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+    const withdrawAmt = AMOUNT / 2
+    const preview     = simnet.callReadOnlyFn(
+      VAULT, 'preview-withdraw', [Cl.uint(withdrawAmt)], deployer,
+    )
+    const result  = withdraw(withdrawAmt, wallet2, deployer)
+    // preview-withdraw ceiling >= actual shares burned (vault-protective)
+    expect(uint(preview.result as any)).toBeGreaterThanOrEqual(uint(result.result as any))
+  })
+
+  it('max-deposit returns max uint', () => {
+    const MAX = BigInt('340282366920938463463374607431768211455')
+    const result = simnet.callReadOnlyFn(VAULT, 'max-deposit', [Cl.principal(deployer)], deployer)
+    expect(BigInt((result.result as any).value)).toBe(MAX)
+  })
+
+  it('max-redeem returns owner share balance', () => {
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+    const maxR = simnet.callReadOnlyFn(VAULT, 'max-redeem', [Cl.principal(deployer)], deployer)
+    expect(uint(maxR.result as any)).toBe(vaultShares(deployer))
+  })
+
+  it('max-withdraw returns owner asset entitlement', () => {
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+    const maxW = simnet.callReadOnlyFn(VAULT, 'max-withdraw', [Cl.principal(deployer)], deployer)
+    // Entitlement = convert-to-assets(shares) -- slightly less than AMOUNT (virtual share dilution)
+    expect(uint(maxW.result as any)).toBeGreaterThan(0)
+    expect(uint(maxW.result as any)).toBeLessThanOrEqual(AMOUNT)
+  })
+
+  it('mint: mints exact shares and returns assets consumed', () => {
+    mint(deployer, AMOUNT * 2)
+    const sharesToMint = 50_000_000 // 50M shares (half of VIRTUAL)
+    const result = simnet.callPublicFn(
+      VAULT, 'mint',
+      [Cl.uint(sharesToMint), Cl.principal(deployer), adapterArg, adapterArg],
+      deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseOk)
+    // Deployer should have exactly sharesToMint shares
+    expect(vaultShares(deployer)).toBe(sharesToMint)
+    // Assets consumed should be positive and <= AMOUNT * 2
+    const assetsConsumed = uint(result.result as any)
+    expect(assetsConsumed).toBeGreaterThan(0)
+    expect(assetsConsumed).toBeLessThanOrEqual(AMOUNT * 2)
+  })
+
+  it('mint: preview-mint assets match actual assets consumed', () => {
+    mint(deployer, AMOUNT * 2)
+    // First seed the vault so there is a non-trivial share price
+    deposit(AMOUNT, deployer)
+    const sharesToMint = vaultShares(deployer) // same share count as first depositor
+    const preview = simnet.callReadOnlyFn(
+      VAULT, 'preview-mint', [Cl.uint(sharesToMint)], deployer,
+    )
+    mint(wallet1, AMOUNT * 2)
+    const result = simnet.callPublicFn(
+      VAULT, 'mint',
+      [Cl.uint(sharesToMint), Cl.principal(wallet1), adapterArg, adapterArg],
+      wallet1,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseOk)
+    // preview-mint should match assets consumed (or be off by at most 1 due to ceiling)
+    expect(Math.abs(uint(preview.result as any) - uint(result.result as any))).toBeLessThanOrEqual(1)
+  })
+
+  it('share transfer moves economic interest without touching assets', () => {
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+    const shares = vaultShares(deployer)
+
+    // Transfer half shares to wallet1
+    simnet.callPublicFn(
+      VAULT, 'transfer',
+      [Cl.uint(shares / 2), Cl.principal(deployer), Cl.principal(wallet1), Cl.none()],
+      deployer,
+    )
+    expect(vaultShares(deployer)).toBe(shares - shares / 2)
+    expect(vaultShares(wallet1)).toBe(shares / 2)
+    // Vault total-assets unchanged
+    expect(vaultRead('get-total-assets')).toBe(AMOUNT)
+  })
+})
+
 describe('vault-usdcx-v2 — rebalance', () => {
   it('rebalance-granite-to-zest-v2 moves allocation between markets', () => {
     registerGranite()
