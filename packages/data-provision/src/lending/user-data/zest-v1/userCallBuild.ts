@@ -1,15 +1,16 @@
 import type { StacksCall } from '../../../stacks-call'
 import { encodeClarityPrincipal } from '../../../stacks-call'
-import { getZestAssets, ZEST_CONTRACTS } from '../../public-data/zest-v1/constants'
+import { getZestAssets, ZEST_CONTRACTS, ZEST_Z_TOKENS } from '../../public-data/zest-v1/constants'
 
 /**
- * Build individual read-only calls to fetch user reserve data for Zest V1.
+ * Build read-only calls to fetch user reserve data for Zest V1.
  *
  * Layout:
- *   [0..N) get-user-reserve-data-read per asset (sorted)
- *   [N]    get-user-e-mode
+ *   [0..N)           get-user-reserve-data-read per asset (borrow data + collateral flag)
+ *   [N]              get-user-e-mode
+ *   [N+1..N+1+M)    z-token get-balance per asset that has a z-token (deposit balances)
  *
- * Total: N + 1 calls (9 assets + 1 emode = 10)
+ * The z-token balance calls are appended after the reserve + emode calls.
  */
 export function buildZestV1UserCalls(account: string): StacksCall[] {
   const assets = getZestAssets()
@@ -31,9 +32,25 @@ export function buildZestV1UserCalls(account: string): StacksCall[] {
     },
   ]
 
-  return [...reserveCalls, ...emodeCalls]
+  // Z-token balance calls for deposit amounts
+  const zTokenCalls: StacksCall[] = []
+  for (const asset of assets) {
+    const zToken = ZEST_Z_TOKENS[asset]
+    if (!zToken) continue
+    const [addr, name] = zToken.split('.')
+    zTokenCalls.push({
+      contractAddress: addr,
+      contractName: name,
+      functionName: 'get-balance',
+      args: [userArg],
+    })
+  }
+
+  return [...reserveCalls, ...emodeCalls, ...zTokenCalls]
 }
 
 export function getExpectedV1UserCallCount(): number {
-  return getZestAssets().length + 1
+  const assets = getZestAssets()
+  const zTokenCount = assets.filter((a) => ZEST_Z_TOKENS[a]).length
+  return assets.length + 1 + zTokenCount
 }

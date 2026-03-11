@@ -12,21 +12,17 @@ import {
   Lender,
   ZEST_V1_CONTRACTS,
 } from '@delta-stacks/calldata-sdk-stacks'
+import type { AssetOracleLp } from '@delta-stacks/calldata-sdk-stacks'
 
 const OPERATIONS = ['Deposit', 'Withdraw', 'Borrow', 'Repay'] as const
-type Operation = (typeof OPERATIONS)[number]
 
 interface Props {
   market: UnifiedMarket
+  v1PositionAssets?: AssetOracleLp[]
   onClose: () => void
 }
 
-/** Check if a V1 operation is supported (borrow/withdraw need full position data we don't have) */
-function isV1Unsupported(op: Operation): boolean {
-  return op === 'Borrow' || op === 'Withdraw'
-}
-
-export function ActionPanel({ market, onClose }: Props) {
+export function ActionPanel({ market, v1PositionAssets = [], onClose }: Props) {
   const [opTab, setOpTab] = useState(0)
   const [amount, setAmount] = useState('')
   const { connected, stxAddress, connect } = useWallet()
@@ -34,7 +30,6 @@ export function ActionPanel({ market, onClose }: Props) {
   const pending = usePendingTx()
 
   const op = OPERATIONS[opTab]
-  const v1Blocked = market.lender === 'zest-v1' && isV1Unsupported(op)
   const pendingBlocked = pending.hasPending && (op === 'Withdraw' || op === 'Borrow')
 
   const handleSubmit = useCallback(async () => {
@@ -52,14 +47,14 @@ export function ActionPanel({ market, onClose }: Props) {
         case 'Deposit':
           return buildDeposit(market, amtSmallest, stxAddress)
         case 'Withdraw':
-          return buildWithdraw(market, amtSmallest, stxAddress)
+          return buildWithdraw(market, amtSmallest, stxAddress, v1PositionAssets)
         case 'Borrow':
-          return buildBorrow(market, amtSmallest, stxAddress)
+          return buildBorrow(market, amtSmallest, stxAddress, v1PositionAssets)
         case 'Repay':
           return buildRepay(market, amtSmallest, stxAddress)
       }
     })
-  }, [stxAddress, amount, market, op, tx])
+  }, [stxAddress, amount, market, op, tx, v1PositionAssets])
 
   // Track submitted txs as pending
   useEffect(() => {
@@ -95,22 +90,15 @@ export function ActionPanel({ market, onClose }: Props) {
         size="sm"
       />
 
-      {/* V1 unsupported warning */}
-      {v1Blocked && (
-        <div className="text-xs text-text-muted bg-surface-alt rounded p-3">
-          {op} for Zest V1 requires full position data not available in the frontend yet.
-        </div>
-      )}
-
       {/* Pending tx warning */}
-      {!v1Blocked && pendingBlocked && (
+      {pendingBlocked && (
         <div className="text-xs text-yellow-400 bg-surface-alt rounded p-3">
           {op} is disabled while {pending.pendingCount} transaction{pending.pendingCount > 1 ? 's are' : ' is'} pending confirmation.
         </div>
       )}
 
       {/* Amount input */}
-      {!v1Blocked && !pendingBlocked && (
+      {!pendingBlocked && (
         <div className="space-y-2">
           <label className="text-xs text-text-muted block">Amount ({market.symbol})</label>
           <input
@@ -209,8 +197,22 @@ function buildDeposit(m: UnifiedMarket, amount: bigint, sender: string) {
   }
 }
 
-function buildWithdraw(m: UnifiedMarket, amount: bigint, sender: string) {
+function buildWithdraw(m: UnifiedMarket, amount: bigint, sender: string, v1Assets: AssetOracleLp[]) {
   switch (m.lender) {
+    case 'zest-v1':
+      if (!m.v1Asset) throw new Error('Missing V1 asset info')
+      if (!m.v1Asset.oracle) throw new Error(`Missing oracle for ${m.symbol}`)
+      if (!m.v1Asset.lpToken) throw new Error(`Missing lpToken for ${m.symbol}`)
+      return withdraw({
+        lender: Lender.ZestV1,
+        amount,
+        poolReserve: ZEST_V1_CONTRACTS.poolReserve,
+        asset: m.v1Asset.underlying,
+        lpToken: m.v1Asset.lpToken,
+        oracle: m.v1Asset.oracle,
+        assets: v1Assets,
+        owner: sender,
+      })
     case 'zest-v2':
       if (!m.v2Vault) throw new Error('Missing V2 vault')
       return withdraw({ lender: Lender.ZestV2, amount, vault: m.v2Vault, receiver: sender })
@@ -227,8 +229,24 @@ function buildWithdraw(m: UnifiedMarket, amount: bigint, sender: string) {
   }
 }
 
-function buildBorrow(m: UnifiedMarket, amount: bigint, _sender: string) {
+function buildBorrow(m: UnifiedMarket, amount: bigint, sender: string, v1Assets: AssetOracleLp[]) {
   switch (m.lender) {
+    case 'zest-v1':
+      if (!m.v1Asset) throw new Error('Missing V1 asset info')
+      if (!m.v1Asset.oracle) throw new Error(`Missing oracle for ${m.symbol}`)
+      if (!m.v1Asset.lpToken) throw new Error(`Missing lpToken for ${m.symbol}`)
+      return borrow({
+        lender: Lender.ZestV1,
+        amount,
+        poolReserve: ZEST_V1_CONTRACTS.poolReserve,
+        oracle: m.v1Asset.oracle,
+        assetToBorrow: m.v1Asset.underlying,
+        lpToken: m.v1Asset.lpToken,
+        assets: v1Assets,
+        feeCalculator: ZEST_V1_CONTRACTS.feeCalculator,
+        interestRateMode: 1, // variable rate
+        owner: sender,
+      })
     case 'zest-v2':
       if (!m.v2Vault) throw new Error('Missing V2 vault')
       return borrow({ lender: Lender.ZestV2, amount, vault: m.v2Vault })

@@ -20,13 +20,13 @@ describe('ZestV1Lending', () => {
       const call = ZestV1Lending.encodeSupply(ZWSTX, POOL_RESERVE, WSTX, 1000000n, USER)
 
       expect(call.contractAddress).toBe(ZEST_V1_DEPLOYER)
-      expect(call.contractName).toBe('pool-borrow-v2-0')
+      expect(call.contractName).toBe('borrow-helper-v2-1-7')
       expect(call.functionName).toBe('supply')
     })
 
-    it('encodes 5 function arguments', () => {
+    it('encodes 7 function arguments (including referral + incentives)', () => {
       const call = ZestV1Lending.encodeSupply(ZWSTX, POOL_RESERVE, WSTX, 1000000n, USER)
-      expect(call.functionArgs).toHaveLength(5)
+      expect(call.functionArgs).toHaveLength(7)
     })
 
     it('encodes amount as uint', () => {
@@ -44,11 +44,11 @@ describe('ZestV1Lending', () => {
       expect(call.functionName).toBe('withdraw')
     })
 
-    it('encodes 7 arguments including asset list', () => {
+    it('encodes 9 arguments (including incentives + price-feed-bytes)', () => {
       const call = ZestV1Lending.encodeWithdraw(
         POOL_RESERVE, WSTX, ZWSTX, ORACLE, sampleAssets, 500000n, USER,
       )
-      expect(call.functionArgs).toHaveLength(7)
+      expect(call.functionArgs).toHaveLength(9)
     })
   })
 
@@ -59,7 +59,7 @@ describe('ZestV1Lending', () => {
         1000000n, FEE_CALC, 1, USER,
       )
       expect(call.functionName).toBe('borrow')
-      expect(call.functionArgs).toHaveLength(9)
+      expect(call.functionArgs).toHaveLength(10)
     })
 
     it('encodes interest rate mode as uint', () => {
@@ -95,20 +95,10 @@ describe('ZestV1Lending', () => {
     it('encodes e-mode type as buff(1)', () => {
       const call = ZestV1Lending.encodeSetEMode(USER, sampleAssets, 0x01)
       expect(call.functionName).toBe('set-e-mode')
-      expect(call.functionArgs).toHaveLength(3)
+      expect(call.functionArgs).toHaveLength(4)
       // The third arg is buff(1) with value 0x01
       const buffJson = cvToJSON(call.functionArgs[2])
       expect(buffJson.value).toBe('0x01')
-    })
-  })
-
-  describe('encodeFlashloan', () => {
-    it('returns correct structure', () => {
-      const call = ZestV1Lending.encodeFlashloan(
-        USER, WSTX, 10000000n, `${ZEST_V1_DEPLOYER}.flashloan-handler`,
-      )
-      expect(call.functionName).toBe('flashloan')
-      expect(call.functionArgs).toHaveLength(4)
     })
   })
 
@@ -118,7 +108,7 @@ describe('ZestV1Lending', () => {
         sampleAssets, ZWSTX, WSTX, WSTX, ORACLE, ORACLE, USER, 100000n, false,
       )
       expect(call.functionName).toBe('liquidation-call')
-      expect(call.functionArgs).toHaveLength(9)
+      expect(call.functionArgs).toHaveLength(10)
     })
   })
 })

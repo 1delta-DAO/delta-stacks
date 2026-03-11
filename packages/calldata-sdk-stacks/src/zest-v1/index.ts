@@ -1,6 +1,10 @@
 import type { StacksContractCall } from '../types'
-import { principal, uint, bool, buff1, listCV, tupleCV } from '../types/clarity-args'
+import { principal, uint, bool, buff1, noneCV, someCV, bufferCV, listCV, tupleCV } from '../types/clarity-args'
+import type { ClarityValue } from '../types/clarity-args'
 import { ZEST_V1_DEPLOYER, ZEST_V1_CONTRACTS, splitContract } from './constants'
+import { PYTH_FEED_IDS } from '../pyth/feed-ids'
+import { fetchPythPriceUpdate } from '../pyth/fetch'
+import type { PythFetchOptions } from '../pyth/fetch'
 
 export { ZEST_V1_DEPLOYER, ZEST_V1_CONTRACTS }
 
@@ -26,24 +30,43 @@ function encodeAssetList(assets: AssetOracleLp[]) {
   )
 }
 
+/** Encode price feed bytes: (some (buff N)) if provided, none otherwise */
+function encodePriceFeedBytes(priceFeedBytes?: Uint8Array): ClarityValue {
+  if (!priceFeedBytes || priceFeedBytes.length === 0) return noneCV()
+  return someCV(bufferCV(priceFeedBytes))
+}
+
+const [HELPER_ADDR, HELPER_NAME] = splitContract(ZEST_V1_CONTRACTS.borrowHelper)
 const [BORROW_ADDR, BORROW_NAME] = splitContract(ZEST_V1_CONTRACTS.poolBorrow)
 const [RESERVE_ADDR, RESERVE_NAME] = splitContract(ZEST_V1_CONTRACTS.poolReserve)
 
 /**
+ * Pyth feed IDs needed by Zest V1 for health factor calculations.
+ * V1 uses a single concatenated buffer containing all feeds.
+ */
+const V1_PYTH_FEEDS = [
+  PYTH_FEED_IDS.BTC,
+  PYTH_FEED_IDS.STX,
+  PYTH_FEED_IDS.USDC,
+]
+
+/**
  * Zest V1 calldata encoders — pool-based lending (Aave-like architecture).
  *
- * Each function returns a StacksContractCall that can be serialized to JSON
- * and executed client-side via makeContractCall().
+ * All user-facing calls go through borrow-helper-v2-1-7 which is the approved
+ * gateway contract. It forwards to pool-borrow-v2-4 internally.
  */
 export namespace ZestV1Lending {
   /**
+   * Fetch Pyth price feed bytes for V1 operations that need health checks.
+   * Returns a single concatenated buffer suitable for the price-feed-bytes param.
+   */
+  export async function fetchPriceFeeds(options?: PythFetchOptions): Promise<Uint8Array> {
+    return fetchPythPriceUpdate(V1_PYTH_FEEDS, options)
+  }
+
+  /**
    * Supply (deposit) an asset into the Zest V1 pool.
-   *
-   * @param lpToken   - z-token contract principal (receipt token)
-   * @param poolReserve - pool reserve contract principal
-   * @param asset     - the token to supply (contract principal)
-   * @param amount    - amount in smallest units
-   * @param owner     - address receiving the z-tokens
    */
   export const encodeSupply = (
     lpToken: string,
@@ -52,8 +75,8 @@ export namespace ZestV1Lending {
     amount: bigint | number,
     owner: string,
   ): StacksContractCall => ({
-    contractAddress: BORROW_ADDR,
-    contractName: BORROW_NAME,
+    contractAddress: HELPER_ADDR,
+    contractName: HELPER_NAME,
     functionName: 'supply',
     functionArgs: [
       principal(lpToken),
@@ -61,19 +84,13 @@ export namespace ZestV1Lending {
       principal(asset),
       uint(amount),
       principal(owner),
+      noneCV(), // referral
+      principal(ZEST_V1_CONTRACTS.incentives),
     ],
   })
 
   /**
    * Withdraw an asset from the Zest V1 pool.
-   *
-   * @param poolReserve - pool reserve contract principal
-   * @param asset      - the token to withdraw
-   * @param lpToken    - z-token contract principal
-   * @param oracle     - price oracle contract principal
-   * @param assets     - full user position for health factor check
-   * @param amount     - amount to withdraw in smallest units
-   * @param owner      - address that owns the z-tokens
    */
   export const encodeWithdraw = (
     poolReserve: string,
@@ -83,33 +100,26 @@ export namespace ZestV1Lending {
     assets: AssetOracleLp[],
     amount: bigint | number,
     owner: string,
+    priceFeedBytes?: Uint8Array,
   ): StacksContractCall => ({
-    contractAddress: BORROW_ADDR,
-    contractName: BORROW_NAME,
+    contractAddress: HELPER_ADDR,
+    contractName: HELPER_NAME,
     functionName: 'withdraw',
     functionArgs: [
+      principal(lpToken),
       principal(poolReserve),
       principal(asset),
-      principal(lpToken),
       principal(oracle),
-      encodeAssetList(assets),
       uint(amount),
       principal(owner),
+      encodeAssetList(assets),
+      principal(ZEST_V1_CONTRACTS.incentives),
+      encodePriceFeedBytes(priceFeedBytes),
     ],
   })
 
   /**
    * Borrow an asset from the Zest V1 pool.
-   *
-   * @param poolReserve      - pool reserve contract principal
-   * @param oracle           - price oracle for the borrowed asset
-   * @param assetToBorrow    - the token to borrow
-   * @param lpToken          - z-token for the borrowed asset
-   * @param assets           - full user position for health factor check
-   * @param amount           - amount to borrow in smallest units
-   * @param feeCalculator    - fee calculator contract principal
-   * @param interestRateMode - 1 = variable, 2 = stable (Zest V1 mirrors Aave modes)
-   * @param owner            - borrower address
    */
   export const encodeBorrow = (
     poolReserve: string,
@@ -121,9 +131,10 @@ export namespace ZestV1Lending {
     feeCalculator: string,
     interestRateMode: number,
     owner: string,
+    priceFeedBytes?: Uint8Array,
   ): StacksContractCall => ({
-    contractAddress: BORROW_ADDR,
-    contractName: BORROW_NAME,
+    contractAddress: HELPER_ADDR,
+    contractName: HELPER_NAME,
     functionName: 'borrow',
     functionArgs: [
       principal(poolReserve),
@@ -135,16 +146,12 @@ export namespace ZestV1Lending {
       principal(feeCalculator),
       uint(interestRateMode),
       principal(owner),
+      encodePriceFeedBytes(priceFeedBytes),
     ],
   })
 
   /**
    * Repay a borrowed asset.
-   *
-   * @param asset         - the token to repay
-   * @param amount        - amount to repay in smallest units
-   * @param onBehalfOf    - address of the borrower
-   * @param payer         - address paying the debt
    */
   export const encodeRepay = (
     asset: string,
@@ -152,8 +159,8 @@ export namespace ZestV1Lending {
     onBehalfOf: string,
     payer: string,
   ): StacksContractCall => ({
-    contractAddress: BORROW_ADDR,
-    contractName: BORROW_NAME,
+    contractAddress: HELPER_ADDR,
+    contractName: HELPER_NAME,
     functionName: 'repay',
     functionArgs: [
       principal(asset),
@@ -173,9 +180,10 @@ export namespace ZestV1Lending {
     enableAsCollateral: boolean,
     oracle: string,
     assetsToCalculate: AssetOracleLp[],
+    priceFeedBytes?: Uint8Array,
   ): StacksContractCall => ({
-    contractAddress: BORROW_ADDR,
-    contractName: BORROW_NAME,
+    contractAddress: HELPER_ADDR,
+    contractName: HELPER_NAME,
     functionName: 'set-user-use-reserve-as-collateral',
     functionArgs: [
       principal(who),
@@ -184,48 +192,27 @@ export namespace ZestV1Lending {
       bool(enableAsCollateral),
       principal(oracle),
       encodeAssetList(assetsToCalculate),
+      encodePriceFeedBytes(priceFeedBytes),
     ],
   })
 
   /**
    * Set the user's e-mode category.
-   *
-   * @param user        - user address
-   * @param assets      - full user position for health factor recalculation
-   * @param eModeType   - e-mode category byte (0x00 = disabled, 0x01 = category 1, etc.)
    */
   export const encodeSetEMode = (
     user: string,
     assets: AssetOracleLp[],
     eModeType: number,
+    priceFeedBytes?: Uint8Array,
   ): StacksContractCall => ({
-    contractAddress: BORROW_ADDR,
-    contractName: BORROW_NAME,
+    contractAddress: HELPER_ADDR,
+    contractName: HELPER_NAME,
     functionName: 'set-e-mode',
     functionArgs: [
       principal(user),
       encodeAssetList(assets),
       buff1(eModeType),
-    ],
-  })
-
-  /**
-   * Perform a flash loan.
-   */
-  export const encodeFlashloan = (
-    receiver: string,
-    asset: string,
-    amount: bigint | number,
-    flashloanContract: string,
-  ): StacksContractCall => ({
-    contractAddress: BORROW_ADDR,
-    contractName: BORROW_NAME,
-    functionName: 'flashloan',
-    functionArgs: [
-      principal(receiver),
-      principal(asset),
-      uint(amount),
-      principal(flashloanContract),
+      encodePriceFeedBytes(priceFeedBytes),
     ],
   })
 
@@ -242,9 +229,10 @@ export namespace ZestV1Lending {
     liquidatedUser: string,
     debtAmount: bigint | number,
     toReceiveAToken: boolean,
+    priceFeedBytes?: Uint8Array,
   ): StacksContractCall => ({
-    contractAddress: BORROW_ADDR,
-    contractName: BORROW_NAME,
+    contractAddress: HELPER_ADDR,
+    contractName: HELPER_NAME,
     functionName: 'liquidation-call',
     functionArgs: [
       encodeAssetList(assets),
@@ -256,6 +244,7 @@ export namespace ZestV1Lending {
       principal(liquidatedUser),
       uint(debtAmount),
       bool(toReceiveAToken),
+      encodePriceFeedBytes(priceFeedBytes),
     ],
   })
 }

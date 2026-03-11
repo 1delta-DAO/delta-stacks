@@ -5,11 +5,12 @@ import { UserPositions } from './UserPositions'
 import { useLendingData } from '../hooks/useLendingData'
 import { useUserData } from '../hooks/useUserData'
 import { useWallet } from '../context/WalletContext'
-import type { AllLendingData } from '@delta-stacks/data-provision'
+import type { AllLendingData, AllUserData } from '@delta-stacks/data-provision'
 import {
   ZEST_V1_CONTRACTS,
   ZEST_V2_CONTRACTS,
 } from '@delta-stacks/calldata-sdk-stacks'
+import type { AssetOracleLp } from '@delta-stacks/calldata-sdk-stacks'
 
 const LENDERS = ['All', 'Zest V1', 'Zest V2', 'Granite aeUSDC', 'Granite USDCx']
 
@@ -31,7 +32,7 @@ export interface UnifiedMarket {
   liquidationThreshold: number
   decimals: number
   // Protocol-specific identifiers for SDK
-  v1Asset?: { underlying: string; lpToken: string }
+  v1Asset?: { underlying: string; lpToken: string; oracle: string }
   v2Vault?: string
   graniteMarketId?: 'aeusdc' | 'usdcx'
 }
@@ -55,10 +56,42 @@ const V1_Z_TOKENS: Record<string, string> = {
   'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc': `${V1_DEPLOYER}.zaeusdc-v2-0`,
   'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.arkadiko-token': `${V1_DEPLOYER}.zdiko-v2-0`,
   'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1': `${V1_DEPLOYER}.zusdh-v2-0`,
-  'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt': `${V1_DEPLOYER}.zsusdt-v1-2`,
+  'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt': `${V1_DEPLOYER}.zsusdt-v2-0`,
+  'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token': `${V1_DEPLOYER}.zusda-v2-0`,
   'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex': `${V1_DEPLOYER}.zalex-v2-0`,
   'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2': `${V1_DEPLOYER}.zststxbtc-v2_v2-0`,
 }
+
+/** Oracle addresses for Zest V1 (keyed by asset principal) */
+const V1_ORACLES: Record<string, string> = {
+  [`${V1_DEPLOYER}.wstx`]: `${V1_DEPLOYER}.stx-btc-oracle-v1-4`,
+  'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token': `${V1_DEPLOYER}.stx-btc-oracle-v1-4`,
+  'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token': `${V1_DEPLOYER}.stx-btc-oracle-v1-4`,
+  'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc': `${V1_DEPLOYER}.aeusdc-oracle-v1-0`,
+  'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.arkadiko-token': `${V1_DEPLOYER}.diko-oracle-v1-1`,
+  'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1': `${V1_DEPLOYER}.usdh-oracle-v1-0`,
+  'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt': `${V1_DEPLOYER}.susdt-oracle-v1-0`,
+  'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token': `${V1_DEPLOYER}.usda-oracle-v1-1`,
+  'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex': `${V1_DEPLOYER}.alex-oracle-v1-1`,
+  'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2': `${V1_DEPLOYER}.stx-btc-oracle-v1-4`,
+}
+
+/**
+ * On-chain asset order from pool-reserve-data.get-assets-read.
+ * The contract's validate-assets checks by INDEX, so the order MUST match exactly.
+ */
+const V1_ASSET_ORDER: string[] = [
+  'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token',
+  'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc',
+  `${V1_DEPLOYER}.wstx`,
+  'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.arkadiko-token',
+  'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1',
+  'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt',
+  'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token',
+  'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
+  'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex',
+  'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2',
+]
 
 function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
   const markets: UnifiedMarket[] = []
@@ -81,7 +114,7 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         liquidationThreshold: m.liquidationThreshold,
         decimals: m.decimals,
         v1Asset: underlying
-          ? { underlying, lpToken: V1_Z_TOKENS[underlying] || '' }
+          ? { underlying, lpToken: V1_Z_TOKENS[underlying] || '', oracle: V1_ORACLES[underlying] || m.oracle || '' }
           : undefined,
       })
     }
@@ -135,6 +168,27 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
   }
 
   return markets
+}
+
+/**
+ * Build the AssetOracleLp[] for V1 borrow/withdraw.
+ *
+ * CRITICAL: The contract's validate-assets checks by INDEX position against
+ * the on-chain asset registry (pool-reserve-data.get-assets-read). The list
+ * must contain ALL 10 assets in the EXACT on-chain order, or the tx fails
+ * with ERR_INVALID_ASSETS (u30024).
+ */
+function buildV1PositionAssets(
+  _allMarkets: UnifiedMarket[],
+  _userData: AllUserData,
+): AssetOracleLp[] {
+  return V1_ASSET_ORDER
+    .map((asset) => ({
+      asset,
+      lpToken: V1_Z_TOKENS[asset] || '',
+      oracle: V1_ORACLES[asset] || '',
+    }))
+    .filter((a) => a.lpToken && a.oracle)
 }
 
 function formatRate(rate: number): string {
@@ -250,6 +304,7 @@ export function LendingTab() {
     ? allMarkets
     : allMarkets.filter((m) => m.protocol === LENDERS[lenderTab])
 
+  const v1PositionAssets = buildV1PositionAssets(allMarkets, userData)
   const hasAnyData = data.v1 || data.v2 || data.granite
 
   return (
@@ -283,6 +338,7 @@ export function LendingTab() {
             <ActionPanel
               key={selectedMarket.marketUid}
               market={selectedMarket}
+              v1PositionAssets={v1PositionAssets}
               onClose={() => setSelectedMarket(null)}
             />
           </div>

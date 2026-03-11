@@ -15,7 +15,7 @@ const RATE_PRECISION = 1e8
 /**
  * Parse results from the per-asset reader calls built by buildV1ReaderCalls.
  *
- * Layout: [0..9) per-asset tuples, [9] emode-0, [10] emode-1
+ * Layout: [0..10) per-asset tuples, [10] emode-0, [11] emode-1
  *
  * Each per-asset result is a direct tuple (NOT wrapped in (ok ...)):
  *   { reserve-state: (optional {tuple}),  -- not (response ...)
@@ -29,7 +29,7 @@ export function parseV1ReaderResults(
 ): ZestPublicResponse | undefined {
   const assets = getZestAssets()
   const zTokenCount = assets.filter((a) => ZEST_Z_TOKENS[a]).length
-  const expectedCount = assets.length + 2 + zTokenCount // 9 assets + 2 emode + z-token supplies
+  const expectedCount = assets.length + 2 + zTokenCount // 10 assets + 2 emode + z-token supplies
 
   if (results.length !== expectedCount) {
     console.warn(`V1 reader: expected ${expectedCount} results, got ${results.length}`)
@@ -170,6 +170,7 @@ export function parseV1ReaderResults(
         baseLtv: extractNum(t['base-ltv-as-collateral']) / RATE_PRECISION,
         asset: lookupToken(asset),
         zToken: ZEST_Z_TOKENS[asset],
+        oracle: extractPrincipal(t['oracle']) || undefined,
         params: ZEST_Z_TOKENS[asset] ? { metadata: { zToken: ZEST_Z_TOKENS[asset] } } : undefined,
       }
     }
@@ -229,4 +230,10 @@ function extractBoolField(field: any): boolean {
   if (typeof field === 'boolean') return field
   if (field?.value !== undefined) return field.value === true
   return false
+}
+
+function extractPrincipal(field: any): string {
+  if (!field) return ''
+  if (typeof field === 'string') return field
+  return String(field?.value ?? '')
 }

@@ -18,10 +18,10 @@ describe('lending-reader-v2 integration', { timeout: 120_000 }, () => {
   it('getAllLendingData returns data for all 3 protocols via reader contract', async () => {
     const result = await getAllLendingData({}, opts)
 
-    // V1: 9 Zest V1 assets
+    // V1: 10 Zest V1 assets (including USDA)
     expect(result.v1).toBeDefined()
     expect(result.v1!.chainId).toBe('stacks-mainnet')
-    expect(Object.keys(result.v1!.data).length).toBe(9)
+    expect(Object.keys(result.v1!.data).length).toBe(10)
 
     // V2: 6 Zest V2 vaults
     expect(result.v2).toBeDefined()
@@ -34,12 +34,12 @@ describe('lending-reader-v2 integration', { timeout: 120_000 }, () => {
     expect(Object.keys(result.granite!.data).length).toBe(4)
   })
 
-  it('V1 reader returns valid reserve data for all 9 assets', async () => {
+  it('V1 reader returns valid reserve data for all 10 assets', async () => {
     const v1 = await getStacksLenderPublicData('zest-v1', {}, opts)
 
     expect(v1).toBeDefined()
     const markets = Object.values(v1!.data)
-    expect(markets.length).toBe(9)
+    expect(markets.length).toBe(10)
 
     for (const market of markets) {
       expect(market.marketUid).toContain('stacks-mainnet:zest-v1:')

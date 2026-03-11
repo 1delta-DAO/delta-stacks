@@ -1,13 +1,19 @@
-;; user-reader-v1.clar
+;; user-reader-v2.clar
 ;;
 ;; Batching reader contract for user-specific lending data.
 ;; Collapses individual per-asset user data calls into single read-only calls.
 ;;
-;; V1: 10 individual calls -> 1 call
+;; v2 changes from v1:
+;;   - Added USDA (10th asset) to V1 user data
+;;   - Added z-token balance reads for ALL 10 V1 assets (deposit amounts)
+;;     v1 only returned reserve data (borrow/collateral), NOT deposit balances
+;;   - Fixed sUSDT z-token: zsusdt-v1-2 -> zsusdt-v2-0
+;;
+;; V1: 21 individual calls -> 1 call (reserve data + z-token balances + e-mode)
 ;; V2: 13 individual calls -> 1 call + 1 collateral call
 ;; Granite: 6 individual calls -> 2 calls (1 per market)
 ;;
-;; Total: 29 individual calls -> 5 reader calls
+;; Total: 40 individual calls -> 4 reader calls
 ;;
 ;; Deployed by delta-stacks.
 ;;
@@ -20,20 +26,58 @@
 ;; ZEST V1 USER DATA
 ;; ===================================================================
 ;;
-;; Reads get-user-reserve-data-read for all 9 assets + e-mode in a single call.
-;; Returns a tuple keyed by asset with per-asset user reserve data.
+;; Reads get-user-reserve-data-read + z-token get-balance for all 10 assets
+;; plus e-mode in a single call.
+;;
+;; Each asset field is a tuple:
+;;   { reserve: (optional {tuple}), z-balance: (response uint uint) }
+;;
+;; reserve  = pool-reserve-data.get-user-reserve-data-read (borrow + collateral)
+;; z-balance = z-token.get-balance (deposit amount)
 
 (define-read-only (read-v1-user (user principal))
   {
-    wstx: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx),
-    ststx: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token),
-    sbtc: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token),
-    aeusdc: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc),
-    diko: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.arkadiko-token),
-    usdh: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1),
-    susdt: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt),
-    ststxbtc: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2),
-    alex: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex),
+    ;; On-chain asset order: stSTX, aeUSDC, wSTX, DIKO, USDH, sUSDT, USDA, sBTC, ALEX, stSTXbtcV2
+    ststx: {
+      reserve: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token),
+      z-balance: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zststx-v2-0 get-balance user),
+    },
+    aeusdc: {
+      reserve: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc),
+      z-balance: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zaeusdc-v2-0 get-balance user),
+    },
+    wstx: {
+      reserve: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx),
+      z-balance: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zwstx-v2-0 get-balance user),
+    },
+    diko: {
+      reserve: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.arkadiko-token),
+      z-balance: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zdiko-v2-0 get-balance user),
+    },
+    usdh: {
+      reserve: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1),
+      z-balance: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zusdh-v2-0 get-balance user),
+    },
+    susdt: {
+      reserve: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt),
+      z-balance: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zsusdt-v2-0 get-balance user),
+    },
+    usda: {
+      reserve: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token),
+      z-balance: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zusda-v2-0 get-balance user),
+    },
+    sbtc: {
+      reserve: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token),
+      z-balance: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zsbtc-v2-0 get-balance user),
+    },
+    alex: {
+      reserve: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex),
+      z-balance: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zalex-v2-0 get-balance user),
+    },
+    ststxbtc: {
+      reserve: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-user-reserve-data-read user 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2),
+      z-balance: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zststxbtc-v2_v2-0 get-balance user),
+    },
     e-mode: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0 get-user-e-mode user),
   }
 )
@@ -67,11 +111,6 @@
 ;; ===================================================================
 ;; ZEST V2 COLLATERAL
 ;; ===================================================================
-;;
-;; Separate reader for z-token collateral in the market-vault.
-;; Uses resolve-safe to get the user's internal ID, then lookup-collateral
-;; to fetch all z-token collateral entries.
-;; If the user has no position, returns (err u900003).
 
 (define-read-only (read-v2-user-collateral (user principal))
   (let ((resolved (try! (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-market-vault resolve-safe user))))
@@ -86,8 +125,6 @@
 ;; ===================================================================
 ;; GRANITE USER DATA
 ;; ===================================================================
-;;
-;; One function per market since deployers differ.
 
 (define-read-only (read-granite-aeusdc-user (user principal))
   {

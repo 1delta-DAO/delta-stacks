@@ -24,6 +24,7 @@ export interface BorrowZestV1Params {
   feeCalculator: string
   interestRateMode: number
   owner: string
+  pythOptions?: PythFetchOptions
 }
 
 export interface BorrowZestV2Params {
@@ -87,6 +88,7 @@ export interface WithdrawZestV1Params {
   oracle: string
   assets: AssetOracleLp[]
   owner: string
+  pythOptions?: PythFetchOptions
 }
 
 export interface WithdrawZestV2Params {

@@ -106,7 +106,7 @@ describe('Zest V1 aggregator parser', () => {
 
     expect(parsed).toBeDefined()
     expect(parsed!.chainId).toBe('stacks-mainnet')
-    expect(Object.keys(parsed!.data).length).toBe(9)
+    expect(Object.keys(parsed!.data).length).toBe(10)
   })
 
   it('produces correct market UIDs', () => {

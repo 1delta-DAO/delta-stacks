@@ -171,6 +171,7 @@ export function parseV1AggregatorResult(
         baseLtv: extractNum(t['base-ltv-as-collateral']) / RATE_PRECISION,
         asset: lookupToken(asset),
         zToken: ZEST_Z_TOKENS[asset],
+        oracle: extractPrincipalField(t['oracle']) || undefined,
         params: ZEST_Z_TOKENS[asset] ? { metadata: { zToken: ZEST_Z_TOKENS[asset] } } : undefined,
       }
     }
@@ -239,4 +240,10 @@ function extractBoolField(field: any): boolean {
   if (typeof field === 'boolean') return field
   if (field?.value !== undefined) return field.value === true
   return false
+}
+
+function extractPrincipalField(field: any): string {
+  if (!field) return ''
+  if (typeof field === 'string') return field
+  return String(field?.value ?? '')
 }

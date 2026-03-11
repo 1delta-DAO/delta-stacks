@@ -3,28 +3,29 @@ import { READER_CONTRACT_ADDRESS, READER_CONTRACT_NAME } from '../fetchStacksLen
 import { getZestAssets, ZEST_Z_TOKENS } from './constants'
 
 /**
- * Reader function names in the deployed lending-reader-v2 contract,
- * matching the order of getZestAssets().
+ * Reader function names in the deployed lending-reader-v3 contract,
+ * matching the order of getZestAssets() (on-chain asset registry order).
  */
 const V1_READER_FUNCTIONS = [
-  'read-v1-wstx',
   'read-v1-ststx',
-  'read-v1-sbtc',
   'read-v1-aeusdc',
+  'read-v1-wstx',
   'read-v1-diko',
   'read-v1-usdh',
   'read-v1-susdt',
-  'read-v1-ststxbtc',
+  'read-v1-usda',
+  'read-v1-sbtc',
   'read-v1-alex',
+  'read-v1-ststxbtc',
 ] as const
 
 /**
- * Build calls to the per-asset reader functions in lending-reader-v2.
+ * Build calls to the per-asset reader functions in lending-reader-v3.
  * Each call bundles 4 sub-calls (reserve-state, supply-apy, borrow-apy, e-mode-type)
  * into a single read-only call.
  *
- * Layout: [0..9) per-asset, [9..11) e-mode configs = 11 calls total
- * (down from 39 individual calls)
+ * Layout: [0..10) per-asset, [10..12) e-mode configs, [12..22) z-token supplies = 22 calls total
+ * (down from 53 individual calls)
  */
 export function buildV1ReaderCalls(readerAddress = READER_CONTRACT_ADDRESS): StacksCall[] {
   const assetCalls: StacksCall[] = V1_READER_FUNCTIONS.map((fn) => ({

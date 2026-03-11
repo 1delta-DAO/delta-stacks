@@ -247,18 +247,61 @@ export function mergeV2Collateral(
     }
   }
 
-  // Recalculate totals
+  // Recalculate ALL balance fields (including collateral & adjustedDebt for HF)
   let totalDeposits = 0
   let totalDebt = 0
+  let oracleDebt = 0
+  let collateralTotal = 0
+  let borrowDiscountedCollateral = 0
+  let collateralAllActive = 0
+  let borrowDiscountedCollateralAllActive = 0
+
+  const mode = String(pool.userConfig?.selectedMode ?? '0')
+
   for (const pos of pool.positions) {
-    totalDeposits += pos.depositsUSD
-    totalDebt += pos.debtUSD
+    const p = pos as any
+    totalDeposits += p.depositsUSD ?? 0
+    totalDebt += p.debtUSD ?? 0
+    oracleDebt += p.debtUSDOracle ?? p.debtUSD ?? 0
+
+    const meta = metaMap?.[p.marketUid]
+    const config = meta?.configs?.[mode]
+    const depositsUSDOracle = p.depositsUSDOracle ?? p.depositsUSD ?? 0
+
+    if (meta?.flags?.collateralActive || (config && !config.collateralDisabled)) {
+      if (p.collateralEnabled) {
+        collateralTotal += (config?.collateralFactor ?? 1) * depositsUSDOracle
+        borrowDiscountedCollateral += (config?.borrowCollateralFactor ?? 1) * depositsUSDOracle
+      }
+      collateralAllActive += (config?.collateralFactor ?? 1) * depositsUSDOracle
+      borrowDiscountedCollateralAllActive += (config?.borrowCollateralFactor ?? 1) * depositsUSDOracle
+    }
   }
+
+  const nav = totalDeposits - totalDebt
   pool.balanceData = {
     ...pool.balanceData,
     deposits: totalDeposits,
     debt: totalDebt,
+    adjustedDebt: oracleDebt,
+    collateral: collateralTotal,
+    borrowDiscountedCollateral,
+    collateralAllActive,
+    borrowDiscountedCollateralAllActive,
+    nav,
   }
+
+  // Recalculate health factor
+  pool.health =
+    totalDebt === 0
+      ? null
+      : oracleDebt > 0
+        ? collateralTotal / oracleDebt
+        : collateralTotal / totalDebt
+
+  // Recalculate credit line and borrowable/withdrawable
+  const creditLine = Math.max(0, borrowDiscountedCollateral - oracleDebt)
+  pool.borrowCapacityUSD = creditLine
 
   return userData
 }

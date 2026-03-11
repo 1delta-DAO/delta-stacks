@@ -39,13 +39,13 @@ plan:
   - id: 0
     transactions:
     - transaction-type: emulated-contract-publish
-      contract-name: lending-reader-v2
+      contract-name: lending-reader-v3
       emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
-      path: contracts/lending-reader-v2.clar
+      path: contracts/lending-reader-v3.clar
       clarity-version: 3
     - transaction-type: emulated-contract-publish
-      contract-name: user-reader-v1
+      contract-name: user-reader-v2
       emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
-      path: contracts/user-reader-v1.clar
+      path: contracts/user-reader-v2.clar
       clarity-version: 3
     epoch: '3.0'

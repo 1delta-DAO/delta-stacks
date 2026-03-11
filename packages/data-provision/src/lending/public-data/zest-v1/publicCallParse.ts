@@ -51,6 +51,7 @@ export interface ZestReserveData {
   asset?: StacksToken
   // metadata
   zToken: string | undefined
+  oracle: string | undefined
   params?: { metadata: { zToken?: string } }
 }
 
@@ -230,6 +231,7 @@ export function getZestReservesDataConverter(
         asset: lookupToken(asset),
         // metadata
         zToken: ZEST_Z_TOKENS[asset],
+        oracle: reserveState.oracle || undefined,
         params: ZEST_Z_TOKENS[asset] ? { metadata: { zToken: ZEST_Z_TOKENS[asset] } } : undefined,
       }
     }
@@ -263,6 +265,7 @@ interface DecodedReserveState {
   borrowCap: bigint
   debtCeiling: bigint
   aTokenAddress: string
+  oracle: string
 }
 
 function decodeReserveState(
@@ -295,6 +298,7 @@ function decodeReserveState(
       borrowCap: BigInt(t['borrow-cap']?.value ?? 0),
       debtCeiling: BigInt(t['debt-ceiling']?.value ?? 0),
       aTokenAddress: t['a-token-address']?.value ?? '',
+      oracle: t['oracle']?.value ?? '',
     }
   } catch (e) {
     console.warn('Failed to decode reserve state:', e)

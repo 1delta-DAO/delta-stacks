@@ -1,7 +1,7 @@
 import { createBaseTypeUserState } from '../utils'
 import { parseRawAmount } from '../utils/formatting'
 import { getDisplayPrice, getOraclePrice } from '../utils/oraclePrice'
-import type { LenderCrossPoolMeta, LenderYieldComplete, UserData } from '../utils/types'
+import type { LenderCrossPoolMeta, UserData } from '../utils/types'
 import type { StacksCallResult } from '../../../stacks-call'
 import { decodeClarityValue, extractTuple, extractUint } from '../../../stacks-call'
 import { getZestAssets, ZEST_ASSET_SYMBOLS } from '../../public-data/zest-v1/constants'
@@ -11,15 +11,15 @@ const LENDER_ID = 'zest-v1'
 
 /**
  * Mapping from asset principal → tuple key in the reader response.
- * Must match the keys in read-v1-user in user-reader-v1.clar.
+ * Must match the keys in read-v1-user in user-reader-v2.clar.
+ * Order matches on-chain asset registry (pool-reserve-data.get-assets-read).
  */
-const ASSET_TO_READER_KEY: Record<string, string> = {}
-// Build mapping dynamically from known assets
 const READER_KEYS = [
-  'wstx', 'ststx', 'sbtc', 'aeusdc', 'diko', 'usdh', 'susdt', 'ststxbtc', 'alex',
+  'ststx', 'aeusdc', 'wstx', 'diko', 'usdh', 'susdt', 'usda', 'sbtc', 'alex', 'ststxbtc',
 ]
 
-// Initialize mapping: getZestAssets() returns assets in a fixed order
+const ASSET_TO_READER_KEY: Record<string, string> = {}
+
 function initAssetKeyMapping() {
   const assets = getZestAssets()
   for (let i = 0; i < assets.length && i < READER_KEYS.length; i++) {
@@ -29,7 +29,11 @@ function initAssetKeyMapping() {
 initAssetKeyMapping()
 
 /**
- * Parse the result of a single read-v1-user reader call.
+ * Parse the result of a single read-v1-user reader call from user-reader-v2.
+ *
+ * The v2 reader returns a tuple where each asset field is:
+ *   { reserve: (optional {tuple}), z-balance: (response uint uint) }
+ *
  * Returns UserData or undefined on failure.
  */
 export function parseV1UserReaderResults(
@@ -55,7 +59,7 @@ export function parseV1UserReaderResults(
     const emodeVal = outerTuple['e-mode']
     if (emodeVal) {
       try {
-        userEMode = Number(emodeVal.value ?? 0)
+        userEMode = Number(extractUint(emodeVal) ?? emodeVal.value ?? 0)
       } catch { /* default 0 */ }
     }
 
@@ -67,48 +71,70 @@ export function parseV1UserReaderResults(
       const assetData = outerTuple[readerKey]
       if (!assetData) continue
 
-      const t = extractTuple(assetData)
-      if (!t) continue
+      // Each asset is a tuple: { reserve, z-balance }
+      const assetTuple = extractTuple(assetData)
+      if (!assetTuple) continue
+
+      // Extract z-token balance (deposit amount)
+      // z-balance is (response uint uint) from get-balance
+      let depositRaw = '0'
+      const zBalField = assetTuple['z-balance']
+      if (zBalField) {
+        // Unwrap (ok uint) response
+        const inner = zBalField?.success === true ? zBalField.value : zBalField
+        const raw = extractUint(inner)
+        if (raw !== undefined && Number(raw) !== 0) depositRaw = String(raw)
+      }
+
+      // Extract reserve data (borrow info + collateral flag)
+      // reserve is (optional {tuple})
+      let borrowRaw = '0'
+      let collateralEnabled = false
+      const reserveField = assetTuple['reserve']
+      if (reserveField) {
+        // Unwrap optional
+        const innerVal = reserveField?.value
+        if (innerVal !== null && innerVal !== undefined) {
+          const fields = innerVal?.value ?? innerVal
+          if (fields && typeof fields === 'object') {
+            borrowRaw = String(fields['principal-borrow-balance']?.value ?? 0)
+            collateralEnabled = fields['use-as-collateral']?.value === true
+          }
+        }
+      }
+
+      if (depositRaw === '0' && borrowRaw === '0') continue
 
       const symbol = ZEST_ASSET_SYMBOLS[asset] ?? ''
       const marketUid = `${STACKS_CHAIN_ID}:${LENDER_ID}:${asset}`
       const meta = metaMap?.[marketUid]
       const decimals = meta?.asset?.decimals ?? 8
 
-      const aTokenBalanceRaw = String(t['current-atoken-balance']?.value ?? 0)
-      const stableDebtRaw = String(t['current-stable-debt']?.value ?? 0)
-      const variableDebtRaw = String(t['current-variable-debt']?.value ?? 0)
-
-      if (aTokenBalanceRaw === '0' && stableDebtRaw === '0' && variableDebtRaw === '0') continue
-
-      const deposits = parseRawAmount(aTokenBalanceRaw, decimals)
-      const debtStable = parseRawAmount(stableDebtRaw, decimals)
-      const debt = parseRawAmount(variableDebtRaw, decimals)
+      const deposits = parseRawAmount(depositRaw, decimals)
+      const debt = parseRawAmount(borrowRaw, decimals)
 
       const price = prices?.[marketUid] ?? prices?.[symbol.toLowerCase()] ?? prices?.[asset] ?? getDisplayPrice(meta ?? {})
       const oPrice = getOraclePrice(meta ?? {})
       const priceHist = meta?.price?.priceUsd24h ?? price
 
-      const collateralEnabled = t['usage-as-collateral-enabled']?.value === true
-
       lendingPositions[marketUid] = {
         marketUid,
         underlying: meta?.asset?.address,
         deposits,
-        debtStable,
+        debtStable: '0',
         debt,
         depositsUSD: Number(deposits) * price,
-        debtStableUSD: Number(debtStable) * price,
+        debtStableUSD: 0,
         debtUSD: Number(debt) * price,
         depositsUSDOracle: Number(deposits) * oPrice,
-        debtStableUSDOracle: Number(debtStable) * oPrice,
+        debtStableUSDOracle: 0,
         debtUSDOracle: Number(debt) * oPrice,
         collateralEnabled,
         claimableRewards: 0,
       }
 
       totalDeposits24h += Number(deposits) * priceHist
-      totalDebt24h += (Number(debt) + Number(debtStable)) * priceHist
+      totalDebt24h += Number(debt) * priceHist
     }
 
     const payload = {

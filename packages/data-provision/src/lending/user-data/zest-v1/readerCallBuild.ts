@@ -5,7 +5,7 @@ import { USER_READER_CONTRACT_ADDRESS, USER_READER_CONTRACT_NAME } from '../cons
 /**
  * Build a single reader call that fetches all V1 user data at once.
  * The reader function `read-v1-user(principal)` returns a tuple with
- * all 9 asset positions + e-mode in one call.
+ * all 10 asset positions (reserve data + z-token balances) + e-mode in one call.
  */
 export function buildV1UserReaderCalls(
   account: string,

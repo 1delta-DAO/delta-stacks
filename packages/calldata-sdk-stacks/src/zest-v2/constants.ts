@@ -51,6 +51,9 @@ export const ZEST_V2_VAULT_FEED_KEYS: Record<string, readonly string[]> = {
   [ZEST_V2_CONTRACTS.vaultStstxbtc]: ['STX', 'BTC'],
 }
 
+/** All vault contract principals (used to resolve all market price feeds at once) */
+export const ZEST_V2_ALL_VAULTS = Object.keys(ZEST_V2_VAULT_FEED_KEYS)
+
 /** Split a "deployer.name" string into [address, name] */
 export function splitContract(contractId: string): [string, string] {
   const dot = contractId.indexOf('.')

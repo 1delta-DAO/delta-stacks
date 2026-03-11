@@ -1,7 +1,12 @@
-;; zest-reader.clar
+;; lending-reader-v3.clar
 ;;
 ;; Unified aggregator contract for reading all lending protocol reserve data
 ;; in single read-only calls. Collapses ~100 individual HTTP requests into 3.
+;;
+;; v3 changes from v2:
+;;   - Added USDA asset (read-v1-usda, read-v1-ztoken-usda)
+;;   - Added sBTC z-token supply (read-v1-ztoken-sbtc) - was incorrectly missing
+;;   - Fixed sUSDT z-token: zsusdt-v1-2 -> zsusdt-v2-0
 ;;
 ;; Deployed by delta-stacks.
 ;;
@@ -11,30 +16,22 @@
 ;; Granite USDCx:     SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE
 
 ;; ===================================================================
-;; V1 READER -9 assets, pool-based architecture (like Aave)
+;; V1 READER - 10 assets, pool-based architecture (like Aave)
 ;; ===================================================================
 ;;
 ;; Per-asset data tuple:
 ;; {
-;;   reserve-state: {tuple}  -full reserve state from pool-reserve-data
-;;   supply-apy:    uint     -annualized supply APY
-;;   borrow-apy:    uint     -annualized borrow APY
-;;   e-mode-type:   (buff 1) -e-mode category for this asset
+;;   reserve-state: {tuple}  - full reserve state from pool-reserve-data
+;;   supply-apy:    uint     - annualized supply APY
+;;   borrow-apy:    uint     - annualized borrow APY
+;;   e-mode-type:   (buff 1) - e-mode category for this asset
 ;; }
 
 ;; -------------------------------------------------------------------
-;; V1 per-asset helpers
+;; V1 per-asset helpers (on-chain order from pool-reserve-data.get-assets-read)
 ;; -------------------------------------------------------------------
 
-(define-read-only (read-v1-wstx)
-  {
-    reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx),
-    supply-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-supply-v2-1-3 get-asset-supply-apy 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx),
-    borrow-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-v2-1-4 get-asset-borrow-apy 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx),
-    e-mode-type:   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0 get-asset-e-mode-type 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx),
-  }
-)
-
+;; 0: stSTX
 (define-read-only (read-v1-ststx)
   {
     reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token),
@@ -44,15 +41,7 @@
   }
 )
 
-(define-read-only (read-v1-sbtc)
-  {
-    reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token),
-    supply-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-supply-v2-1-3 get-asset-supply-apy 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token),
-    borrow-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-v2-1-4 get-asset-borrow-apy 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token),
-    e-mode-type:   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0 get-asset-e-mode-type 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token),
-  }
-)
-
+;; 1: aeUSDC
 (define-read-only (read-v1-aeusdc)
   {
     reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc),
@@ -62,6 +51,17 @@
   }
 )
 
+;; 2: wSTX
+(define-read-only (read-v1-wstx)
+  {
+    reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx),
+    supply-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-supply-v2-1-3 get-asset-supply-apy 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx),
+    borrow-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-v2-1-4 get-asset-borrow-apy 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx),
+    e-mode-type:   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0 get-asset-e-mode-type 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx),
+  }
+)
+
+;; 3: DIKO
 (define-read-only (read-v1-diko)
   {
     reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.arkadiko-token),
@@ -71,6 +71,7 @@
   }
 )
 
+;; 4: USDH
 (define-read-only (read-v1-usdh)
   {
     reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1),
@@ -80,6 +81,7 @@
   }
 )
 
+;; 5: sUSDT
 (define-read-only (read-v1-susdt)
   {
     reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt),
@@ -89,21 +91,43 @@
   }
 )
 
-(define-read-only (read-v1-ststxbtc)
+;; 6: USDA (NEW in v3)
+(define-read-only (read-v1-usda)
   {
-    reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2),
-    supply-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-supply-v2-1-3 get-asset-supply-apy 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2),
-    borrow-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-v2-1-4 get-asset-borrow-apy 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2),
-    e-mode-type:   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0 get-asset-e-mode-type 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2),
+    reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token),
+    supply-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-supply-v2-1-3 get-asset-supply-apy 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token),
+    borrow-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-v2-1-4 get-asset-borrow-apy 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token),
+    e-mode-type:   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0 get-asset-e-mode-type 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token),
   }
 )
 
+;; 7: sBTC
+(define-read-only (read-v1-sbtc)
+  {
+    reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token),
+    supply-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-supply-v2-1-3 get-asset-supply-apy 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token),
+    borrow-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-v2-1-4 get-asset-borrow-apy 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token),
+    e-mode-type:   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0 get-asset-e-mode-type 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token),
+  }
+)
+
+;; 8: ALEX
 (define-read-only (read-v1-alex)
   {
     reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex),
     supply-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-supply-v2-1-3 get-asset-supply-apy 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex),
     borrow-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-v2-1-4 get-asset-borrow-apy 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex),
     e-mode-type:   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0 get-asset-e-mode-type 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex),
+  }
+)
+
+;; 9: stSTXbtc-v2
+(define-read-only (read-v1-ststxbtc)
+  {
+    reserve-state: (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-reserve-data get-reserve-state-read 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2),
+    supply-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-supply-v2-1-3 get-asset-supply-apy 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2),
+    borrow-apy:    (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-read-v2-1-4 get-asset-borrow-apy 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2),
+    e-mode-type:   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0 get-asset-e-mode-type 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2),
   }
 )
 
@@ -121,49 +145,66 @@
 
 ;; -------------------------------------------------------------------
 ;; V1 z-token total supply helpers (for actual deposit amounts)
+;; All 10 assets - on-chain order
 ;; -------------------------------------------------------------------
 
-(define-read-only (read-v1-ztoken-wstx)
-  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zwstx-v2-0 get-total-supply)
-)
+;; 0: stSTX
 (define-read-only (read-v1-ztoken-ststx)
   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zststx-v2-0 get-total-supply)
 )
-;; sBTC has no z-token
+;; 1: aeUSDC
 (define-read-only (read-v1-ztoken-aeusdc)
   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zaeusdc-v2-0 get-total-supply)
 )
+;; 2: wSTX
+(define-read-only (read-v1-ztoken-wstx)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zwstx-v2-0 get-total-supply)
+)
+;; 3: DIKO
 (define-read-only (read-v1-ztoken-diko)
   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zdiko-v2-0 get-total-supply)
 )
+;; 4: USDH
 (define-read-only (read-v1-ztoken-usdh)
   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zusdh-v2-0 get-total-supply)
 )
+;; 5: sUSDT (FIXED: was zsusdt-v1-2, now zsusdt-v2-0)
 (define-read-only (read-v1-ztoken-susdt)
-  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zsusdt-v1-2 get-total-supply)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zsusdt-v2-0 get-total-supply)
 )
+;; 6: USDA (NEW in v3)
+(define-read-only (read-v1-ztoken-usda)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zusda-v2-0 get-total-supply)
+)
+;; 7: sBTC (NEW in v3 - was incorrectly missing)
+(define-read-only (read-v1-ztoken-sbtc)
+  (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zsbtc-v2-0 get-total-supply)
+)
+;; 8: ALEX
 (define-read-only (read-v1-ztoken-alex)
   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zalex-v2-0 get-total-supply)
 )
+;; 9: stSTXbtc-v2
 (define-read-only (read-v1-ztoken-ststxbtc)
   (contract-call? 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zststxbtc-v2_v2-0 get-total-supply)
 )
 
 ;; -------------------------------------------------------------------
-;; V1 main aggregator: returns all 9 assets + e-mode configs in one call
+;; V1 main aggregator: returns all 10 assets + e-mode configs in one call
 ;; -------------------------------------------------------------------
 
 (define-read-only (get-v1-reserve-data)
   (ok {
-    wstx:     (read-v1-wstx),
     ststx:    (read-v1-ststx),
-    sbtc:     (read-v1-sbtc),
     aeusdc:   (read-v1-aeusdc),
+    wstx:     (read-v1-wstx),
     diko:     (read-v1-diko),
     usdh:     (read-v1-usdh),
     susdt:    (read-v1-susdt),
-    ststxbtc: (read-v1-ststxbtc),
+    usda:     (read-v1-usda),
+    sbtc:     (read-v1-sbtc),
     alex:     (read-v1-alex),
+    ststxbtc: (read-v1-ststxbtc),
     ;; E-mode configs
     emode-0:  (read-v1-emode-config-0),
     emode-1:  (read-v1-emode-config-1),
@@ -173,22 +214,22 @@
 )
 
 ;; ===================================================================
-;; V2 READER -6 vaults, hub-spoke architecture
+;; V2 READER - 6 vaults, hub-spoke architecture
 ;; ===================================================================
 ;;
 ;; Per-vault data tuple:
 ;; {
-;;   total-supply:   uint  -total z-token shares
-;;   total-assets:   uint  -total underlying assets in vault
-;;   debt:           uint  -total borrowed
-;;   available:      uint  -available to borrow
-;;   interest-rate:  uint  -current borrow interest rate
-;;   index:          uint  -borrow index
-;;   lindex:         uint  -liquidity index
-;;   cap-debt:       uint  -max borrow cap
-;;   cap-supply:     uint  -max supply cap
-;;   fee-reserve:    uint  -reserve fee (protocol take)
-;;   utilization:    uint  -current utilization ratio (BPS)
+;;   total-supply:   uint  - total z-token shares
+;;   total-assets:   uint  - total underlying assets in vault
+;;   debt:           uint  - total borrowed
+;;   available:      uint  - available to borrow
+;;   interest-rate:  uint  - current borrow interest rate
+;;   index:          uint  - borrow index
+;;   lindex:         uint  - liquidity index
+;;   cap-debt:       uint  - max borrow cap
+;;   cap-supply:     uint  - max supply cap
+;;   fee-reserve:    uint  - reserve fee (protocol take)
+;;   utilization:    uint  - current utilization ratio (BPS)
 ;; }
 
 ;; -------------------------------------------------------------------
@@ -316,23 +357,6 @@
 ;; ===================================================================
 ;; GRANITE READER - 2 isolated markets (Compound V3 style)
 ;; ===================================================================
-;;
-;; Per-market data tuple:
-;; {
-;;   lp-params:             { total-assets, total-shares }
-;;   debt-params:           { open-interest, total-debt-shares }
-;;   open-interest:         { lp-open-interest, protocol-open-interest, staked-open-interest }
-;;   reserve-balance:       uint
-;;   asset-cap:             uint
-;;   borrow-enabled:        bool
-;;   deposit-enabled:       bool
-;;   ir-params:             { base-ir, ir-slope-1, ir-slope-2, utilization-kink }
-;;   protocol-reserve-pct:  uint
-;; }
-
-;; -------------------------------------------------------------------
-;; Granite per-market helpers
-;; -------------------------------------------------------------------
 
 (define-read-only (read-granite-aeusdc)
   {
@@ -362,10 +386,6 @@
   }
 )
 
-;; -------------------------------------------------------------------
-;; Granite main aggregator: returns both markets in one call
-;; -------------------------------------------------------------------
-
 (define-read-only (get-granite-reserve-data)
   (ok {
     aeusdc: (read-granite-aeusdc),
@@ -376,8 +396,6 @@
 ;; -------------------------------------------------------------------
 ;; Granite collateral config helpers
 ;; -------------------------------------------------------------------
-;; Returns (optional (tuple (decimals uint) (liquidation-ltv uint)
-;;                          (liquidation-premium uint) (max-ltv uint)))
 
 (define-read-only (read-granite-aeusdc-collateral-sbtc)
   (contract-call? 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA.state-v1
@@ -392,8 +410,6 @@
 ;; ===================================================================
 ;; V2 EGROUP RESOLVE - LTV parameters from efficiency groups
 ;; ===================================================================
-;; resolve(mask) where mask = 2^zTokenId, zTokenId = underlyingId + 1
-;; Returns (ok tuple) with LTV-BORROW, LTV-LIQ-PARTIAL as (buff 2) BPS
 
 (define-read-only (read-v2-egroup-stx)
   (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-egroup resolve u2)
