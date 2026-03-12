@@ -11,6 +11,10 @@ import {
   VAULT_UNDERLYING,
 } from '@delta-stacks/calldata-sdk-stacks'
 
+import graniteLogo from '../assets/granite.png'
+import zestLogo from '../assets/zest.png'
+import { getTokenIcon } from '../utils/tokenIcons'
+
 // ---------------------------------------------------------------------------
 // Vault operations
 // ---------------------------------------------------------------------------
@@ -61,24 +65,40 @@ export function VaultTab() {
   return (
     <div className="space-y-4">
       {/* Vault overview header */}
-      <div className="bg-surface border border-border rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-medium">Delta USDCx Vault (dUSDCx)</h2>
+      <div className="glass-card rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <img
+              src={getTokenIcon('USDCx')}
+              alt="USDCx"
+              className="w-8 h-8 rounded-full bg-surface-alt ring-2 ring-border-subtle"
+              onError={(e) => {
+                ;(e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=USDCx&background=2e2e4a&color=eaeaf4&size=36&bold=true`
+              }}
+            />
+            <div>
+              <h2 className="text-sm font-semibold">1delta USDCx Vault</h2>
+              <span className="text-[11px] text-text-dim">dUSDCx</span>
+            </div>
+          </div>
           {!loading && vault.blendedApr > 0 && (
-            <span className="text-sm font-mono text-positive">
-              {pct(vault.blendedApr)} APR
-            </span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-positive-dim">
+              <span className="text-sm font-mono text-positive font-semibold">
+                {pct(vault.blendedApr)} APR
+              </span>
+            </div>
           )}
         </div>
 
         {/* Key metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <InfoItem label="TVL" value={loading ? '...' : `${micro(vault.liveTotal)} USDCx`} />
-          <InfoItem label="Share price" value={loading ? '...' : `${vault.sharePrice.toFixed(6)}`} />
-          <InfoItem label="Total shares" value={loading ? '...' : micro(vault.totalSupply)} />
-          <InfoItem
-            label="Unrealized yield"
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.liveTotal)} USDCx`} />
+          <MetricCard label="Share Price" value={loading ? '...' : vault.sharePrice.toFixed(6)} />
+          <MetricCard label="Total Shares" value={loading ? '...' : micro(vault.totalSupply)} />
+          <MetricCard
+            label="Unrealized Yield"
             value={loading ? '...' : `${micro(vault.unrealizedYield)} USDCx`}
+            positive={vault.unrealizedYield > 0n}
           />
         </div>
       </div>
@@ -101,6 +121,19 @@ export function VaultTab() {
 }
 
 // ---------------------------------------------------------------------------
+// Metric card
+// ---------------------------------------------------------------------------
+
+function MetricCard({ label, value, positive }: { label: string; value: string; positive?: boolean }) {
+  return (
+    <div className="bg-surface-alt/60 rounded-xl p-3 border border-border-subtle">
+      <div className="text-[10px] text-text-dim uppercase tracking-wider font-semibold mb-1">{label}</div>
+      <div className={`font-mono text-sm ${positive ? 'text-positive' : 'text-text'}`}>{value}</div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Allocation breakdown bar + table
 // ---------------------------------------------------------------------------
 
@@ -115,31 +148,31 @@ function AllocationBar({ vault }: { vault: VaultState }) {
   const zestPct = total > 0n ? Number(zest * 10000n / total) / 100 : 0
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
+    <div className="glass-card rounded-xl p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-medium">Allocation</h3>
-        <span className="text-xs text-text-muted font-mono">{micro(total)} USDCx total</span>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-text-dim">Allocation</h3>
+        <span className="text-xs text-text-dim font-mono">{micro(total)} USDCx total</span>
       </div>
 
       {/* Stacked bar */}
-      <div className="h-3 rounded-full overflow-hidden flex bg-surface-alt">
+      <div className="h-3 rounded-full overflow-hidden flex bg-surface-alt border border-border-subtle">
         {granitePct > 0 && (
           <div
-            className="h-full bg-blue-500 transition-all"
+            className="h-full bg-gradient-to-r from-accent-blue to-accent-blue/80 transition-all duration-500"
             style={{ width: `${granitePct}%` }}
             title={`Granite: ${pct(granitePct)}`}
           />
         )}
         {zestPct > 0 && (
           <div
-            className="h-full bg-purple-500 transition-all"
+            className="h-full bg-gradient-to-r from-accent-purple to-accent-purple/80 transition-all duration-500"
             style={{ width: `${zestPct}%` }}
             title={`Zest V2: ${pct(zestPct)}`}
           />
         )}
         {idlePct > 0 && (
           <div
-            className="h-full bg-gray-500 transition-all"
+            className="h-full bg-text-dim/30 transition-all duration-500"
             style={{ width: `${idlePct}%` }}
             title={`Idle: ${pct(idlePct)}`}
           />
@@ -147,58 +180,69 @@ function AllocationBar({ vault }: { vault: VaultState }) {
       </div>
 
       {/* Legend + details */}
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <div className="space-y-1">
+      <div className="grid grid-cols-3 gap-3 text-xs">
+        <AllocationLegendItem
+          icon={graniteLogo}
+          label="Granite"
+          amount={micro(granite)}
+          percentage={pct(granitePct)}
+          apr={vault.graniteApr > 0 ? pct(vault.graniteApr) : null}
+          color="accent-blue"
+        />
+        <AllocationLegendItem
+          icon={zestLogo}
+          label="Zest V2"
+          amount={micro(zest)}
+          percentage={pct(zestPct)}
+          apr={vault.zestApr > 0 ? pct(vault.zestApr) : null}
+          color="accent-purple"
+        />
+        <div className="space-y-1.5">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-            <span className="text-text-muted">Granite</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-text-dim/30 inline-block" />
+            <span className="text-text-dim font-medium">Idle</span>
           </div>
-          <div className="font-mono pl-3.5">{micro(granite)}</div>
-          <div className="text-text-muted pl-3.5">{pct(granitePct)}</div>
-          {vault.graniteApr > 0 && (
-            <div className="text-positive pl-3.5 font-mono">{pct(vault.graniteApr)} APR</div>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
-            <span className="text-text-muted">Zest V2</span>
-          </div>
-          <div className="font-mono pl-3.5">{micro(zest)}</div>
-          <div className="text-text-muted pl-3.5">{pct(zestPct)}</div>
-          {vault.zestApr > 0 && (
-            <div className="text-positive pl-3.5 font-mono">{pct(vault.zestApr)} APR</div>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-gray-500 inline-block" />
-            <span className="text-text-muted">Idle</span>
-          </div>
-          <div className="font-mono pl-3.5">{micro(idle)}</div>
-          <div className="text-text-muted pl-3.5">{pct(idlePct)}</div>
-          <div className="text-text-muted pl-3.5 font-mono">0.00% APR</div>
+          <div className="font-mono pl-4 text-text-muted">{micro(idle)}</div>
+          <div className="text-text-dim pl-4">{pct(idlePct)}</div>
+          <div className="text-text-dim pl-4 font-mono">0.00% APR</div>
         </div>
       </div>
 
       {/* Live vs bookkeeping */}
       {vault.unrealizedYield > 0n && (
-        <div className="text-xs text-text-muted bg-surface-alt rounded p-2 flex justify-between">
+        <div className="text-xs text-text-dim bg-surface-alt/60 rounded-xl p-3 flex justify-between border border-border-subtle">
           <span>Live total (incl. unrealized)</span>
-          <span className="font-mono">{micro(vault.liveTotal)} USDCx</span>
+          <span className="font-mono text-text-muted">{micro(vault.liveTotal)} USDCx</span>
         </div>
       )}
     </div>
   )
 }
 
-function InfoItem({ label, value }: { label: string; value: string }) {
+function AllocationLegendItem({
+  icon,
+  label,
+  amount,
+  percentage,
+  apr,
+  color,
+}: {
+  icon: string
+  label: string
+  amount: string
+  percentage: string
+  apr: string | null
+  color: string
+}) {
   return (
-    <div>
-      <div className="text-text-muted">{label}</div>
-      <div className="font-mono text-text">{value}</div>
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        <img src={icon} alt={label} className="w-4 h-4 rounded-full" />
+        <span className={`text-${color} font-medium`}>{label}</span>
+      </div>
+      <div className="font-mono pl-5.5 text-text-muted">{amount}</div>
+      <div className="text-text-dim pl-5.5">{percentage}</div>
+      {apr && <div className="text-positive pl-5.5 font-mono">{apr} APR</div>}
     </div>
   )
 }
@@ -282,7 +326,7 @@ function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm:
   const amtExceedsMax = parseFloat(amount) > maxAmount
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+    <div className="glass-card rounded-xl p-5 space-y-4">
       <Tabs
         tabs={[...USER_OPS]}
         active={opTab}
@@ -292,14 +336,20 @@ function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm:
 
       {/* Position context */}
       {connected && (
-        <div className="bg-surface-alt rounded p-2 space-y-1 text-xs text-text-muted">
-          <div className="flex justify-between">
-            <span>USDCx wallet</span>
-            <span className="font-mono">{formatAmount(walletBalance)}</span>
+        <div className="bg-surface-alt/60 rounded-xl p-3 space-y-2 text-xs border border-border-subtle">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <img src={getTokenIcon('USDCx')} alt="USDCx" className="w-4 h-4 rounded-full" />
+              <span className="text-text-dim">USDCx wallet</span>
+            </div>
+            <span className="font-mono text-text-muted">{formatAmount(walletBalance)}</span>
           </div>
-          <div className="flex justify-between">
-            <span>dUSDCx shares</span>
-            <span className="font-mono">{formatAmount(shareBalance)}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded-full bg-gradient-to-br from-accent-blue to-accent-purple flex items-center justify-center text-[8px] font-bold text-white">d</span>
+              <span className="text-text-dim">dUSDCx shares</span>
+            </div>
+            <span className="font-mono text-text-muted">{formatAmount(shareBalance)}</span>
           </div>
         </div>
       )}
@@ -367,7 +417,7 @@ function AllocatorPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
   }, [tx.status, tx.txId, pending])
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+    <div className="glass-card rounded-xl p-5 space-y-4">
       <Tabs
         tabs={[...ALLOCATOR_OPS]}
         active={opTab}
@@ -375,8 +425,11 @@ function AllocatorPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
         size="sm"
       />
 
-      <div className="text-xs text-text-muted bg-surface-alt rounded p-2">
-        Allocator-only operations. Only the address set via <span className="font-mono">set-vault-allocator</span> can execute these.
+      <div className="text-xs text-text-dim bg-surface-alt/60 rounded-xl p-3 flex items-center gap-2 border border-border-subtle">
+        <svg className="w-3.5 h-3.5 shrink-0 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Allocator-only operations. Only the address set via <span className="font-mono text-text-muted">set-vault-allocator</span> can execute these.
       </div>
 
       <AmountInput
@@ -437,7 +490,7 @@ function OwnerPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
   }, [tx.status, tx.txId, pending])
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+    <div className="glass-card rounded-xl p-5 space-y-4">
       <Tabs
         tabs={[...OWNER_OPS]}
         active={opTab}
@@ -445,13 +498,16 @@ function OwnerPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
         size="sm"
       />
 
-      <div className="text-xs text-text-muted bg-surface-alt rounded p-2">
+      <div className="text-xs text-text-dim bg-surface-alt/60 rounded-xl p-3 flex items-center gap-2 border border-border-subtle">
+        <svg className="w-3.5 h-3.5 shrink-0 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
         Owner-only operations. Only the vault owner can execute these.
       </div>
 
       {/* Principal input */}
-      <div className="space-y-1">
-        <label className="text-xs text-text-muted">
+      <div className="space-y-1.5">
+        <label className="text-xs text-text-muted font-medium">
           {op === 'Set Allocator' ? 'New allocator principal' : 'Adapter principal (blank for default)'}
         </label>
         <input
@@ -459,7 +515,7 @@ function OwnerPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
           placeholder={op === 'Set Allocator' ? 'SP...' : VAULT_CONTRACTS.adapterGranite}
           value={principal}
           onChange={(e) => { setPrincipal(e.target.value); if (tx.status !== 'idle') tx.reset() }}
-          className="w-full bg-surface-alt border border-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+          className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
         />
       </div>
 
@@ -501,10 +557,10 @@ function AmountInput({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs text-text-muted">{label}</label>
+        <label className="text-xs text-text-muted font-medium">{label}</label>
         {maxAmount != null && maxAmount > 0 && (
-          <span className="text-xs text-text-muted">
-            Max: <span className="font-mono">{formatAmount(maxAmount)}</span>
+          <span className="text-[11px] text-text-dim">
+            Max: <span className="font-mono text-text-muted">{formatAmount(maxAmount)}</span>
           </span>
         )}
       </div>
@@ -515,8 +571,8 @@ function AmountInput({
         placeholder="0.00"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        className={`w-full bg-surface-alt border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary ${
-          exceedsMax ? 'border-negative' : 'border-border'
+        className={`w-full bg-surface-alt/80 border rounded-xl px-4 py-3 text-sm font-mono focus:outline-none transition-all duration-200 ${
+          exceedsMax ? 'border-negative' : 'border-border-subtle focus:border-primary'
         }`}
       />
       {pctButtons && maxAmount != null && maxAmount > 0 && onPercent && (
@@ -525,7 +581,7 @@ function AmountInput({
             <button
               key={pct}
               onClick={() => onPercent(pct)}
-              className="flex-1 py-1 text-xs rounded bg-surface-alt hover:bg-border text-text-muted hover:text-text transition-colors font-mono"
+              className="flex-1 py-1.5 text-xs rounded-lg bg-surface-alt hover:bg-surface-hover text-text-muted hover:text-text transition-all duration-200 font-mono border border-transparent hover:border-border-subtle"
             >
               {pct}%
             </button>
@@ -533,7 +589,12 @@ function AmountInput({
         </div>
       )}
       {exceedsMax && (
-        <div className="text-xs text-negative">Exceeds available balance</div>
+        <div className="text-xs text-negative flex items-center gap-1.5">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+          </svg>
+          Exceeds available balance
+        </div>
       )}
     </div>
   )
@@ -558,7 +619,7 @@ function SubmitButton({
     return (
       <button
         onClick={connect}
-        className="w-full py-2 text-sm rounded-lg bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
+        className="w-full py-3 text-sm rounded-xl bg-gradient-to-r from-primary to-primary-hover text-white font-medium transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-px active:translate-y-0"
       >
         Connect Wallet
       </button>
@@ -568,7 +629,7 @@ function SubmitButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-full py-2 text-sm rounded-lg bg-primary hover:bg-primary-hover text-white font-medium transition-colors disabled:opacity-50"
+      className="w-full py-3 text-sm rounded-xl bg-gradient-to-r from-primary to-primary-hover text-white font-medium transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-px active:translate-y-0 disabled:opacity-40 disabled:hover:shadow-none disabled:hover:translate-y-0 disabled:cursor-not-allowed"
     >
       {tx.status === 'building'
         ? 'Preparing...'
@@ -583,20 +644,23 @@ function TxStatus({ tx }: { tx: { status: string; txId: string | null; error: st
   return (
     <>
       {tx.status === 'submitted' && tx.txId && (
-        <div className="text-xs text-positive bg-surface-alt rounded p-2">
+        <div className="text-xs text-positive bg-positive-dim rounded-xl p-3 flex items-center gap-2">
+          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
           Submitted!{' '}
           <a
             href={`https://explorer.hiro.so/txid/${tx.txId}?chain=mainnet`}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline"
+            className="underline hover:text-positive"
           >
             View on explorer
           </a>
         </div>
       )}
       {tx.status === 'error' && tx.error && (
-        <div className="text-xs text-negative bg-surface-alt rounded p-2">{tx.error}</div>
+        <div className="text-xs text-negative bg-negative-dim rounded-xl p-3">{tx.error}</div>
       )}
     </>
   )

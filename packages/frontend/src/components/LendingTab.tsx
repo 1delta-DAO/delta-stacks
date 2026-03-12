@@ -13,6 +13,10 @@ import {
 } from '@delta-stacks/calldata-sdk-stacks'
 import type { AssetOracleLp } from '@delta-stacks/calldata-sdk-stacks'
 
+import graniteLogo from '../assets/granite.png'
+import zestLogo from '../assets/zest.png'
+import { getTokenIcon } from '../utils/tokenIcons'
+
 const LENDERS = ['All', 'Zest V1', 'Zest V2', 'Granite aeUSDC', 'Granite USDCx']
 
 /** Lender key used internally */
@@ -221,6 +225,13 @@ function formatUSD(n: number | null): string | null {
   return `$${n.toFixed(2)}`
 }
 
+/** Get the lender icon for a given protocol name */
+function getLenderIcon(protocol: string): string | null {
+  if (protocol.startsWith('Granite')) return graniteLogo
+  if (protocol.startsWith('Zest')) return zestLogo
+  return null
+}
+
 function MarketsTable({
   markets,
   selected,
@@ -236,46 +247,72 @@ function MarketsTable({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-text-muted text-xs border-b border-border">
-            <th className="text-left py-3 px-4">Market</th>
-            <th className="text-left py-3 px-4">Protocol</th>
-            <th className="text-right py-3 px-4">Deposits</th>
-            <th className="text-right py-3 px-4">Borrows</th>
-            <th className="text-right py-3 px-4">Supply APR</th>
-            <th className="text-right py-3 px-4">Borrow APR</th>
-            <th className="text-right py-3 px-4">LTV</th>
+          <tr className="text-text-dim text-[11px] uppercase tracking-wider">
+            <th className="text-left py-3 px-4 font-semibold">Market</th>
+            <th className="text-left py-3 px-4 font-semibold">Protocol</th>
+            <th className="text-right py-3 px-4 font-semibold">Deposits</th>
+            <th className="text-right py-3 px-4 font-semibold">Borrows</th>
+            <th className="text-right py-3 px-4 font-semibold">Supply APR</th>
+            <th className="text-right py-3 px-4 font-semibold">Borrow APR</th>
+            <th className="text-right py-3 px-4 font-semibold">LTV</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-border">
-          {markets.map((m) => (
-            <tr
-              key={m.marketUid}
-              onClick={() => onSelect(m)}
-              className={`cursor-pointer transition-colors ${
-                selected === m.marketUid
-                  ? 'bg-surface-alt border-l-2 border-l-primary'
-                  : 'hover:bg-surface-alt'
-              }`}
-            >
-              <td className="py-3 px-4 font-medium">{m.symbol}</td>
-              <td className="py-3 px-4 text-text-muted text-xs">{m.protocol}</td>
-              <td className="py-3 px-4 text-right font-mono">
-                {formatNumber(m.totalDeposits)}
-                {formatUSD(m.totalDepositsUSD) && (
-                  <div className="text-xs text-text-muted">{formatUSD(m.totalDepositsUSD)}</div>
-                )}
-              </td>
-              <td className="py-3 px-4 text-right font-mono">
-                {formatNumber(m.totalBorrows)}
-                {formatUSD(m.totalBorrowsUSD) && (
-                  <div className="text-xs text-text-muted">{formatUSD(m.totalBorrowsUSD)}</div>
-                )}
-              </td>
-              <td className="py-3 px-4 text-right text-positive">{formatRate(m.supplyRate)}</td>
-              <td className="py-3 px-4 text-right text-negative">{formatRate(m.borrowRate)}</td>
-              <td className="py-3 px-4 text-right">{formatRate(m.baseLtv)}</td>
-            </tr>
-          ))}
+        <tbody>
+          {markets.map((m, i) => {
+            const icon = getLenderIcon(m.protocol)
+            return (
+              <tr
+                key={m.marketUid}
+                onClick={() => onSelect(m)}
+                className={`cursor-pointer table-row-hover transition-all duration-150 ${
+                  selected === m.marketUid
+                    ? 'bg-primary/8 border-l-2 border-l-primary'
+                    : i % 2 === 0 ? 'bg-transparent' : 'bg-surface-alt/30'
+                }`}
+              >
+                <td className="py-3.5 px-4">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={getTokenIcon(m.symbol)}
+                      alt={m.symbol}
+                      className="w-5 h-5 rounded-full bg-surface-alt ring-1 ring-border-subtle"
+                      onError={(e) => {
+                        ;(e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${m.symbol}&background=2e2e4a&color=eaeaf4&size=36&bold=true`
+                      }}
+                    />
+                    <span className="font-semibold text-text">{m.symbol}</span>
+                  </div>
+                </td>
+                <td className="py-3.5 px-4">
+                  <div className="flex items-center gap-2">
+                    {icon && (
+                      <img src={icon} alt={m.protocol} className="w-4 h-4 rounded-full" />
+                    )}
+                    <span className="text-text-muted text-xs">{m.protocol}</span>
+                  </div>
+                </td>
+                <td className="py-3.5 px-4 text-right font-mono text-text-muted">
+                  {formatNumber(m.totalDeposits)}
+                  {formatUSD(m.totalDepositsUSD) && (
+                    <div className="text-[10px] text-text-dim">{formatUSD(m.totalDepositsUSD)}</div>
+                  )}
+                </td>
+                <td className="py-3.5 px-4 text-right font-mono text-text-muted">
+                  {formatNumber(m.totalBorrows)}
+                  {formatUSD(m.totalBorrowsUSD) && (
+                    <div className="text-[10px] text-text-dim">{formatUSD(m.totalBorrowsUSD)}</div>
+                  )}
+                </td>
+                <td className="py-3.5 px-4 text-right">
+                  <span className="text-positive font-mono">{formatRate(m.supplyRate)}</span>
+                </td>
+                <td className="py-3.5 px-4 text-right">
+                  <span className="text-negative font-mono">{formatRate(m.borrowRate)}</span>
+                </td>
+                <td className="py-3.5 px-4 text-right font-mono text-text-muted">{formatRate(m.baseLtv)}</td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -284,15 +321,55 @@ function MarketsTable({
 
 function EmptyState() {
   return (
-    <div className="text-center py-12 text-text-muted text-sm">
-      No market data available
+    <div className="flex flex-col items-center justify-center py-16 text-text-dim">
+      <svg className="w-10 h-10 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+      </svg>
+      <span className="text-sm">No market data available</span>
     </div>
   )
 }
 
 function LoadingState() {
   return (
-    <div className="text-center py-12 text-text-muted text-sm">Loading...</div>
+    <div className="flex items-center justify-center py-16 gap-3 text-text-muted">
+      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+      </svg>
+      <span className="text-sm">Loading markets...</span>
+    </div>
+  )
+}
+
+/** Lender filter buttons with icons */
+function LenderFilter({
+  active,
+  onChange,
+}: {
+  active: number
+  onChange: (i: number) => void
+}) {
+  return (
+    <div className="flex gap-1.5 flex-wrap">
+      {LENDERS.map((lender, i) => {
+        const icon = i === 0 ? null : getLenderIcon(lender)
+        return (
+          <button
+            key={lender}
+            onClick={() => onChange(i)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all duration-200 ${
+              i === active
+                ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                : 'bg-surface-alt text-text-muted hover:text-text hover:bg-surface-hover border border-border-subtle'
+            }`}
+          >
+            {icon && <img src={icon} alt={lender} className="w-3.5 h-3.5 rounded-full" />}
+            {lender}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -305,7 +382,7 @@ export function LendingTab() {
 
   if (error && !data.v1 && !data.v2 && !data.granite) {
     return (
-      <div className="bg-surface border border-border rounded-lg p-6 text-center">
+      <div className="glass-card rounded-xl p-8 text-center">
         <p className="text-text-muted text-sm">{error}</p>
       </div>
     )
@@ -334,11 +411,11 @@ export function LendingTab() {
         />
       )}
 
-      <Tabs tabs={LENDERS} active={lenderTab} onChange={setLenderTab} size="sm" />
+      <LenderFilter active={lenderTab} onChange={setLenderTab} />
 
       <div className={`flex gap-4 ${selectedMarket ? '' : ''}`}>
         {/* Markets table */}
-        <div className={`bg-surface rounded-lg border border-border ${selectedMarket ? 'flex-1 min-w-0' : 'w-full'}`}>
+        <div className={`glass-card rounded-xl overflow-hidden ${selectedMarket ? 'flex-1 min-w-0' : 'w-full'}`}>
           {hasAnyData ? (
             <MarketsTable
               markets={filteredMarkets}

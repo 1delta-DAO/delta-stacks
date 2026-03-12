@@ -27,22 +27,31 @@ function TokenRow({
   const displayBalance =
     !connected ? '--' : balance === null ? '--' : formatBalance(balance, token.decimals)
 
+  const hasBalance = connected && balance !== null && balance > 0n
+
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-surface-alt rounded-lg transition-colors">
-      <img
-        src={token.logoURI}
-        alt={token.symbol}
-        className="w-8 h-8 rounded-full bg-surface-alt"
-        onError={(e) => {
-          ;(e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${token.symbol}&background=363649&color=e2e2f0&size=32`
-        }}
-      />
+    <div className="flex items-center gap-3 px-4 py-3.5 table-row-hover rounded-lg group">
+      <div className="relative">
+        <img
+          src={token.logoURI}
+          alt={token.symbol}
+          className="w-9 h-9 rounded-full bg-surface-alt ring-2 ring-border-subtle group-hover:ring-border transition-all duration-200"
+          onError={(e) => {
+            ;(e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${token.symbol}&background=2e2e4a&color=eaeaf4&size=36&bold=true`
+          }}
+        />
+        {hasBalance && (
+          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-positive border-2 border-surface" />
+        )}
+      </div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-sm">{token.symbol}</div>
-        <div className="text-xs text-text-muted truncate">{token.name}</div>
+        <div className="font-semibold text-sm">{token.symbol}</div>
+        <div className="text-xs text-text-dim truncate">{token.name}</div>
       </div>
       <div className="text-right">
-        <div className="text-sm font-mono">{displayBalance}</div>
+        <div className={`text-sm font-mono ${hasBalance ? 'text-text' : 'text-text-muted'}`}>
+          {displayBalance}
+        </div>
       </div>
     </div>
   )
@@ -64,7 +73,17 @@ export function BalancesTab() {
   const { connected } = useWallet()
 
   if (tokensLoading) {
-    return <div className="text-center py-12 text-text-muted">Loading token list...</div>
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="flex items-center gap-3 text-text-muted">
+          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span className="text-sm">Loading token list...</span>
+        </div>
+      </div>
+    )
   }
 
   /** Look up a fungible token balance by its contract principal */
@@ -99,20 +118,28 @@ export function BalancesTab() {
     : otherTokens.slice(0, 20) // show first 20 when disconnected
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {!connected && (
-        <div className="bg-surface border border-border rounded-lg p-4 text-center text-text-muted text-sm">
-          Connect your wallet to see balances
+        <div className="glass-card rounded-xl p-5 text-center">
+          <p className="text-text-muted text-sm">Connect your wallet to see balances</p>
         </div>
       )}
 
       {balancesLoading && connected && (
-        <div className="text-center py-2 text-text-muted text-xs">Fetching balances...</div>
+        <div className="flex items-center justify-center py-2 gap-2 text-text-muted">
+          <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span className="text-xs">Fetching balances...</span>
+        </div>
       )}
 
       <div>
-        <h3 className="text-sm font-medium text-text-muted mb-2 px-4">Main Tokens</h3>
-        <div className="bg-surface rounded-lg border border-border divide-y divide-border">
+        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-2 px-4">
+          Main Tokens
+        </h3>
+        <div className="glass-card rounded-xl overflow-hidden divide-y divide-border-subtle">
           <TokenRow token={STX_TOKEN} balance={connected ? balances.stx : null} connected={connected} />
           {mainTokens.map((token) => (
             <TokenRow
@@ -127,10 +154,11 @@ export function BalancesTab() {
 
       {otherWithBalance.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-text-muted mb-2 px-4">
-            {connected ? 'Other Tokens with Balance' : 'All Tokens'} ({otherWithBalance.length})
+          <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-2 px-4">
+            {connected ? 'Other Tokens with Balance' : 'All Tokens'}{' '}
+            <span className="text-text-muted font-normal">({otherWithBalance.length})</span>
           </h3>
-          <div className="bg-surface rounded-lg border border-border divide-y divide-border max-h-96 overflow-y-auto">
+          <div className="glass-card rounded-xl overflow-hidden divide-y divide-border-subtle max-h-96 overflow-y-auto">
             {otherWithBalance.map((token) => (
               <TokenRow
                 key={token.address}

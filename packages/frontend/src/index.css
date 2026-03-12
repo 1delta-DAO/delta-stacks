@@ -1,18 +1,281 @@
 @import "tailwindcss";
+@plugin "daisyui";
+
+/* ------------------------------------------------------------------ */
+/* Custom DaisyUI themes                                               */
+/* Each theme sets our semantic color tokens so all components adapt.  */
+/* ------------------------------------------------------------------ */
+
+@plugin "daisyui/theme" {
+  name: "bitcoin";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+  --color-base-100: #0c0a08;
+  --color-base-200: #181310;
+  --color-base-300: #241e18;
+  --color-base-content: #f5e6d0;
+  --color-primary: #f7931a;
+  --color-primary-content: #0c0a08;
+  --color-secondary: #e8850f;
+  --color-secondary-content: #0c0a08;
+  --color-accent: #d4a04a;
+  --color-accent-content: #0c0a08;
+  --color-neutral: #2a2218;
+  --color-neutral-content: #f5e6d0;
+  --color-info: #d4a04a;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+}
+
+@plugin "daisyui/theme" {
+  name: "midnight";
+  color-scheme: dark;
+  --color-base-100: #0f0f1a;
+  --color-base-200: #1a1a2e;
+  --color-base-300: #22223a;
+  --color-base-content: #eaeaf4;
+  --color-primary: #6366f1;
+  --color-primary-content: #ffffff;
+  --color-secondary: #a78bfa;
+  --color-secondary-content: #ffffff;
+  --color-accent: #60a5fa;
+  --color-accent-content: #ffffff;
+  --color-neutral: #2e2e4a;
+  --color-neutral-content: #eaeaf4;
+  --color-info: #60a5fa;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+}
+
+@plugin "daisyui/theme" {
+  name: "light";
+  color-scheme: light;
+  --color-base-100: #f8f9fc;
+  --color-base-200: #eef0f5;
+  --color-base-300: #e2e5ec;
+  --color-base-content: #1a1a2e;
+  --color-primary: #6366f1;
+  --color-primary-content: #ffffff;
+  --color-secondary: #8b5cf6;
+  --color-secondary-content: #ffffff;
+  --color-accent: #3b82f6;
+  --color-accent-content: #ffffff;
+  --color-neutral: #d1d5de;
+  --color-neutral-content: #1a1a2e;
+  --color-info: #3b82f6;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
+
+@plugin "daisyui/theme" {
+  name: "forest";
+  color-scheme: dark;
+  --color-base-100: #0c1410;
+  --color-base-200: #142420;
+  --color-base-300: #1c3430;
+  --color-base-content: #d4e8e0;
+  --color-primary: #34d399;
+  --color-primary-content: #0c1410;
+  --color-secondary: #a78bfa;
+  --color-secondary-content: #ffffff;
+  --color-accent: #60a5fa;
+  --color-accent-content: #ffffff;
+  --color-neutral: #1c3430;
+  --color-neutral-content: #d4e8e0;
+  --color-info: #60a5fa;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+}
+
+@plugin "daisyui/theme" {
+  name: "sunset";
+  color-scheme: dark;
+  --color-base-100: #1a120e;
+  --color-base-200: #2a1e18;
+  --color-base-300: #3a2a22;
+  --color-base-content: #f0e0d4;
+  --color-primary: #f59e0b;
+  --color-primary-content: #1a120e;
+  --color-secondary: #ef4444;
+  --color-secondary-content: #ffffff;
+  --color-accent: #f97316;
+  --color-accent-content: #ffffff;
+  --color-neutral: #3a2a22;
+  --color-neutral-content: #f0e0d4;
+  --color-info: #60a5fa;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #ef4444;
+}
+
+@plugin "daisyui/theme" {
+  name: "ocean";
+  color-scheme: dark;
+  --color-base-100: #0a1628;
+  --color-base-200: #122240;
+  --color-base-300: #1a3050;
+  --color-base-content: #d0e0f4;
+  --color-primary: #3b82f6;
+  --color-primary-content: #ffffff;
+  --color-secondary: #06b6d4;
+  --color-secondary-content: #ffffff;
+  --color-accent: #8b5cf6;
+  --color-accent-content: #ffffff;
+  --color-neutral: #1a3050;
+  --color-neutral-content: #d0e0f4;
+  --color-info: #06b6d4;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+}
+
+/* ------------------------------------------------------------------ */
+/* Semantic color tokens — derived from DaisyUI theme variables        */
+/* These are what the components actually reference.                    */
+/* ------------------------------------------------------------------ */
 
 @theme {
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --color-surface: #1e1e2e;
-  --color-surface-alt: #262637;
-  --color-border: #363649;
-  --color-text: #e2e2f0;
-  --color-text-muted: #9393a8;
-  --color-positive: #22c55e;
-  --color-negative: #ef4444;
+  --color-surface: var(--color-base-200);
+  --color-surface-alt: var(--color-base-300);
+  --color-surface-hover: color-mix(in srgb, var(--color-base-300) 70%, var(--color-base-content) 10%);
+  --color-border: var(--color-neutral);
+  --color-border-subtle: color-mix(in srgb, var(--color-base-200) 60%, var(--color-neutral) 40%);
+  --color-text: var(--color-base-content);
+  --color-text-muted: color-mix(in srgb, var(--color-base-content) 55%, transparent);
+  --color-text-dim: color-mix(in srgb, var(--color-base-content) 35%, transparent);
+  --color-positive: var(--color-success);
+  --color-positive-dim: color-mix(in srgb, var(--color-success) 12%, transparent);
+  --color-negative: var(--color-error);
+  --color-negative-dim: color-mix(in srgb, var(--color-error) 12%, transparent);
+  --color-warning: var(--color-warning);
+  --color-warning-dim: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  --color-accent-blue: var(--color-accent);
+  --color-accent-purple: var(--color-secondary);
+  --color-primary: var(--color-primary);
+  --color-primary-hover: color-mix(in srgb, var(--color-primary) 85%, black);
+  --color-primary-glow: color-mix(in srgb, var(--color-primary) 15%, transparent);
 }
 
 body {
-  @apply bg-[#13131f] text-text min-h-screen;
+  background-color: var(--color-base-100);
+  color: var(--color-base-content);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
   font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+/* Bitcoin theme — warm radial glow + subtle grid */
+[data-theme="bitcoin"] body {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(247, 147, 26, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 100%, rgba(232, 133, 15, 0.04) 0%, transparent 50%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 59px,
+      rgba(247, 147, 26, 0.02) 59px,
+      rgba(247, 147, 26, 0.02) 60px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 59px,
+      rgba(247, 147, 26, 0.02) 59px,
+      rgba(247, 147, 26, 0.02) 60px
+    ),
+    #0c0a08;
+}
+
+/* Bitcoin glass cards get a warm tint */
+[data-theme="bitcoin"] .glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(24, 19, 16, 0.9),
+    rgba(36, 30, 24, 0.7)
+  );
+  border-color: rgba(247, 147, 26, 0.1);
+}
+
+/* Midnight theme — cool purple glow */
+[data-theme="midnight"] body {
+  background:
+    radial-gradient(ellipse 70% 50% at 30% -5%, rgba(99, 102, 241, 0.06) 0%, transparent 60%),
+    #0f0f1a;
+}
+
+/* Forest theme — green aurora */
+[data-theme="forest"] body {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(52, 211, 153, 0.05) 0%, transparent 60%),
+    #0c1410;
+}
+
+/* Sunset theme — warm horizon */
+[data-theme="sunset"] body {
+  background:
+    radial-gradient(ellipse 90% 40% at 50% 110%, rgba(245, 158, 11, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 20% -5%, rgba(239, 68, 68, 0.04) 0%, transparent 50%),
+    #1a120e;
+}
+
+/* Ocean theme — deep water gradient */
+[data-theme="ocean"] body {
+  background:
+    radial-gradient(ellipse 70% 50% at 70% -10%, rgba(59, 130, 246, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 10% 100%, rgba(6, 182, 212, 0.04) 0%, transparent 50%),
+    #0a1628;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-dim);
+}
+
+/* Number input spinners hidden */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Glass card utility — adapts to theme */
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-base-200) 80%, transparent),
+    color-mix(in srgb, var(--color-base-300) 60%, transparent)
+  );
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+}
+
+/* Subtle glow on focus */
+input:focus, select:focus {
+  box-shadow: 0 0 0 2px var(--color-primary-glow);
+}
+
+/* Table row hover */
+.table-row-hover {
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.table-row-hover:hover {
+  background-color: var(--color-surface-hover);
 }

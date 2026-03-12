@@ -6,11 +6,22 @@ import { ZestV1Lending, ZestV2Lending } from '@delta-stacks/calldata-sdk-stacks'
 import { useTransact } from '../hooks/useTransact'
 import { useWallet } from '../context/WalletContext'
 
+import graniteLogo from '../assets/granite.png'
+import zestLogo from '../assets/zest.png'
+import { getTokenIcon } from '../utils/tokenIcons'
+
 const LENDER_LABELS: Record<string, string> = {
   'zest-v1': 'Zest V1',
   'zest-v2': 'Zest V2',
   'granite-aeusdc': 'Granite aeUSDC',
   'granite-usdcx': 'Granite USDCx',
+}
+
+const LENDER_ICONS: Record<string, string> = {
+  'zest-v1': zestLogo,
+  'zest-v2': zestLogo,
+  'granite-aeusdc': graniteLogo,
+  'granite-usdcx': graniteLogo,
 }
 
 const EMODE_OPTIONS = [
@@ -61,14 +72,14 @@ function formatTokenAmount(n: number): string {
 
 function healthColor(h: number): string {
   if (h > 1.5) return 'text-positive'
-  if (h > 1.2) return 'text-yellow-400'
+  if (h > 1.2) return 'text-warning'
   return 'text-negative'
 }
 
 function healthBg(h: number): string {
-  if (h > 1.5) return 'bg-positive/10'
-  if (h > 1.2) return 'bg-yellow-400/10'
-  return 'bg-negative/10'
+  if (h > 1.5) return 'bg-positive-dim'
+  if (h > 1.2) return 'bg-warning-dim'
+  return 'bg-negative-dim'
 }
 
 function getSymbol(pos: LendingPosition, symbolMap: Record<string, string>): string {
@@ -97,13 +108,13 @@ function Toggle({
         e.stopPropagation()
         onChange(!enabled)
       }}
-      className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-all duration-200 ${
         loading ? 'opacity-50 cursor-wait' : 'cursor-pointer'
-      } ${enabled ? 'bg-positive' : 'bg-border'}`}
+      } ${enabled ? 'bg-positive shadow-sm shadow-positive/20' : 'bg-border'}`}
     >
       <span
-        className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${
-          enabled ? 'translate-x-3.5' : 'translate-x-0.5'
+        className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 shadow-sm ${
+          enabled ? 'translate-x-4.5' : 'translate-x-0.5'
         }`}
       />
     </button>
@@ -136,18 +147,28 @@ function PositionTile({
     <button
       type="button"
       onClick={onClick}
-      className={`text-left rounded-lg p-3 space-y-2 transition-colors ${
+      className={`text-left rounded-xl p-3.5 space-y-2.5 transition-all duration-200 border ${
         selected
-          ? 'bg-primary/10 ring-1 ring-primary'
-          : 'bg-surface-alt hover:bg-border/40 cursor-pointer'
+          ? 'bg-primary/8 border-primary/30 shadow-sm shadow-primary/10'
+          : 'bg-surface-alt/60 border-border-subtle hover:border-border hover:bg-surface-hover cursor-pointer'
       }`}
     >
       {/* Asset header */}
       <div className="flex items-center justify-between">
-        <span className="font-medium text-sm">{symbol}</span>
+        <div className="flex items-center gap-2">
+          <img
+            src={getTokenIcon(symbol)}
+            alt={symbol}
+            className="w-5 h-5 rounded-full bg-surface-alt ring-1 ring-border-subtle"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${symbol}&background=2e2e4a&color=eaeaf4&size=36&bold=true`
+            }}
+          />
+          <span className="font-semibold text-sm">{symbol}</span>
+        </div>
         {showCollateralToggle ? (
           <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-            <span className="text-[10px] text-text-muted">Coll</span>
+            <span className="text-[10px] text-text-dim">Coll</span>
             <Toggle
               enabled={pos.collateralEnabled}
               loading={collateralLoading}
@@ -155,24 +176,24 @@ function PositionTile({
             />
           </div>
         ) : pos.collateralEnabled ? (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-positive/10 text-positive">Collateral</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-positive-dim text-positive font-medium">Collateral</span>
         ) : null}
       </div>
 
       {/* Values */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
         {hasDeposit && (
           <>
-            <span className="text-text-muted">Deposited</span>
+            <span className="text-text-dim">Deposited</span>
             <span className="text-right font-mono">
               {formatTokenAmount(Number(pos.deposits))}
-              <span className="text-text-muted ml-1">{formatUSD(pos.depositsUSD)}</span>
+              <span className="text-text-dim ml-1">{formatUSD(pos.depositsUSD)}</span>
             </span>
           </>
         )}
         {hasDebt && (
           <>
-            <span className="text-text-muted">Debt</span>
+            <span className="text-text-dim">Debt</span>
             <span className="text-right font-mono text-negative">
               {formatTokenAmount(Number(pos.debt))}
               <span className="ml-1">{formatUSD(pos.debtUSD)}</span>
@@ -214,17 +235,19 @@ function LenderCard({
   if (positions.length === 0) return null
 
   const label = LENDER_LABELS[lender] ?? lender
+  const icon = LENDER_ICONS[lender]
   const { deposits, debt } = sumPositions(positions)
   const currentEMode = parseInt(pool.userConfig.selectedMode, 10)
 
   return (
-    <div className="bg-surface border border-border rounded-lg overflow-hidden">
+    <div className="glass-card rounded-xl overflow-hidden">
       {/* Lender header */}
-      <div className="flex items-center justify-between px-4 py-2.5">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium">{label}</span>
-          <div className="flex items-center gap-2 text-xs text-text-muted">
-            <span>Dep <span className="font-mono text-text">{formatUSD(deposits)}</span></span>
+          {icon && <img src={icon} alt={label} className="w-5 h-5 rounded-full" />}
+          <span className="text-sm font-semibold">{label}</span>
+          <div className="flex items-center gap-3 text-xs text-text-dim ml-1">
+            <span>Dep <span className="font-mono text-text-muted">{formatUSD(deposits)}</span></span>
             {debt > 0 && (
               <span>Debt <span className="font-mono text-negative">{formatUSD(debt)}</span></span>
             )}
@@ -240,7 +263,7 @@ function LenderCard({
                 e.stopPropagation()
                 onSetEMode(parseInt(e.target.value, 10))
               }}
-              className={`text-xs bg-surface-alt border border-border rounded px-1.5 py-0.5 text-text ${
+              className={`text-xs bg-surface-alt border border-border-subtle rounded-lg px-2 py-1 text-text focus:outline-none focus:border-primary transition-all duration-200 ${
                 eModeLoading ? 'opacity-50 cursor-wait' : 'cursor-pointer'
               }`}
             >
@@ -252,7 +275,7 @@ function LenderCard({
             </select>
           )}
           {pool.health !== null && (
-            <span className={`text-xs font-mono px-2 py-0.5 rounded ${healthColor(pool.health)} ${healthBg(pool.health)}`}>
+            <span className={`text-xs font-mono px-2.5 py-1 rounded-lg ${healthColor(pool.health)} ${healthBg(pool.health)}`}>
               HF {pool.health.toFixed(2)}
             </span>
           )}
@@ -260,7 +283,7 @@ function LenderCard({
       </div>
 
       {/* Position tiles */}
-      <div className="px-3 pb-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(positions.length, 3)}, minmax(0, 1fr))` }}>
+      <div className="p-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(positions.length, 3)}, minmax(0, 1fr))` }}>
         {positions.map((pos) => {
           const uid = pos.marketUid
           const market = uid ? marketLookup[uid] : undefined
@@ -390,7 +413,11 @@ export function UserPositions({
 
   if (loading && lenders.length === 0) {
     return (
-      <div className="bg-surface border border-border rounded-lg p-4">
+      <div className="glass-card rounded-xl p-4 flex items-center gap-3">
+        <svg className="animate-spin h-4 w-4 text-text-muted" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
         <span className="text-text-muted text-sm">Loading positions...</span>
       </div>
     )
@@ -410,25 +437,37 @@ export function UserPositions({
   return (
     <div className="space-y-3">
       {/* Global summary */}
-      <div className="bg-surface border border-border rounded-lg px-4 py-3 flex items-center gap-6">
+      <div className="glass-card rounded-xl px-5 py-4 flex items-center gap-8">
         <div className="flex flex-col">
-          <span className="text-text-muted text-[10px] uppercase tracking-wide">Net Value</span>
-          <span className="text-lg font-semibold font-mono">{formatUSD(netValue)}</span>
+          <span className="text-text-dim text-[10px] uppercase tracking-wider font-semibold">Net Value</span>
+          <span className="text-xl font-bold font-mono">{formatUSD(netValue)}</span>
+        </div>
+        <div className="w-px h-8 bg-border-subtle" />
+        <div className="flex flex-col">
+          <span className="text-text-dim text-[10px] uppercase tracking-wider font-semibold">Deposits</span>
+          <span className="text-sm font-mono text-positive">{formatUSD(totalDeposits)}</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-text-muted text-[10px] uppercase tracking-wide">Deposits</span>
-          <span className="text-sm font-mono">{formatUSD(totalDeposits)}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-text-muted text-[10px] uppercase tracking-wide">Debt</span>
+          <span className="text-text-dim text-[10px] uppercase tracking-wider font-semibold">Debt</span>
           <span className="text-sm font-mono text-negative">{formatUSD(totalDebt)}</span>
         </div>
-        {loading && <span className="text-text-muted text-xs ml-auto">Refreshing...</span>}
+        {loading && (
+          <div className="ml-auto flex items-center gap-2 text-text-dim">
+            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="text-xs">Refreshing...</span>
+          </div>
+        )}
       </div>
 
       {/* Tx status feedback */}
       {tx.status === 'submitted' && tx.txId && (
-        <div className="text-xs text-positive bg-surface border border-border rounded-lg p-2">
+        <div className="text-xs text-positive bg-positive-dim glass-card rounded-xl p-3 flex items-center gap-2">
+          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
           Submitted!{' '}
           <a
             href={`https://explorer.hiro.so/txid/${tx.txId}?chain=mainnet`}
@@ -441,7 +480,7 @@ export function UserPositions({
         </div>
       )}
       {tx.status === 'error' && tx.error && (
-        <div className="text-xs text-negative bg-surface border border-border rounded-lg p-2">{tx.error}</div>
+        <div className="text-xs text-negative bg-negative-dim glass-card rounded-xl p-3">{tx.error}</div>
       )}
 
       {/* Per-lender cards */}
