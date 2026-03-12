@@ -161,7 +161,9 @@ async function fetchVaultState(): Promise<VaultState> {
   const liveIdle = decodeUint(liveIdleHex)
   const liveGranite = decodeUint(liveGraniteHex)
   const liveZest = decodeUint(liveZestHex)
-  const liveTotal = decodeUint(liveTotalHex)
+  const liveTotalDeployed = decodeUint(liveTotalHex)
+  // get-live-total-assets only returns deployed capital — add idle to get true TVL
+  const liveTotal = liveTotalDeployed + liveIdle
 
   const virtualShares = 100_000_000n
   const sharePrice =
