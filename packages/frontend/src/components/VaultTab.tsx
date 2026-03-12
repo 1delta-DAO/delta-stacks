@@ -3,7 +3,8 @@ import { Tabs } from './Tabs'
 import { useWallet } from '../context/WalletContext'
 import { useTransact } from '../hooks/useTransact'
 import { usePendingTx } from '../hooks/usePendingTx'
-import { useBalances } from '../hooks/useBalances'
+import { useBalances, type Balances } from '../hooks/useBalances'
+import { useVaultState, type VaultState } from '../hooks/useVaultState'
 import {
   DeltaVault,
   VAULT_CONTRACTS,
@@ -31,28 +32,59 @@ function formatAmount(n: number): string {
   return n.toFixed(6)
 }
 
+/** Format micro-units (6 decimals) to human-readable */
+function micro(n: bigint): string {
+  const num = Number(n) / 1e6
+  return formatAmount(num)
+}
+
+/** Format a percentage with 2 decimals */
+function pct(n: number): string {
+  return n.toFixed(2) + '%'
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function VaultTab() {
   const [roleTab, setRoleTab] = useState(0)
+  const { state: vault, loading, refresh: refreshVault } = useVaultState()
+  const { balances, refresh: refreshBalances } = useBalances()
+
+  /** Called when any pending tx confirms — refresh both user balances and vault state */
+  const onTxConfirm = useCallback(() => {
+    refreshBalances()
+    refreshVault()
+  }, [refreshBalances, refreshVault])
 
   return (
     <div className="space-y-4">
-      {/* Vault info header */}
+      {/* Vault overview header */}
       <div className="bg-surface border border-border rounded-lg p-4">
-        <h2 className="text-sm font-medium mb-3">Delta USDCx Vault (dUSDCx)</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <InfoItem label="Underlying" value="USDCx" />
-          <InfoItem label="Share token" value="dUSDCx" />
-          <InfoItem label="Decimals" value="6" />
-          <InfoItem label="Virtual shares" value="100M" />
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-medium">Delta USDCx Vault (dUSDCx)</h2>
+          {!loading && vault.blendedApr > 0 && (
+            <span className="text-sm font-mono text-positive">
+              {pct(vault.blendedApr)} APR
+            </span>
+          )}
         </div>
-        <div className="mt-3 text-xs text-text-muted break-all">
-          Vault: <span className="font-mono">{VAULT_CONTRACTS.vault}</span>
+
+        {/* Key metrics */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <InfoItem label="TVL" value={loading ? '...' : `${micro(vault.liveTotal)} USDCx`} />
+          <InfoItem label="Share price" value={loading ? '...' : `${vault.sharePrice.toFixed(6)}`} />
+          <InfoItem label="Total shares" value={loading ? '...' : micro(vault.totalSupply)} />
+          <InfoItem
+            label="Unrealized yield"
+            value={loading ? '...' : `${micro(vault.unrealizedYield)} USDCx`}
+          />
         </div>
       </div>
+
+      {/* Allocation breakdown */}
+      {!loading && <AllocationBar vault={vault} />}
 
       {/* Role tabs */}
       <Tabs
@@ -61,9 +93,103 @@ export function VaultTab() {
         onChange={setRoleTab}
       />
 
-      {roleTab === 0 && <UserPanel />}
-      {roleTab === 1 && <AllocatorPanel />}
-      {roleTab === 2 && <OwnerPanel />}
+      {roleTab === 0 && <UserPanel balances={balances} onTxConfirm={onTxConfirm} />}
+      {roleTab === 1 && <AllocatorPanel onTxConfirm={onTxConfirm} />}
+      {roleTab === 2 && <OwnerPanel onTxConfirm={onTxConfirm} />}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Allocation breakdown bar + table
+// ---------------------------------------------------------------------------
+
+function AllocationBar({ vault }: { vault: VaultState }) {
+  const total = vault.totalAssets
+  const idle = vault.idleBookkeeping
+  const granite = vault.allocGranite
+  const zest = vault.allocZest
+
+  const idlePct = total > 0n ? Number(idle * 10000n / total) / 100 : 100
+  const granitePct = total > 0n ? Number(granite * 10000n / total) / 100 : 0
+  const zestPct = total > 0n ? Number(zest * 10000n / total) / 100 : 0
+
+  return (
+    <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-medium">Allocation</h3>
+        <span className="text-xs text-text-muted font-mono">{micro(total)} USDCx total</span>
+      </div>
+
+      {/* Stacked bar */}
+      <div className="h-3 rounded-full overflow-hidden flex bg-surface-alt">
+        {granitePct > 0 && (
+          <div
+            className="h-full bg-blue-500 transition-all"
+            style={{ width: `${granitePct}%` }}
+            title={`Granite: ${pct(granitePct)}`}
+          />
+        )}
+        {zestPct > 0 && (
+          <div
+            className="h-full bg-purple-500 transition-all"
+            style={{ width: `${zestPct}%` }}
+            title={`Zest V2: ${pct(zestPct)}`}
+          />
+        )}
+        {idlePct > 0 && (
+          <div
+            className="h-full bg-gray-500 transition-all"
+            style={{ width: `${idlePct}%` }}
+            title={`Idle: ${pct(idlePct)}`}
+          />
+        )}
+      </div>
+
+      {/* Legend + details */}
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+            <span className="text-text-muted">Granite</span>
+          </div>
+          <div className="font-mono pl-3.5">{micro(granite)}</div>
+          <div className="text-text-muted pl-3.5">{pct(granitePct)}</div>
+          {vault.graniteApr > 0 && (
+            <div className="text-positive pl-3.5 font-mono">{pct(vault.graniteApr)} APR</div>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
+            <span className="text-text-muted">Zest V2</span>
+          </div>
+          <div className="font-mono pl-3.5">{micro(zest)}</div>
+          <div className="text-text-muted pl-3.5">{pct(zestPct)}</div>
+          {vault.zestApr > 0 && (
+            <div className="text-positive pl-3.5 font-mono">{pct(vault.zestApr)} APR</div>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-gray-500 inline-block" />
+            <span className="text-text-muted">Idle</span>
+          </div>
+          <div className="font-mono pl-3.5">{micro(idle)}</div>
+          <div className="text-text-muted pl-3.5">{pct(idlePct)}</div>
+          <div className="text-text-muted pl-3.5 font-mono">0.00% APR</div>
+        </div>
+      </div>
+
+      {/* Live vs bookkeeping */}
+      {vault.unrealizedYield > 0n && (
+        <div className="text-xs text-text-muted bg-surface-alt rounded p-2 flex justify-between">
+          <span>Live total (incl. unrealized)</span>
+          <span className="font-mono">{micro(vault.liveTotal)} USDCx</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -81,13 +207,12 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 // User Panel — Deposit / Withdraw / Redeem
 // ---------------------------------------------------------------------------
 
-function UserPanel() {
+function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm: () => void }) {
   const [opTab, setOpTab] = useState(0)
   const [amount, setAmount] = useState('')
   const { connected, stxAddress, connect } = useWallet()
   const tx = useTransact()
-  const pending = usePendingTx()
-  const { balances } = useBalances()
+  const pending = usePendingTx(onTxConfirm)
 
   const op = USER_OPS[opTab]
 
@@ -103,7 +228,7 @@ function UserPanel() {
   // dUSDCx (vault share) balance
   const shareBalance = useMemo(() => {
     const key = Object.keys(balances.fungible).find(
-      (k) => k.toLowerCase() === VAULT_CONTRACTS.vault.toLowerCase() + '::vault-shares',
+      (k) => k.toLowerCase() === VAULT_CONTRACTS.vault.toLowerCase(),
     )
     if (key) return Number(balances.fungible[key].balance) / 1e6
     return 0
@@ -208,12 +333,12 @@ function UserPanel() {
 // Allocator Panel — Deploy / Rebalance
 // ---------------------------------------------------------------------------
 
-function AllocatorPanel() {
+function AllocatorPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
   const [opTab, setOpTab] = useState(0)
   const [amount, setAmount] = useState('')
   const { connected, stxAddress, connect } = useWallet()
   const tx = useTransact()
-  const pending = usePendingTx()
+  const pending = usePendingTx(onTxConfirm)
 
   const op = ALLOCATOR_OPS[opTab]
 
@@ -278,12 +403,12 @@ function AllocatorPanel() {
 // Owner Panel — Set Allocator / Register Adapters
 // ---------------------------------------------------------------------------
 
-function OwnerPanel() {
+function OwnerPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
   const [opTab, setOpTab] = useState(0)
   const [principal, setPrincipal] = useState('')
   const { connected, stxAddress, connect } = useWallet()
   const tx = useTransact()
-  const pending = usePendingTx()
+  const pending = usePendingTx(onTxConfirm)
 
   const op = OWNER_OPS[opTab]
 

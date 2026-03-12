@@ -1,0 +1,38 @@
+# =============================================================================
+# Delta Vault V1 — Register Adapters (standalone)
+# =============================================================================
+#
+# Registers both adapters with the vault. Run this if the registration
+# transactions from the main deployment plan were not broadcast.
+#
+# Usage
+# -----
+#   clarinet deployments apply --deployment-plan-path deployments/vault-v1.mainnet-register-adapters.yaml
+#
+# =============================================================================
+
+id: 3
+name: Delta Vault V1 register adapters
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v2-prod
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-granite-usdcx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-granite-usdcx"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v2-prod
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-usdc
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-usdc-v2"
+          cost: 250000
+      epoch: '3.0'

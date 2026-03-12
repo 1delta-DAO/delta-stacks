@@ -1,0 +1,99 @@
+# =============================================================================
+# Delta Vault V1 — Testnet Deployment Plan
+# =============================================================================
+#
+# Testnet-first deployment for verification before mainnet.
+# Same contract set and initialization as mainnet, different sender.
+#
+# Prerequisites
+# -------------
+#   [ ] Get testnet STX from faucet: https://explorer.hiro.so/sandbox/faucet?chain=testnet
+#   [ ] clarinet check passes
+#   [ ] npm test passes
+#   [ ] Update expected-sender below to your testnet address
+#
+# Usage
+# -----
+#   clarinet deployments apply --deployment-plan-path deployments/vault-v1.testnet-plan.yaml
+#
+# =============================================================================
+
+id: 1
+name: Delta Vault V1 testnet deployment
+network: testnet
+stacks-node: https://api.testnet.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin-regtest.blockstack.com:18443
+plan:
+  batches:
+    # ------------------------------------------------------------------
+    # Batch 0 — Deploy the lending adapter trait
+    # ------------------------------------------------------------------
+    - id: 0
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: lending-adapter-trait
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/lending-adapter-trait.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 1 — Deploy adapters + vault
+    # ------------------------------------------------------------------
+    # NOTE: On testnet, adapter contracts reference mainnet Granite/Zest
+    # addresses which won't exist. The contracts will deploy but adapter
+    # calls will fail. This is expected — testnet verifies:
+    #   - Contract compilation and deployment succeeds
+    #   - Vault idle-mode operations (deposit/withdraw/redeem) work
+    #   - Adapter registration flow works
+    #   - Owner/allocator role separation works
+    - id: 1
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: adapter-granite-usdcx
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/adapter-granite-usdcx.clar
+          anchor-block-only: true
+          clarity-version: 3
+
+        - transaction-type: contract-publish
+          contract-name: adapter-zest-v2-usdc
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/adapter-zest-v2-usdc.clar
+          anchor-block-only: true
+          clarity-version: 3
+
+        - transaction-type: contract-publish
+          contract-name: vault-usdcx-v2-prod
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 1000000
+          path: contracts/prod/vault-usdcx-v2-prod.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 2 — Register adapters
+    # ------------------------------------------------------------------
+    - id: 2
+      transactions:
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v2-prod
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-granite-usdcx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-granite-usdcx"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v2-prod
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-usdc
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-usdc"
+          cost: 250000
+      epoch: '3.0'

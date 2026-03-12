@@ -34,9 +34,10 @@
              transfer amount vault (as-contract tx-sender) none))
     ;; 2. Deposit into Zest V2.  zShares minted to this adapter.
     ;;    min-out = u0 (no slippage guard; vault trusts the protocol).
-    (as-contract
-      (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
-        deposit amount u0 tx-sender))))
+    (let ((zshares (try! (as-contract
+                          (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
+                            deposit amount u0 tx-sender)))))
+      (ok zshares))))
 
 ;; Withdraw `amount` USDCx from Zest V2, sending proceeds to `recipient`.
 ;;
@@ -46,12 +47,14 @@
 ;;
 ;; Returns: (ok underlying-received)
 (define-public (adapter-withdraw (amount uint) (recipient principal))
-  (let ((shares (try! (as-contract
+  (let ((shares (unwrap! (as-contract
                   (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
-                    convert-to-shares amount)))))
-    (as-contract
-      (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
-        redeem shares u0 recipient))))
+                    convert-to-shares amount))
+                  (err u0)))
+        (received (try! (as-contract
+                    (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
+                      redeem shares u0 recipient)))))
+    (ok received)))
 
 ;; Read the live USDCx value of this adapter's Zest V2 position.
 ;;
@@ -61,8 +64,10 @@
 ;; Returns: (ok current-asset-value)
 (define-public (adapter-get-position)
   (let ((adapter-principal (as-contract tx-sender))
-        (my-shares (unwrap-panic
-                     (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
-                       get-balance adapter-principal))))
-    (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
-      convert-to-assets my-shares)))
+        (my-shares (unwrap! (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
+                               get-balance adapter-principal)
+                     (err u0)))
+        (assets (unwrap! (contract-call? 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
+                            convert-to-assets my-shares)
+                  (err u0))))
+    (ok assets)))

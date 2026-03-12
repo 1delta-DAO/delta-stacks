@@ -13,7 +13,7 @@ export const VAULT_DEPLOYER = 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H'
 export const VAULT_CONTRACTS = {
   vault: `${VAULT_DEPLOYER}.vault-usdcx-v2-prod`,
   adapterGranite: `${VAULT_DEPLOYER}.adapter-granite-usdcx`,
-  adapterZestV2: `${VAULT_DEPLOYER}.adapter-zest-v2-usdc`,
+  adapterZestV2: `${VAULT_DEPLOYER}.adapter-zest-v2-usdc-v2`,
   trait: `${VAULT_DEPLOYER}.lending-adapter-trait`,
 } as const
 

@@ -17,7 +17,7 @@ async function checkTxStatus(txId: string): Promise<'pending' | 'confirmed' | 'f
  * While any tx is pending, withdraw/borrow should be disabled because
  * on-chain state may change once the tx confirms.
  */
-export function usePendingTx() {
+export function usePendingTx(onConfirm?: () => void) {
   const [pendingTxIds, setPendingTxIds] = useState<string[]>([])
   const queryClient = useQueryClient()
 
@@ -41,6 +41,7 @@ export function usePendingTx() {
         setPendingTxIds(stillPending)
         // Invalidate user data so it refetches with new on-chain state
         queryClient.invalidateQueries({ queryKey: ['user-data'] })
+        onConfirm?.()
       }
       return stillPending
     },

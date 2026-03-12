@@ -1,0 +1,61 @@
+# =============================================================================
+# Delta Vault V1 — Mainnet Patch: Redeploy Zest V2 Adapter
+# =============================================================================
+#
+# The original adapter-zest-v2-usdc deployment failed with (err none) due to
+# a Clarity 3 trait type mismatch: the Zest V2 read-only functions return
+# (response uint none) but lending-adapter-trait expects (response uint uint).
+#
+# This patch deploys the fixed adapter under a new name and re-registers it
+# with the vault.
+#
+# Usage
+# -----
+#   clarinet deployments apply --deployment-plan-path deployments/vault-v1.mainnet-patch-zest.yaml
+#
+# =============================================================================
+
+id: 2
+name: Delta Vault V1 mainnet patch — redeploy zest adapter
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    # ------------------------------------------------------------------
+    # Batch 0 — Deploy the fixed zest adapter under a new name
+    # ------------------------------------------------------------------
+    - id: 0
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: adapter-zest-v2-usdc-v2
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/adapter-zest-v2-usdc.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 1 — Register both adapters with the vault
+    # ------------------------------------------------------------------
+    # Granite registration was also pending (batch 2 of original plan
+    # was not submitted after the zest deploy failure).
+    - id: 1
+      transactions:
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v2-prod
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-granite-usdcx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-granite-usdcx"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v2-prod
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-usdc
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-usdc-v2"
+          cost: 250000
+      epoch: '3.0'

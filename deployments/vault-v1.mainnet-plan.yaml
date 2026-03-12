@@ -1,0 +1,151 @@
+# =============================================================================
+# Delta Vault V1 — Mainnet Deployment Plan
+# =============================================================================
+#
+# Deploys the USDCx yield vault system:
+#   1. lending-adapter-trait  (shared trait for all market adapters)
+#   2. adapter-granite-usdcx  (Granite USDCx isolated market adapter)
+#   3. adapter-zest-v2-usdc   (Zest V2 USDCx vault adapter)
+#   4. vault-usdcx-v2-prod    (the vault itself — SIP-010 share token + ERC-4626)
+#
+# Post-deploy initialization (batch 2):
+#   5. register-adapter-granite-usdcx  (point vault at the granite adapter)
+#   6. register-adapter-zest-v2-usdc   (point vault at the zest adapter)
+#
+# Pre-flight checklist
+# --------------------
+#   [ ] clarinet check passes (ignoring mainnet-only external contract warnings)
+#   [ ] All vitest tests pass: npm test
+#   [ ] Review coverage: npm run test:coverage
+#   [ ] Verify deployer STX balance covers estimated costs (~4 STX total)
+#   [ ] Confirm deployer address matches expected-sender below
+#   [ ] Confirm external contract addresses are correct for mainnet:
+#         USDCx:       SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx
+#         Granite LP:  SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.liquidity-provider-v1
+#         Granite St:  SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1
+#         Zest V2:     SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
+#         SIP-010:     SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard
+#
+# Usage
+# -----
+#   clarinet deployments apply --deployment-plan-path deployments/vault-v1.mainnet-plan.yaml
+#
+# =============================================================================
+
+id: 1
+name: Delta Vault V1 mainnet deployment
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    # ------------------------------------------------------------------
+    # Batch 0 — Deploy the lending adapter trait
+    # ------------------------------------------------------------------
+    # Must land first: both adapters and the vault (use-trait) depend on it.
+    - id: 0
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: lending-adapter-trait
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/lending-adapter-trait.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 1 — Deploy adapters + vault
+    # ------------------------------------------------------------------
+    # Adapters impl-trait the trait from batch 0.
+    # The vault use-trait the same trait.
+    # No cross-references between adapters and vault at deploy time
+    # (adapters are registered via contract-call in batch 2).
+    - id: 1
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: adapter-granite-usdcx
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/adapter-granite-usdcx.clar
+          anchor-block-only: true
+          clarity-version: 3
+
+        - transaction-type: contract-publish
+          contract-name: adapter-zest-v2-usdc
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/adapter-zest-v2-usdc.clar
+          anchor-block-only: true
+          clarity-version: 3
+
+        - transaction-type: contract-publish
+          contract-name: vault-usdcx-v2-prod
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 1000000
+          path: contracts/prod/vault-usdcx-v2-prod.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 2 — Post-deploy initialization
+    # ------------------------------------------------------------------
+    # Register the adapters with the vault so allocation operations work.
+    # Until these calls land, the vault operates in idle-only mode
+    # (deposits/withdraws work, but deploy-to-* and rebalance are blocked).
+    - id: 2
+      transactions:
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v2-prod
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-granite-usdcx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-granite-usdcx"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v2-prod
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-usdc
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-usdc"
+          cost: 250000
+      epoch: '3.0'
+
+# =============================================================================
+# Post-deployment verification
+# =============================================================================
+#
+# After all 3 batches confirm, verify on-chain state:
+#
+#   1. Trait deployed:
+#      curl -s "https://api.hiro.so/v2/contracts/interface/SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H/lending-adapter-trait"
+#
+#   2. Vault deployed and readable:
+#      curl -s "https://api.hiro.so/v2/contracts/call-read/SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H/vault-usdcx-v2-prod/get-total-assets" \
+#        -H 'Content-Type: application/json' \
+#        -d '{"sender":"SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H","arguments":[]}'
+#      # Should return u0
+#
+#   3. Adapters registered:
+#      curl -s "https://api.hiro.so/v2/contracts/call-read/SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H/vault-usdcx-v2-prod/get-adapter-granite-usdcx" \
+#        -H 'Content-Type: application/json' \
+#        -d '{"sender":"SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H","arguments":[]}'
+#      # Should return (some SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-granite-usdcx)
+#
+#      curl -s "https://api.hiro.so/v2/contracts/call-read/SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H/vault-usdcx-v2-prod/get-adapter-zest-v2-usdc" \
+#        -H 'Content-Type: application/json' \
+#        -d '{"sender":"SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H","arguments":[]}'
+#      # Should return (some SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-usdc)
+#
+#   4. Vault is in idle-only mode (alloc = 0, no deployed capital):
+#      get-alloc-granite   => u0
+#      get-alloc-zest-v2   => u0
+#      get-idle-bookkeeping => u0
+#
+#   5. (Optional) Set allocator to a bot/multisig:
+#      clarinet deployments apply with a contract-call to set-vault-allocator
+#      or use stacks.js to send the transaction manually.
+#
+# =============================================================================
