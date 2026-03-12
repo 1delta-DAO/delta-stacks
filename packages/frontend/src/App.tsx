@@ -3,8 +3,9 @@ import { Header } from './components/Header'
 import { Tabs } from './components/Tabs'
 import { BalancesTab } from './components/BalancesTab'
 import { LendingTab } from './components/LendingTab'
+import { VaultTab } from './components/VaultTab'
 
-const MAIN_TABS = ['Balances', 'Lending']
+const MAIN_TABS = ['Balances', 'Lending', 'Vault']
 
 function App() {
   const [tab, setTab] = useState(0)
@@ -16,6 +17,7 @@ function App() {
         <Tabs tabs={MAIN_TABS} active={tab} onChange={setTab} />
         {tab === 0 && <BalancesTab />}
         {tab === 1 && <LendingTab />}
+        {tab === 2 && <VaultTab />}
       </main>
     </div>
   )
