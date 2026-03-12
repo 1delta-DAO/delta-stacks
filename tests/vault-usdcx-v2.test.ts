@@ -517,6 +517,120 @@ describe('vault-usdcx-v2 — ERC-4626 preview / max / mint', () => {
   })
 })
 
+describe('vault-usdcx-v2 — allocation: deploy-to-zest-v2', () => {
+  it('moves idle tokens to the adapter, increasing alloc-zest-v2', () => {
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    const result = simnet.callPublicFn(
+      VAULT, 'deploy-to-zest-v2',
+      [Cl.uint(AMOUNT / 2), adapterArg],
+      deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseOk)
+    expect(vaultRead('get-alloc-zest-v2')).toBe(AMOUNT / 2)
+  })
+
+  it('does not change total-assets-bookkeeping (relocation, not consumption)', () => {
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    simnet.callPublicFn(VAULT, 'deploy-to-zest-v2', [Cl.uint(AMOUNT / 2), adapterArg], deployer)
+
+    expect(vaultRead('get-total-assets')).toBe(AMOUNT)
+  })
+
+  it('reduces idle-bookkeeping by deployed amount', () => {
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    simnet.callPublicFn(VAULT, 'deploy-to-zest-v2', [Cl.uint(AMOUNT / 2), adapterArg], deployer)
+
+    expect(vaultRead('get-idle-bookkeeping')).toBe(AMOUNT / 2)
+  })
+
+  it('rejects if caller is not vault-owner', () => {
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+    const result = simnet.callPublicFn(
+      VAULT, 'deploy-to-zest-v2',
+      [Cl.uint(AMOUNT / 2), adapterArg],
+      wallet1,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('rejects if adapter does not match registered address', () => {
+    simnet.callPublicFn(VAULT, 'register-adapter-zest-v2-usdc', [Cl.principal(wallet1)], deployer)
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+    const result = simnet.callPublicFn(
+      VAULT, 'deploy-to-zest-v2',
+      [Cl.uint(AMOUNT / 2), adapterArg],
+      deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('rejects deploy of zero amount', () => {
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+    const result = simnet.callPublicFn(
+      VAULT, 'deploy-to-zest-v2',
+      [Cl.uint(0), adapterArg],
+      deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+})
+
+describe('vault-usdcx-v2 — allocation: over-deploy rejection', () => {
+  it('deploy-to-granite rejects when amount exceeds idle balance', () => {
+    registerGranite()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    // Try to deploy more than was deposited
+    const result = simnet.callPublicFn(
+      VAULT, 'deploy-to-granite',
+      [Cl.uint(AMOUNT * 2), adapterArg],
+      deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('deploy-to-zest-v2 rejects when amount exceeds idle balance', () => {
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    const result = simnet.callPublicFn(
+      VAULT, 'deploy-to-zest-v2',
+      [Cl.uint(AMOUNT * 2), adapterArg],
+      deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('deploy-to-granite rejects zero amount', () => {
+    registerGranite()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    const result = simnet.callPublicFn(
+      VAULT, 'deploy-to-granite',
+      [Cl.uint(0), adapterArg],
+      deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+})
+
 describe('vault-usdcx-v2 — rebalance', () => {
   it('rebalance-granite-to-zest-v2 moves allocation between markets', () => {
     registerGranite()
@@ -559,5 +673,89 @@ describe('vault-usdcx-v2 — rebalance', () => {
     expect(vaultRead('get-alloc-zest-v2')).toBe(AMOUNT / 2)
     expect(vaultRead('get-alloc-granite')).toBe(AMOUNT / 2)
     expect(vaultRead('get-total-assets')).toBe(AMOUNT)
+  })
+
+  it('rebalance-granite-to-zest-v2 rejects when amount exceeds granite allocation', () => {
+    registerGranite()
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    // Deploy half to granite
+    simnet.callPublicFn(VAULT, 'deploy-to-granite', [Cl.uint(AMOUNT / 2), adapterArg], deployer)
+
+    // Try to rebalance more than allocated in granite
+    const result = simnet.callPublicFn(
+      VAULT, 'rebalance-granite-to-zest-v2',
+      [Cl.uint(AMOUNT), adapterArg, adapterArg],
+      deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('rebalance-zest-v2-to-granite rejects when amount exceeds zest-v2 allocation', () => {
+    registerGranite()
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    // Deploy half to zest-v2
+    simnet.callPublicFn(VAULT, 'deploy-to-zest-v2', [Cl.uint(AMOUNT / 2), adapterArg], deployer)
+
+    // Try to rebalance more than allocated in zest-v2
+    const result = simnet.callPublicFn(
+      VAULT, 'rebalance-zest-v2-to-granite',
+      [Cl.uint(AMOUNT), adapterArg, adapterArg],
+      deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('rebalance-granite-to-zest-v2 rejects non-allocator caller', () => {
+    registerGranite()
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    simnet.callPublicFn(VAULT, 'deploy-to-granite', [Cl.uint(AMOUNT), adapterArg], deployer)
+
+    const result = simnet.callPublicFn(
+      VAULT, 'rebalance-granite-to-zest-v2',
+      [Cl.uint(AMOUNT / 2), adapterArg, adapterArg],
+      wallet1,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('rebalance-zest-v2-to-granite rejects non-allocator caller', () => {
+    registerGranite()
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    simnet.callPublicFn(VAULT, 'deploy-to-zest-v2', [Cl.uint(AMOUNT), adapterArg], deployer)
+
+    const result = simnet.callPublicFn(
+      VAULT, 'rebalance-zest-v2-to-granite',
+      [Cl.uint(AMOUNT / 2), adapterArg, adapterArg],
+      wallet1,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('rebalance rejects zero amount', () => {
+    registerGranite()
+    registerZestV2()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+
+    simnet.callPublicFn(VAULT, 'deploy-to-granite', [Cl.uint(AMOUNT), adapterArg], deployer)
+
+    const result = simnet.callPublicFn(
+      VAULT, 'rebalance-granite-to-zest-v2',
+      [Cl.uint(0), adapterArg, adapterArg],
+      deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
   })
 })
