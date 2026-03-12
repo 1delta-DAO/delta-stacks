@@ -1,6 +1,6 @@
-;; vault-usdcx-v2.clar
+;; vault-usdcx-v2-prod.clar
 ;;
-;; ERC-4626-style yield vault for mock-usdcx with a constrained allocation layer.
+;; ERC-4626-style yield vault for USDCx with a constrained allocation layer.
 ;; Vault shares are a SIP-010 fungible token (dUSDCx), transferable between users.
 ;;
 ;; The vault tracks three positions:
@@ -147,7 +147,7 @@
 
 ;; The underlying asset managed by this vault.
 (define-read-only (get-asset)
-  (ok .mock-token))
+  (ok 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx))
 
 ;; Total assets under management.
 (define-read-only (get-total-assets)
@@ -234,7 +234,7 @@
 
 ;; USDCx sitting idle in the vault, not deployed anywhere.
 (define-read-only (get-idle-balance)
-  (unwrap-panic (contract-call? .mock-token get-balance (as-contract tx-sender))))
+  (unwrap-panic (contract-call? 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx get-balance (as-contract tx-sender))))
 
 ;; Live USDCx value of the vault's Zest V2 position.
 ;; Reads the adapter's zShare balance then converts via convert-to-assets.
@@ -367,7 +367,7 @@
                            err-invalid-adapter)
                  (try! (do-sync-zest-v2 zest-v2)))
                u0)))
-      (try! (contract-call? .mock-token transfer amount tx-sender (as-contract tx-sender) none))
+      (try! (contract-call? 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx transfer amount tx-sender (as-contract tx-sender) none))
       ;; Read bookkeeping after sync -- now includes harvested yield.
       (let ((supply    (ft-get-supply vault-shares))
             (new-total (+ (var-get total-assets-bookkeeping) amount)))
@@ -408,7 +408,7 @@
         (let ((assets (/ (+ (* shares (+ total u1)) (- (+ supply virtual-shares) u1))
                          (+ supply virtual-shares))))
           (asserts! (> assets u0) err-amount-zero)
-          (try! (contract-call? .mock-token transfer assets tx-sender (as-contract tx-sender) none))
+          (try! (contract-call? 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx transfer assets tx-sender (as-contract tx-sender) none))
           (try! (ft-mint? vault-shares shares receiver))
           (var-set total-assets-bookkeeping (+ total assets))
           (ok assets))))))
@@ -488,13 +488,13 @@
                       (let ((total-after (var-get total-assets-bookkeeping)))
                         ;; Safety guard: vault idle must cover the full transfer.
                         (asserts!
-                          (>= (unwrap! (contract-call? .mock-token get-balance (as-contract tx-sender))
+                          (>= (unwrap! (contract-call? 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx get-balance (as-contract tx-sender))
                                        err-transfer-failed)
                               amount)
                           err-insufficient-balance)
                         (try! (ft-burn? vault-shares shares-to-burn owner))
                         (var-set total-assets-bookkeeping (- total-after amount))
-                        (match (contract-call? .mock-token transfer amount (as-contract tx-sender) receiver none)
+                        (match (contract-call? 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx transfer amount (as-contract tx-sender) receiver none)
                           success (ok shares-to-burn)
                           e       (err e)))))))))))))))
 
@@ -560,13 +560,13 @@
                                u0)))
                     (let ((total-after (var-get total-assets-bookkeeping)))
                       (asserts!
-                        (>= (unwrap! (contract-call? .mock-token get-balance (as-contract tx-sender))
+                        (>= (unwrap! (contract-call? 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx get-balance (as-contract tx-sender))
                                      err-transfer-failed)
                             amt)
                         err-insufficient-balance)
                       (try! (ft-burn? vault-shares shares owner))
                       (var-set total-assets-bookkeeping (- total-after amt))
-                      (match (contract-call? .mock-token transfer amt (as-contract tx-sender) receiver none)
+                      (match (contract-call? 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx transfer amt (as-contract tx-sender) receiver none)
                         success (ok amt)
                         e       (err e))))))))))))))
 

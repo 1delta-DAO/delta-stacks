@@ -759,3 +759,75 @@ describe('vault-usdcx-v2 — rebalance', () => {
     expect(result.result.type).toBe(ClarityType.ResponseErr)
   })
 })
+
+describe('vault-usdcx-v2 — allocator role separation', () => {
+  it('owner can delegate allocator role to another address', () => {
+    const result = simnet.callPublicFn(
+      VAULT, 'set-vault-allocator', [Cl.principal(wallet1)], deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseOk)
+    const allocator = simnet.callReadOnlyFn(VAULT, 'get-vault-allocator', [], deployer)
+    expect((allocator.result as any).value).toBe(wallet1)
+  })
+
+  it('delegated allocator can deploy to granite', () => {
+    registerGranite()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+    // Delegate allocator to wallet1
+    simnet.callPublicFn(VAULT, 'set-vault-allocator', [Cl.principal(wallet1)], deployer)
+
+    const result = simnet.callPublicFn(
+      VAULT, 'deploy-to-granite', [Cl.uint(AMOUNT / 2), adapterArg], wallet1,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseOk)
+    expect(vaultRead('get-alloc-granite')).toBe(AMOUNT / 2)
+  })
+
+  it('old owner cannot allocate after delegation', () => {
+    registerGranite()
+    mint(deployer, AMOUNT)
+    deposit(AMOUNT, deployer)
+    simnet.callPublicFn(VAULT, 'set-vault-allocator', [Cl.principal(wallet1)], deployer)
+
+    // deployer is no longer the allocator
+    const result = simnet.callPublicFn(
+      VAULT, 'deploy-to-granite', [Cl.uint(AMOUNT / 2), adapterArg], deployer,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('allocator cannot register adapters (owner-only)', () => {
+    simnet.callPublicFn(VAULT, 'set-vault-allocator', [Cl.principal(wallet1)], deployer)
+
+    const result = simnet.callPublicFn(
+      VAULT, 'register-adapter-granite-usdcx',
+      [Cl.contractPrincipal(deployer, 'mock-adapter')],
+      wallet1,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('allocator cannot change ownership', () => {
+    simnet.callPublicFn(VAULT, 'set-vault-allocator', [Cl.principal(wallet1)], deployer)
+
+    const result = simnet.callPublicFn(
+      VAULT, 'set-vault-owner', [Cl.principal(wallet1)], wallet1,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('non-owner cannot set allocator', () => {
+    const result = simnet.callPublicFn(
+      VAULT, 'set-vault-allocator', [Cl.principal(wallet1)], wallet1,
+    )
+    expect(result.result.type).toBe(ClarityType.ResponseErr)
+  })
+
+  it('anyone can deposit (no owner-only restriction)', () => {
+    mint(wallet1, AMOUNT)
+    const result = deposit(AMOUNT, wallet1)
+    expect(result.result.type).toBe(ClarityType.ResponseOk)
+    expect(vaultShares(wallet1)).toBeGreaterThan(0)
+  })
+})

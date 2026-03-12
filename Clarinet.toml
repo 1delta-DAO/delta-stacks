@@ -36,6 +36,24 @@ path = "contracts/mock-adapter.clar"
 clarity_version = 3
 epoch = 3.0
 
+# Production contracts (mainnet-only, not loaded in simnet).
+# To deploy: uncomment below and run `clarinet deployments generate --testnet`
+#
+# [contracts.adapter-granite-usdcx]
+# path = "contracts/prod/adapter-granite-usdcx.clar"
+# clarity_version = 3
+# epoch = 3.0
+#
+# [contracts.adapter-zest-v2-usdc]
+# path = "contracts/prod/adapter-zest-v2-usdc.clar"
+# clarity_version = 3
+# epoch = 3.0
+#
+# [contracts.vault-usdcx-v2-prod]
+# path = "contracts/prod/vault-usdcx-v2-prod.clar"
+# clarity_version = 3
+# epoch = 3.0
+
 [repl.remote_data]
 enabled = true
 initial_height = 6972000
