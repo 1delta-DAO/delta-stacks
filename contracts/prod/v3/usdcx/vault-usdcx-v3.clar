@@ -49,6 +49,11 @@
 ;; ---------------------------------------------------------------------------
 (define-constant bps-base u10000)
 
+;; Dust threshold: allocations at or below this are treated as zero.
+;; Prevents wasted sync calls and stuck proportional-pull dust.
+;; 100 = 0.0001 USDCx ($0.0001) -- effectively worthless.
+(define-constant dust-threshold u100)
+
 ;; Hardcoded market addresses (mainnet live position queries -- deployment-specific)
 (define-constant granite-usdcx-state
   'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1)
@@ -366,15 +371,15 @@
   (begin
     (asserts! (> amount u0) err-amount-zero)
     (asserts! (is-eq (contract-of token) (var-get base-asset)) err-invalid-asset)
-    ;; Auto-sync yields before computing share price.
-    (let ((sg (if (> (var-get alloc-granite) u0)
+    ;; Auto-sync yields before computing share price (skip dust positions).
+    (let ((sg (if (> (var-get alloc-granite) dust-threshold)
                (begin
                  (asserts! (is-eq (some (contract-of granite))
                                   (var-get adapter-granite-usdcx))
                            err-invalid-adapter)
                  (try! (do-sync-granite granite)))
                u0))
-          (sz (if (> (var-get alloc-zest-v2) u0)
+          (sz (if (> (var-get alloc-zest-v2) dust-threshold)
                (begin
                  (asserts! (is-eq (some (contract-of zest-v2))
                                   (var-get adapter-zest-v2-usdc))
@@ -392,8 +397,11 @@
           (try! (ft-mint? vault-shares shares owner))
           (var-set total-assets-bookkeeping (+ total amount))
           ;; --- v3: Auto-allocate based on current lending balances ---
-          (let ((ag (var-get alloc-granite))
-                (az (var-get alloc-zest-v2))
+          ;; Floor dust allocations so tiny remnants don't skew ratios.
+          (let ((ag (let ((raw (var-get alloc-granite)))
+                      (if (<= raw dust-threshold) u0 raw)))
+                (az (let ((raw (var-get alloc-zest-v2)))
+                      (if (<= raw dust-threshold) u0 raw)))
                 (total-deployed (+ ag az))
                 (buffer (var-get idle-buffer-bps)))
             (if (and (> total-deployed u0)
@@ -426,14 +434,14 @@
   (begin
     (asserts! (> shares u0) err-shares-zero)
     (asserts! (is-eq (contract-of token) (var-get base-asset)) err-invalid-asset)
-    (let ((sg (if (> (var-get alloc-granite) u0)
+    (let ((sg (if (> (var-get alloc-granite) dust-threshold)
                (begin
                  (asserts! (is-eq (some (contract-of granite))
                                   (var-get adapter-granite-usdcx))
                            err-invalid-adapter)
                  (try! (do-sync-granite granite)))
                u0))
-          (sz (if (> (var-get alloc-zest-v2) u0)
+          (sz (if (> (var-get alloc-zest-v2) dust-threshold)
                (begin
                  (asserts! (is-eq (some (contract-of zest-v2))
                                   (var-get adapter-zest-v2-usdc))
@@ -457,14 +465,14 @@
   (begin
     (asserts! (is-eq tx-sender owner) err-owner-only)
     (asserts! (is-eq (contract-of token) (var-get base-asset)) err-invalid-asset)
-    (let ((sg (if (> (var-get alloc-granite) u0)
+    (let ((sg (if (> (var-get alloc-granite) dust-threshold)
                (begin
                  (asserts! (is-eq (some (contract-of granite))
                                   (var-get adapter-granite-usdcx))
                            err-invalid-adapter)
                  (try! (do-sync-granite granite)))
                u0))
-          (sz (if (> (var-get alloc-zest-v2) u0)
+          (sz (if (> (var-get alloc-zest-v2) dust-threshold)
                (begin
                  (asserts! (is-eq (some (contract-of zest-v2))
                                   (var-get adapter-zest-v2-usdc))
@@ -474,8 +482,11 @@
     (let ((supply (ft-get-supply vault-shares))
           (total  (var-get total-assets-bookkeeping))
           (bal    (ft-get-balance vault-shares owner))
-          (ag     (var-get alloc-granite))
-          (az     (var-get alloc-zest-v2))
+          ;; Floor dust allocations to zero for proportional math.
+          (ag     (let ((raw (var-get alloc-granite)))
+                    (if (<= raw dust-threshold) u0 raw)))
+          (az     (let ((raw (var-get alloc-zest-v2)))
+                    (if (<= raw dust-threshold) u0 raw)))
           (voff   (var-get virtual-offset)))
       (asserts! (> amount u0) err-amount-zero)
       (asserts! (> total u0) err-insufficient-balance)
@@ -527,14 +538,14 @@
   (begin
     (asserts! (is-eq tx-sender owner) err-owner-only)
     (asserts! (is-eq (contract-of token) (var-get base-asset)) err-invalid-asset)
-    (let ((sg (if (> (var-get alloc-granite) u0)
+    (let ((sg (if (> (var-get alloc-granite) dust-threshold)
                (begin
                  (asserts! (is-eq (some (contract-of granite))
                                   (var-get adapter-granite-usdcx))
                            err-invalid-adapter)
                  (try! (do-sync-granite granite)))
                u0))
-          (sz (if (> (var-get alloc-zest-v2) u0)
+          (sz (if (> (var-get alloc-zest-v2) dust-threshold)
                (begin
                  (asserts! (is-eq (some (contract-of zest-v2))
                                   (var-get adapter-zest-v2-usdc))
@@ -544,8 +555,11 @@
     (let ((supply (ft-get-supply vault-shares))
           (total  (var-get total-assets-bookkeeping))
           (bal    (ft-get-balance vault-shares owner))
-          (ag     (var-get alloc-granite))
-          (az     (var-get alloc-zest-v2))
+          ;; Floor dust allocations to zero for proportional math.
+          (ag     (let ((raw (var-get alloc-granite)))
+                    (if (<= raw dust-threshold) u0 raw)))
+          (az     (let ((raw (var-get alloc-zest-v2)))
+                    (if (<= raw dust-threshold) u0 raw)))
           (voff   (var-get virtual-offset)))
       (asserts! (> shares u0) err-shares-zero)
       (asserts! (>= bal shares) err-insufficient-shares)

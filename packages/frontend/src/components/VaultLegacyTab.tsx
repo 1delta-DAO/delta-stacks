@@ -4,11 +4,11 @@ import { useWallet } from '../context/WalletContext'
 import { useTransact } from '../hooks/useTransact'
 import { usePendingTx } from '../hooks/usePendingTx'
 import { useBalances, type Balances } from '../hooks/useBalances'
-import { useVaultStateV3, type VaultStateV3 } from '../hooks/useVaultStateV3'
+import { useVaultState, type VaultState } from '../hooks/useVaultState'
 import {
-  DeltaVaultV3,
-  VAULT_V3_CONTRACTS,
-  VAULT_V3_UNDERLYING,
+  DeltaVault,
+  VAULT_CONTRACTS,
+  VAULT_UNDERLYING,
 } from '@delta-stacks/calldata-sdk-stacks'
 
 import graniteLogo from '../assets/granite.png'
@@ -20,17 +20,8 @@ import { getTokenIcon } from '../utils/tokenIcons'
 // ---------------------------------------------------------------------------
 
 const USER_OPS = ['Deposit', 'Withdraw', 'Redeem'] as const
-const ALLOCATOR_OPS = [
-  'Deploy Granite', 'Deploy Zest',
-  'Recall Granite', 'Recall Zest',
-  'Rebalance G→Z', 'Rebalance Z→G',
-  'Reallocate',
-] as const
-const OWNER_OPS = [
-  'Set Allocator', 'Set Owner',
-  'Register Granite', 'Register Zest',
-  'Set Fee', 'Set Fee Recipient', 'Set Idle Buffer',
-] as const
+const ALLOCATOR_OPS = ['Deploy Granite', 'Deploy Zest', 'Rebalance G→Z', 'Rebalance Z→G'] as const
+const OWNER_OPS = ['Set Allocator', 'Register Granite', 'Register Zest'] as const
 
 const PCT_BUTTONS = [25, 50, 75, 100] as const
 
@@ -56,18 +47,13 @@ function pct(n: number): string {
   return n.toFixed(2) + '%'
 }
 
-/** Format basis points as percentage */
-function bpsPct(bps: bigint): string {
-  return (Number(bps) / 100).toFixed(2) + '%'
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function VaultTab() {
+export function VaultLegacyTab() {
   const [roleTab, setRoleTab] = useState(0)
-  const { state: vault, loading, refresh: refreshVault } = useVaultStateV3()
+  const { state: vault, loading, refresh: refreshVault } = useVaultState()
   const { balances, refresh: refreshBalances } = useBalances()
 
   /** Called when any pending tx confirms — refresh both user balances and vault state */
@@ -91,8 +77,8 @@ export function VaultTab() {
               }}
             />
             <div>
-              <h2 className="text-sm font-semibold">1delta USDCx Vault v3</h2>
-              <span className="text-[11px] text-text-dim">1dUSDCx</span>
+              <h2 className="text-sm font-semibold">1delta USDCx Vault</h2>
+              <span className="text-[11px] text-text-dim">dUSDCx</span>
             </div>
           </div>
           {!loading && vault.blendedApr > 0 && (
@@ -115,24 +101,6 @@ export function VaultTab() {
             positive={vault.unrealizedYield > 0n}
           />
         </div>
-
-        {/* V3 config row */}
-        {!loading && (
-          <div className="grid grid-cols-3 gap-3 mt-3">
-            <MetricCard
-              label="Performance Fee"
-              value={bpsPct(vault.feeBps)}
-            />
-            <MetricCard
-              label="Idle Buffer"
-              value={bpsPct(vault.idleBufferBps)}
-            />
-            <MetricCard
-              label="Virtual Offset"
-              value={vault.virtualOffset.toLocaleString()}
-            />
-          </div>
-        )}
       </div>
 
       {/* Allocation breakdown */}
@@ -146,7 +114,7 @@ export function VaultTab() {
       />
 
       {roleTab === 0 && <UserPanel balances={balances} onTxConfirm={onTxConfirm} />}
-      {roleTab === 1 && <AllocatorPanel vault={vault} onTxConfirm={onTxConfirm} />}
+      {roleTab === 1 && <AllocatorPanel onTxConfirm={onTxConfirm} />}
       {roleTab === 2 && <OwnerPanel onTxConfirm={onTxConfirm} />}
     </div>
   )
@@ -169,7 +137,7 @@ function MetricCard({ label, value, positive }: { label: string; value: string; 
 // Allocation breakdown bar + table
 // ---------------------------------------------------------------------------
 
-function AllocationBar({ vault }: { vault: VaultStateV3 }) {
+function AllocationBar({ vault }: { vault: VaultState }) {
   const total = vault.totalAssets
   const idle = vault.idleBookkeeping
   const granite = vault.allocGranite
@@ -295,16 +263,16 @@ function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm:
   // USDCx wallet balance (human-readable)
   const walletBalance = useMemo(() => {
     const key = Object.keys(balances.fungible).find(
-      (k) => k.toLowerCase() === VAULT_V3_UNDERLYING.toLowerCase(),
+      (k) => k.toLowerCase() === VAULT_UNDERLYING.toLowerCase(),
     )
     if (key) return Number(balances.fungible[key].balance) / 1e6
     return 0
   }, [balances])
 
-  // 1dUSDCx (vault share) balance
+  // dUSDCx (vault share) balance
   const shareBalance = useMemo(() => {
     const key = Object.keys(balances.fungible).find(
-      (k) => k.toLowerCase() === VAULT_V3_CONTRACTS.vault.toLowerCase(),
+      (k) => k.toLowerCase() === VAULT_CONTRACTS.vault.toLowerCase(),
     )
     if (key) return Number(balances.fungible[key].balance) / 1e6
     return 0
@@ -342,11 +310,11 @@ function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm:
     await tx.execute(async () => {
       switch (op) {
         case 'Deposit':
-          return DeltaVaultV3.encodeDeposit(amtSmallest, stxAddress)
+          return DeltaVault.encodeDeposit(amtSmallest, stxAddress)
         case 'Withdraw':
-          return DeltaVaultV3.encodeWithdraw(amtSmallest, stxAddress, stxAddress)
+          return DeltaVault.encodeWithdraw(amtSmallest, stxAddress, stxAddress)
         case 'Redeem':
-          return DeltaVaultV3.encodeRedeem(amtSmallest, stxAddress, stxAddress)
+          return DeltaVault.encodeRedeem(amtSmallest, stxAddress, stxAddress)
       }
     })
   }, [stxAddress, amount, op, tx])
@@ -379,7 +347,7 @@ function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm:
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="w-4 h-4 rounded-full bg-gradient-to-br from-accent-blue to-accent-purple flex items-center justify-center text-[8px] font-bold text-white">d</span>
-              <span className="text-text-dim">1dUSDCx shares</span>
+              <span className="text-text-dim">dUSDCx shares</span>
             </div>
             <span className="font-mono text-text-muted">{formatAmount(shareBalance)}</span>
           </div>
@@ -390,7 +358,7 @@ function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm:
       <AmountInput
         amount={amount}
         setAmount={(v) => { setAmount(v); if (tx.status !== 'idle') tx.reset() }}
-        label={op === 'Redeem' ? 'Shares (1dUSDCx)' : 'Amount (USDCx)'}
+        label={op === 'Redeem' ? 'Shares (dUSDCx)' : 'Amount (USDCx)'}
         maxAmount={maxAmount}
         exceedsMax={amtExceedsMax}
         pctButtons
@@ -412,35 +380,20 @@ function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm:
 }
 
 // ---------------------------------------------------------------------------
-// Allocator Panel — Deploy / Recall / Rebalance / Reallocate
+// Allocator Panel — Deploy / Rebalance
 // ---------------------------------------------------------------------------
 
-function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfirm: () => void }) {
+function AllocatorPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
   const [opTab, setOpTab] = useState(0)
   const [amount, setAmount] = useState('')
-  // Reallocate needs 4 fields
-  const [reallocFields, setReallocFields] = useState({ fromGranite: '', fromZest: '', toGranite: '', toZest: '' })
   const { connected, stxAddress, connect } = useWallet()
   const tx = useTransact()
   const pending = usePendingTx(onTxConfirm)
 
   const op = ALLOCATOR_OPS[opTab]
-  const isReallocate = op === 'Reallocate'
 
   const handleSubmit = useCallback(async () => {
-    if (!stxAddress) return
-
-    if (isReallocate) {
-      const fg = BigInt(Math.floor(parseFloat(reallocFields.fromGranite || '0') * 1e6))
-      const fz = BigInt(Math.floor(parseFloat(reallocFields.fromZest || '0') * 1e6))
-      const tg = BigInt(Math.floor(parseFloat(reallocFields.toGranite || '0') * 1e6))
-      const tz = BigInt(Math.floor(parseFloat(reallocFields.toZest || '0') * 1e6))
-
-      await tx.execute(async () => DeltaVaultV3.encodeReallocate(fg, fz, tg, tz))
-      return
-    }
-
-    if (!amount) return
+    if (!stxAddress || !amount) return
     const amtRaw = parseFloat(amount)
     if (isNaN(amtRaw) || amtRaw <= 0) return
     const amtSmallest = BigInt(Math.floor(amtRaw * 1e6))
@@ -448,20 +401,16 @@ function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfi
     await tx.execute(async () => {
       switch (op) {
         case 'Deploy Granite':
-          return DeltaVaultV3.encodeDeployToGranite(amtSmallest)
+          return DeltaVault.encodeDeployToGranite(amtSmallest)
         case 'Deploy Zest':
-          return DeltaVaultV3.encodeDeployToZestV2(amtSmallest)
-        case 'Recall Granite':
-          return DeltaVaultV3.encodeRecallFromGranite(amtSmallest)
-        case 'Recall Zest':
-          return DeltaVaultV3.encodeRecallFromZestV2(amtSmallest)
+          return DeltaVault.encodeDeployToZestV2(amtSmallest)
         case 'Rebalance G→Z':
-          return DeltaVaultV3.encodeRebalanceGraniteToZestV2(amtSmallest)
+          return DeltaVault.encodeRebalanceGraniteToZestV2(amtSmallest)
         case 'Rebalance Z→G':
-          return DeltaVaultV3.encodeRebalanceZestV2ToGranite(amtSmallest)
+          return DeltaVault.encodeRebalanceZestV2ToGranite(amtSmallest)
       }
     })
-  }, [stxAddress, amount, op, tx, isReallocate, reallocFields])
+  }, [stxAddress, amount, op, tx])
 
   useEffect(() => {
     if (tx.status === 'submitted' && tx.txId) pending.addTx(tx.txId)
@@ -472,7 +421,7 @@ function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfi
       <Tabs
         tabs={[...ALLOCATOR_OPS]}
         active={opTab}
-        onChange={(i) => { setOpTab(i); setAmount(''); setReallocFields({ fromGranite: '', fromZest: '', toGranite: '', toZest: '' }); tx.reset() }}
+        onChange={(i) => { setOpTab(i); setAmount(''); tx.reset() }}
         size="sm"
       />
 
@@ -483,83 +432,17 @@ function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfi
         Allocator-only operations. Only the address set via <span className="font-mono text-text-muted">set-vault-allocator</span> can execute these.
       </div>
 
-      {/* Current balances context */}
-      <div className="bg-surface-alt/60 rounded-xl p-3 space-y-1.5 text-xs border border-border-subtle">
-        <div className="flex justify-between">
-          <span className="text-text-dim">Idle</span>
-          <span className="font-mono text-text-muted">{micro(vault.idleBookkeeping)} USDCx</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-text-dim">Granite</span>
-          <span className="font-mono text-text-muted">{micro(vault.allocGranite)} USDCx</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-text-dim">Zest V2</span>
-          <span className="font-mono text-text-muted">{micro(vault.allocZest)} USDCx</span>
-        </div>
-      </div>
-
-      {isReallocate ? (
-        <div className="space-y-3">
-          <div className="text-xs text-text-dim">
-            Zero-sum rebalance: total recalled must equal total deployed.
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">From Granite</label>
-              <input
-                type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.fromGranite}
-                onChange={(e) => { setReallocFields(f => ({ ...f, fromGranite: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
-                className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">From Zest V2</label>
-              <input
-                type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.fromZest}
-                onChange={(e) => { setReallocFields(f => ({ ...f, fromZest: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
-                className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">To Granite</label>
-              <input
-                type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.toGranite}
-                onChange={(e) => { setReallocFields(f => ({ ...f, toGranite: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
-                className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">To Zest V2</label>
-              <input
-                type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.toZest}
-                onChange={(e) => { setReallocFields(f => ({ ...f, toZest: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
-                className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
-              />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <AmountInput
-          amount={amount}
-          setAmount={(v) => { setAmount(v); if (tx.status !== 'idle') tx.reset() }}
-          label="Amount (USDCx)"
-        />
-      )}
+      <AmountInput
+        amount={amount}
+        setAmount={(v) => { setAmount(v); if (tx.status !== 'idle') tx.reset() }}
+        label="Amount (USDCx)"
+      />
 
       <SubmitButton
         connected={connected}
         connect={connect}
         onClick={handleSubmit}
-        disabled={
-          isReallocate
-            ? tx.status === 'building' || tx.status === 'signing'
-            : !amount || tx.status === 'building' || tx.status === 'signing'
-        }
+        disabled={!amount || tx.status === 'building' || tx.status === 'signing'}
         tx={tx}
         label={op}
       />
@@ -570,47 +453,17 @@ function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfi
 }
 
 // ---------------------------------------------------------------------------
-// Owner Panel — Config / Register / Set roles
+// Owner Panel — Set Allocator / Register Adapters
 // ---------------------------------------------------------------------------
 
 function OwnerPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
   const [opTab, setOpTab] = useState(0)
-  const [inputValue, setInputValue] = useState('')
+  const [principal, setPrincipal] = useState('')
   const { connected, stxAddress, connect } = useWallet()
   const tx = useTransact()
   const pending = usePendingTx(onTxConfirm)
 
   const op = OWNER_OPS[opTab]
-
-  // Whether the input is a number (fee/buffer) or principal
-  const isNumericInput = op === 'Set Fee' || op === 'Set Idle Buffer'
-
-  const inputLabel = useMemo(() => {
-    switch (op) {
-      case 'Set Allocator': return 'New allocator principal'
-      case 'Set Owner': return 'New owner principal'
-      case 'Register Granite': return 'Adapter principal (blank for default)'
-      case 'Register Zest': return 'Adapter principal (blank for default)'
-      case 'Set Fee': return 'Fee (basis points, e.g. 1000 = 10%)'
-      case 'Set Fee Recipient': return 'Fee recipient principal'
-      case 'Set Idle Buffer': return 'Idle buffer (basis points, e.g. 500 = 5%)'
-      default: return 'Value'
-    }
-  }, [op])
-
-  const inputPlaceholder = useMemo(() => {
-    switch (op) {
-      case 'Set Allocator':
-      case 'Set Owner':
-      case 'Set Fee Recipient':
-        return 'SP...'
-      case 'Register Granite': return VAULT_V3_CONTRACTS.adapterGranite
-      case 'Register Zest': return VAULT_V3_CONTRACTS.adapterZestV2
-      case 'Set Fee': return '1000'
-      case 'Set Idle Buffer': return '500'
-      default: return ''
-    }
-  }, [op])
 
   const handleSubmit = useCallback(async () => {
     if (!stxAddress) return
@@ -618,44 +471,30 @@ function OwnerPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
     await tx.execute(async () => {
       switch (op) {
         case 'Set Allocator':
-          if (!inputValue) throw new Error('Principal required')
-          return DeltaVaultV3.encodeSetVaultAllocator(inputValue)
-        case 'Set Owner':
-          if (!inputValue) throw new Error('Principal required')
-          return DeltaVaultV3.encodeSetVaultOwner(inputValue)
+          if (!principal) throw new Error('Principal required')
+          return DeltaVault.encodeSetVaultAllocator(principal)
         case 'Register Granite':
-          return DeltaVaultV3.encodeRegisterAdapterGranite(inputValue || undefined)
+          return DeltaVault.encodeRegisterAdapterGranite(
+            principal || undefined,
+          )
         case 'Register Zest':
-          return DeltaVaultV3.encodeRegisterAdapterZestV2(inputValue || undefined)
-        case 'Set Fee': {
-          const bps = parseInt(inputValue, 10)
-          if (isNaN(bps) || bps < 0) throw new Error('Invalid basis points')
-          return DeltaVaultV3.encodeSetFeeBps(BigInt(bps))
-        }
-        case 'Set Fee Recipient':
-          if (!inputValue) throw new Error('Principal required')
-          return DeltaVaultV3.encodeSetFeeRecipient(inputValue)
-        case 'Set Idle Buffer': {
-          const bps = parseInt(inputValue, 10)
-          if (isNaN(bps) || bps < 0) throw new Error('Invalid basis points')
-          return DeltaVaultV3.encodeSetIdleBuffer(BigInt(bps))
-        }
+          return DeltaVault.encodeRegisterAdapterZestV2(
+            principal || undefined,
+          )
       }
     })
-  }, [stxAddress, inputValue, op, tx])
+  }, [stxAddress, principal, op, tx])
 
   useEffect(() => {
     if (tx.status === 'submitted' && tx.txId) pending.addTx(tx.txId)
   }, [tx.status, tx.txId, pending])
-
-  const needsInput = op !== 'Register Granite' && op !== 'Register Zest'
 
   return (
     <div className="glass-card rounded-xl p-5 space-y-4">
       <Tabs
         tabs={[...OWNER_OPS]}
         active={opTab}
-        onChange={(i) => { setOpTab(i); setInputValue(''); tx.reset() }}
+        onChange={(i) => { setOpTab(i); setPrincipal(''); tx.reset() }}
         size="sm"
       />
 
@@ -666,15 +505,16 @@ function OwnerPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
         Owner-only operations. Only the vault owner can execute these.
       </div>
 
-      {/* Input */}
+      {/* Principal input */}
       <div className="space-y-1.5">
-        <label className="text-xs text-text-muted font-medium">{inputLabel}</label>
+        <label className="text-xs text-text-muted font-medium">
+          {op === 'Set Allocator' ? 'New allocator principal' : 'Adapter principal (blank for default)'}
+        </label>
         <input
-          type={isNumericInput ? 'number' : 'text'}
-          min={isNumericInput ? '0' : undefined}
-          placeholder={inputPlaceholder}
-          value={inputValue}
-          onChange={(e) => { setInputValue(e.target.value); if (tx.status !== 'idle') tx.reset() }}
+          type="text"
+          placeholder={op === 'Set Allocator' ? 'SP...' : VAULT_CONTRACTS.adapterGranite}
+          value={principal}
+          onChange={(e) => { setPrincipal(e.target.value); if (tx.status !== 'idle') tx.reset() }}
           className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
         />
       </div>
@@ -683,7 +523,7 @@ function OwnerPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
         connected={connected}
         connect={connect}
         onClick={handleSubmit}
-        disabled={(needsInput && !inputValue) || tx.status === 'building' || tx.status === 'signing'}
+        disabled={(op === 'Set Allocator' && !principal) || tx.status === 'building' || tx.status === 'signing'}
         tx={tx}
         label={op}
       />

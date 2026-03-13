@@ -1,0 +1,212 @@
+# =============================================================================
+# Delta Vault V3 / USDCx — Mainnet Deployment Plan
+# =============================================================================
+#
+# Deploys the v3 USDCx yield vault system:
+#   Batch 0: lending-adapter-trait  (shared trait — skip if already deployed)
+#   Batch 1: adapter-granite-usdcx-v3, adapter-zest-v2-usdc-v3, vault-usdcx-v3
+#   Batch 2: initialize, register adapters
+#   Batch 3: (optional) fee config, allocator delegation
+#
+# v3 features over v1/v2:
+#   - Portable vault (initialize configures asset, name, symbol, decimals)
+#   - Symmetric virtual offset (10^decimals) — stronger than v2's asymmetric 10^8
+#   - Auto-allocation on deposit (proportional to current lending balances)
+#   - Performance fees (MetaMorpho-style share dilution)
+#   - Zero-sum rebalancing (reallocate)
+#   - Dust threshold (allocations <= 100 units treated as zero)
+#   - Bookkeeping-based total-assets (donation-attack immune)
+#
+# Pre-flight checklist
+# --------------------
+#   [ ] clarinet check passes (ignoring mainnet-only external contract warnings)
+#   [ ] All vitest tests pass: npm test  (108 tests)
+#   [ ] Review coverage: npm run test:coverage
+#   [ ] Testnet deployment verified successfully
+#   [ ] Verify deployer STX balance covers estimated costs (~5 STX total)
+#   [ ] Confirm deployer address matches expected-sender below
+#   [ ] Confirm external contract addresses are correct for mainnet:
+#         USDCx:       SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx
+#         Granite LP:  SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.liquidity-provider-v1
+#         Granite St:  SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1
+#         Zest V2:     SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-usdc
+#         SIP-010:     SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard
+#   [ ] CONTRACTS ARE IMMUTABLE ONCE DEPLOYED — review code one final time
+#
+# Usage
+# -----
+#   clarinet deployments apply --deployment-plan-path deployments/vault-v3-usdcx.mainnet-plan.yaml
+#
+# =============================================================================
+
+id: 1
+name: Delta Vault V3 USDCx mainnet deployment
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    # ------------------------------------------------------------------
+    # Batch 0 — SKIPPED (lending-adapter-trait already deployed from v1)
+    # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Batch 1 — Deploy adapters + vault
+    # ------------------------------------------------------------------
+    # Adapters impl-trait the trait from batch 0.
+    # The vault use-trait the same trait + SIP-010 ft trait.
+    # Contract names use -v3 suffix to coexist with v1/v2 deployments.
+    #
+    # Cost estimates:
+    #   adapter-granite:   ~0.5 STX
+    #   adapter-zest-v2:   ~0.5 STX
+    #   vault-usdcx-v3:    ~1.5 STX (largest contract)
+    - id: 1
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: adapter-granite-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/v3/usdcx/adapter-granite-usdcx.clar
+          anchor-block-only: true
+          clarity-version: 3
+
+        - transaction-type: contract-publish
+          contract-name: adapter-zest-v2-usdc-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/v3/usdcx/adapter-zest-v2-usdc.clar
+          anchor-block-only: true
+          clarity-version: 3
+
+        - transaction-type: contract-publish
+          contract-name: vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 1500000
+          path: contracts/prod/v3/usdcx/vault-usdcx-v3.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 2 — Post-deploy initialization
+    # ------------------------------------------------------------------
+    # 1. initialize: locks base asset to USDCx, sets share metadata + virtual offset
+    #    This is callable ONCE — subsequent calls return err u114.
+    # 2. Register adapters with the vault.
+    #    Until registered, vault operates in idle-only mode.
+    - id: 2
+      transactions:
+        # --- Initialize vault ---
+        # Sets: base-asset = USDCx, name = "1delta USDCx Vault v3",
+        #       symbol = "1dUSDCx", decimals = 6, virtual-offset = 10^6
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: initialize
+          parameters:
+            - "'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx"
+            - "\"1delta USDCx Vault v3\""
+            - "\"1dUSDCx\""
+            - "u6"
+          cost: 250000
+
+        # --- Register Granite USDCx adapter ---
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-granite-usdcx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-granite-usdcx-v3"
+          cost: 250000
+
+        # --- Register Zest V2 USDC adapter ---
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-usdc
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-usdc-v3"
+          cost: 250000
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 3 — Fee & allocator configuration (optional)
+    # ------------------------------------------------------------------
+    # Uncomment and customize as needed. Can also be done later via
+    # stacks.js or a standalone deployment plan.
+    #
+    # - id: 3
+    #   transactions:
+    #     # Performance fee: 10% of yield (1000 bps)
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-fee-bps
+    #       parameters:
+    #         - "u1000"
+    #       cost: 250000
+    #
+    #     # Fee recipient
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-fee-recipient
+    #       parameters:
+    #         - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H"
+    #       cost: 250000
+    #
+    #     # Idle buffer: 3% (300 bps)
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-idle-buffer
+    #       parameters:
+    #         - "u300"
+    #       cost: 250000
+    #
+    #     # Delegate allocator to bot/multisig
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-vault-allocator
+    #       parameters:
+    #         - "'SPXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.allocator-bot"
+    #       cost: 250000
+    #   epoch: '3.0'
+
+# =============================================================================
+# Post-deployment verification
+# =============================================================================
+#
+# Run the verification script:
+#   ./scripts/verify-vault-v3-deployment.sh mainnet
+#
+# Or manually verify:
+#
+#   1. Vault deployed and initialized:
+#      curl -s "https://api.hiro.so/v2/contracts/call-read/SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H/vault-usdcx-v3/get-total-assets" \
+#        -H 'Content-Type: application/json' \
+#        -d '{"sender":"SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H","arguments":[]}'
+#      # Should return u0
+#
+#   2. Base asset configured:
+#      get-base-asset => SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx
+#
+#   3. Virtual offset set:
+#      get-virtual-offset => u1000000  (10^6)
+#
+#   4. Share metadata:
+#      get-name    => "1delta USDCx Vault v3"
+#      get-symbol  => "1dUSDCx"
+#      get-decimals => u6
+#
+#   5. Adapters registered:
+#      get-adapter-granite-usdcx => (some SP2DRPT...adapter-granite-usdcx-v3)
+#      get-adapter-zest-v2-usdc  => (some SP2DRPT...adapter-zest-v2-usdc-v3)
+#
+#   6. Allocations at zero:
+#      get-alloc-granite  => u0
+#      get-alloc-zest-v2  => u0
+#
+# =============================================================================

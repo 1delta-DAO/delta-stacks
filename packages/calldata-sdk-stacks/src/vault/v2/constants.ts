@@ -1,13 +1,7 @@
 /**
- * Delta Vault contract addresses (Stacks Mainnet).
- *
- * The vault is an ERC-4626-style yield vault for USDCx with a constrained
- * allocation layer that deploys idle funds into Granite and Zest V2.
- *
- * Replace VAULT_DEPLOYER with the actual deployer address once deployed.
+ * Delta Vault V2 contract addresses (Stacks Mainnet).
  */
 
-// TODO: replace with actual deployer address after mainnet deployment
 export const VAULT_DEPLOYER = 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H'
 
 export const VAULT_CONTRACTS = {

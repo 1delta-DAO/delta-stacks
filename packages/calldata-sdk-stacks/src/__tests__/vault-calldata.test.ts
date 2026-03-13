@@ -4,13 +4,13 @@ import {
   DeltaVault,
   VAULT_DEPLOYER,
   VAULT_CONTRACTS,
-} from '../vault'
+} from '../vault/v2'
 
 const USER = 'SP35E2BBMDT2Y1HB0NTK139YBGYV3PAPK3WA8BRNA'
 const RECEIVER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7'
 const NEW_OWNER = 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE'
 
-describe('DeltaVault', () => {
+describe('DeltaVault (V2)', () => {
   // === User operations ===
 
   describe('encodeDeposit', () => {

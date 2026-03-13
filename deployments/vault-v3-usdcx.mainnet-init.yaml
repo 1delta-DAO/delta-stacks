@@ -1,0 +1,48 @@
+# =============================================================================
+# Delta Vault V3 / USDCx — Post-deploy initialization (standalone)
+# =============================================================================
+# Run this if batch 2 from the main plan didn't broadcast.
+#
+# Usage:
+#   clarinet deployments apply --deployment-plan-path deployments/vault-v3-usdcx.mainnet-init.yaml
+# =============================================================================
+
+id: 2
+name: Delta Vault V3 USDCx initialization
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    - id: 0
+      transactions:
+        # Initialize vault: asset, name, symbol, decimals
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: initialize
+          parameters:
+            - "'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx"
+            - "\"1delta USDCx Vault v3\""
+            - "\"1dUSDCx\""
+            - "u6"
+          cost: 250000
+
+        # Register Granite adapter
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-granite-usdcx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-granite-usdcx-v3"
+          cost: 250000
+
+        # Register Zest V2 adapter
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-usdc
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-usdc-v3"
+          cost: 250000
+      epoch: '3.0'

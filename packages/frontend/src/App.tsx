@@ -4,8 +4,9 @@ import { Tabs } from './components/Tabs'
 import { BalancesTab } from './components/BalancesTab'
 import { LendingTab } from './components/LendingTab'
 import { VaultTab } from './components/VaultTab'
+import { VaultLegacyTab } from './components/VaultLegacyTab'
 
-const MAIN_TABS = ['Balances', 'Lending', 'Vault']
+const MAIN_TABS = ['Balances', 'Lending', 'Vault', 'Vault (Legacy)']
 
 function App() {
   const [tab, setTab] = useState(0)
@@ -18,6 +19,7 @@ function App() {
         {tab === 0 && <BalancesTab />}
         {tab === 1 && <LendingTab />}
         {tab === 2 && <VaultTab />}
+        {tab === 3 && <VaultLegacyTab />}
       </main>
     </div>
   )

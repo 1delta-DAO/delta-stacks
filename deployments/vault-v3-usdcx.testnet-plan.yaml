@@ -1,0 +1,184 @@
+# =============================================================================
+# Delta Vault V3 / USDCx — Testnet Deployment Plan
+# =============================================================================
+#
+# Testnet-first deployment for verification before mainnet.
+# Same contract set and initialization as mainnet, different network.
+#
+# Deploys the v3 USDCx yield vault system:
+#   Batch 0: lending-adapter-trait  (shared trait — skip if already deployed)
+#   Batch 1: adapter-granite-usdcx, adapter-zest-v2-usdc, vault-usdcx-v3
+#   Batch 2: initialize, register adapters, set fee config
+#
+# v3 additions over v1:
+#   - initialize() call to configure asset, name, symbol, decimals
+#   - Performance fee configuration (set-fee-bps, set-fee-recipient)
+#   - Idle buffer configuration (set-idle-buffer)
+#   - Auto-allocation, zero-sum rebalancing, dust threshold
+#
+# Prerequisites
+# -------------
+#   [ ] Get testnet STX from faucet: https://explorer.hiro.so/sandbox/faucet?chain=testnet
+#   [ ] clarinet check passes
+#   [ ] npm test passes (108 tests)
+#   [ ] Update expected-sender below to your testnet address
+#
+# NOTE: On testnet, adapter contracts reference mainnet Granite/Zest addresses
+# which won't exist. The contracts will deploy but adapter calls will fail.
+# This is expected — testnet verifies:
+#   - Contract compilation and deployment succeeds
+#   - Vault idle-mode operations (deposit/withdraw/redeem) work
+#   - initialize / adapter registration / fee config flow works
+#   - Owner/allocator role separation works
+#
+# Usage
+# -----
+#   clarinet deployments apply --deployment-plan-path deployments/vault-v3-usdcx.testnet-plan.yaml
+#
+# =============================================================================
+
+id: 1
+name: Delta Vault V3 USDCx testnet deployment
+network: testnet
+stacks-node: https://api.testnet.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin-regtest.blockstack.com:18443
+plan:
+  batches:
+    # ------------------------------------------------------------------
+    # Batch 0 — Deploy the lending adapter trait
+    # ------------------------------------------------------------------
+    # Must land first: both adapters and the vault (use-trait) depend on it.
+    # If lending-adapter-trait is already deployed from v1, SKIP this batch
+    # by removing it or commenting it out.
+    - id: 0
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: lending-adapter-trait
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/lending-adapter-trait.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 1 — Deploy adapters + vault
+    # ------------------------------------------------------------------
+    # Adapters impl-trait the trait from batch 0.
+    # The vault use-trait the same trait + SIP-010 ft trait.
+    # Contract names use -v3 suffix to avoid collision with v1 deployments.
+    - id: 1
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: adapter-granite-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/v3/usdcx/adapter-granite-usdcx.clar
+          anchor-block-only: true
+          clarity-version: 3
+
+        - transaction-type: contract-publish
+          contract-name: adapter-zest-v2-usdc-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/v3/usdcx/adapter-zest-v2-usdc.clar
+          anchor-block-only: true
+          clarity-version: 3
+
+        - transaction-type: contract-publish
+          contract-name: vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 1500000
+          path: contracts/prod/v3/usdcx/vault-usdcx-v3.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 2 — Post-deploy initialization
+    # ------------------------------------------------------------------
+    # 1. initialize: configure base asset, name, symbol, decimals
+    # 2. Register adapters
+    # 3. Set performance fee (optional — 0 by default)
+    # 4. Set idle buffer (optional — 500 bps = 5% by default)
+    #
+    # Until adapters are registered, the vault operates in idle-only mode.
+    - id: 2
+      transactions:
+        # --- Initialize vault ---
+        # Args: asset (USDCx principal), name, symbol, decimals
+        # On testnet USDCx won't exist, so this call may fail.
+        # Comment out if needed and test idle-mode only.
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: initialize
+          parameters:
+            - "'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx"
+            - "\"1delta USDCx Vault v3\""
+            - "\"1dUSDCx\""
+            - "u6"
+          cost: 250000
+
+        # --- Register adapters ---
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-granite-usdcx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-granite-usdcx-v3"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-usdc
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-usdc-v3"
+          cost: 250000
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 3 — Optional configuration
+    # ------------------------------------------------------------------
+    # Uncomment to set performance fee and/or change idle buffer.
+    # These can also be called later via stacks.js or a separate plan.
+    #
+    # - id: 3
+    #   transactions:
+    #     # Set performance fee to 10% (1000 bps)
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-fee-bps
+    #       parameters:
+    #         - "u1000"
+    #       cost: 250000
+    #
+    #     # Set fee recipient
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-fee-recipient
+    #       parameters:
+    #         - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H"
+    #       cost: 250000
+    #
+    #     # Set idle buffer to 3% (300 bps)
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-idle-buffer
+    #       parameters:
+    #         - "u300"
+    #       cost: 250000
+    #
+    #     # Delegate allocator to a bot/multisig
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-vault-allocator
+    #       parameters:
+    #         - "'SPXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.allocator-bot"
+    #       cost: 250000
+    #   epoch: '3.0'

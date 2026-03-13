@@ -36,12 +36,20 @@ export {
 } from './granite'
 export type { GraniteMarketContracts } from './granite'
 
-// Delta Vault
+// Delta Vault V2 (legacy)
 export {
   DeltaVault,
   VAULT_DEPLOYER,
   VAULT_CONTRACTS,
   VAULT_UNDERLYING,
+} from './vault'
+
+// Delta Vault V3
+export {
+  DeltaVaultV3,
+  VAULT_V3_DEPLOYER,
+  VAULT_V3_CONTRACTS,
+  VAULT_V3_UNDERLYING,
 } from './vault'
 
 // Pyth oracle helpers
