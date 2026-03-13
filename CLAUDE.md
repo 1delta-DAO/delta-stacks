@@ -1,8 +1,53 @@
-# Stacks Development Knowledge
+# Delta Stacks
+
+DeFi infrastructure for Stacks (Bitcoin L2) lending protocols. Monorepo with Clarity smart contracts, TypeScript SDKs, a Cloudflare Workers backend, and a React frontend.
+
+## Repository Structure
+
+```
+delta-stacks/
+  contracts/                     Clarity aggregator + vault contracts
+    prod/v2/                     Vault V2 production contracts
+    prod/v3/usdcx/               Vault V3 production contracts + README
+  packages/
+    calldata-sdk-stacks/         Transaction calldata encoders (all protocols)
+      src/vault/v2/              Legacy vault SDK
+      src/vault/v3/              Vault V3 SDK + README
+      src/zest-v1/               Zest V1 encoders + README
+      src/zest-v2/               Zest V2 encoders + README
+      src/granite/               Granite encoders + README
+      src/lending/               High-level lending API
+    data-provision/              On-chain data fetching & parsing
+      src/lending/public-data/   Protocol-specific data modules
+      src/vault/                 Vault snapshot fetcher
+      src/prices/                Oracle price aggregation (Pyth + on-chain)
+      src/token-list/            Stacks token list utilities + README
+    backend/                     Cloudflare Workers (cron + REST API)
+    frontend/                    React 19 + Tailwind 4 UI
+  tests/fork/                    Mainnet fork integration tests + README
+```
+
+## Documentation Index
+
+| Topic | Location |
+|-------|----------|
+| Project overview | [README.md](README.md) |
+| Agent quick-reference | [AGENT.md](AGENT.md) |
+| Vault V3 contract spec | [contracts/prod/v3/usdcx/README.md](contracts/prod/v3/usdcx/README.md) |
+| Vault V3 SDK | [packages/calldata-sdk-stacks/src/vault/v3/README.md](packages/calldata-sdk-stacks/src/vault/v3/README.md) |
+| Calldata SDK | [packages/calldata-sdk-stacks/README.md](packages/calldata-sdk-stacks/README.md) |
+| Zest V1 | [packages/calldata-sdk-stacks/src/zest-v1/README.md](packages/calldata-sdk-stacks/src/zest-v1/README.md) |
+| Zest V2 | [packages/calldata-sdk-stacks/src/zest-v2/README.md](packages/calldata-sdk-stacks/src/zest-v2/README.md) |
+| Granite | [packages/calldata-sdk-stacks/src/granite/README.md](packages/calldata-sdk-stacks/src/granite/README.md) |
+| On-chain reader | [contracts/README.md](contracts/README.md) |
+| Zest V1 data provision | [packages/data-provision/src/lending/public-data/zest-v1/README.md](packages/data-provision/src/lending/public-data/zest-v1/README.md) |
+| Zest V2 data provision | [packages/data-provision/src/lending/public-data/zest-v2/README.md](packages/data-provision/src/lending/public-data/zest-v2/README.md) |
+| Token list | [packages/data-provision/src/token-list/README.md](packages/data-provision/src/token-list/README.md) |
+| Fork tests | [tests/fork/README.md](tests/fork/README.md) |
+
+## Stacks Development Guidelines
 
 This project uses Stacks, a Bitcoin layer for smart contracts. Contracts are written in Clarity, a decidable language that runs on Bitcoin's security.
-
-## Development Guidelines
 
 ### Start a Stacks Development Session with Full Debugging Visibility
 
