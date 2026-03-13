@@ -139,7 +139,7 @@ export const MARKET_REGISTRY: MarketPriceEntry[] = [
   { assetRef: '0', lender: 'zest-v2', priceSymbol: 'stx', assetGroup: 'STX' },
   { assetRef: '2', lender: 'zest-v2', priceSymbol: 'sbtc', assetGroup: 'BTC' },
   { assetRef: '4', lender: 'zest-v2', priceSymbol: 'ststx', assetGroup: 'stSTX' },
-  { assetRef: '6', lender: 'zest-v2', priceSymbol: 'usdc', assetGroup: 'USDC' },
+  { assetRef: '6', lender: 'zest-v2', priceSymbol: 'usdcx', assetGroup: 'USDCx' },
   { assetRef: '8', lender: 'zest-v2', priceSymbol: 'usdh', assetGroup: 'USDH' },
   { assetRef: '10', lender: 'zest-v2', priceSymbol: 'ststxbtc', assetGroup: 'stSTXbtc' },
 

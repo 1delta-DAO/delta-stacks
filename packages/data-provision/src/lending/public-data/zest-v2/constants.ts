@@ -36,8 +36,8 @@ export const ZEST_V2_ASSET_IDS = {
   zsBTC: 3,
   stSTX: 4,
   zstSTX: 5,
-  USDC: 6,
-  zUSDC: 7,
+  USDCx: 6,
+  zUSDCx: 7,
   USDH: 8,
   zUSDH: 9,
   stSTXbtc: 10,
@@ -55,8 +55,8 @@ export const ZEST_V2_SYMBOLS: Record<number, string> = {
   3: 'zsBTC',
   4: 'stSTX',
   5: 'zstSTX',
-  6: 'USDC',
-  7: 'zUSDC',
+  6: 'USDCx',
+  7: 'zUSDCx',
   8: 'USDH',
   9: 'zUSDH',
   10: 'stSTXbtc',
@@ -84,7 +84,7 @@ export const ZEST_V2_DECIMALS: Record<number, number> = {
   0: 6,   // STX
   2: 8,   // sBTC
   4: 6,   // stSTX
-  6: 6,   // USDC (aeUSDC)
+  6: 6,   // USDCx
   8: 6,   // USDH
   10: 6,  // stSTXbtc
 }
@@ -97,7 +97,7 @@ export const ZEST_V2_ASSET_PRINCIPALS: Record<number, string> = {
   // 0: STX is native, no contract principal
   2: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
   4: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token',
-  6: 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc',
+  6: 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx',
   8: 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1',
   10: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2',
 }
