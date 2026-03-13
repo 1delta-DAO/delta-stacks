@@ -11,6 +11,7 @@ import {
   VAULT_V3_UNDERLYING,
 } from '@delta-stacks/calldata-sdk-stacks'
 
+import { SharePriceChart } from './SharePriceChart'
 import graniteLogo from '../assets/granite.png'
 import zestLogo from '../assets/zest.png'
 import { getTokenIcon } from '../utils/tokenIcons'
@@ -137,6 +138,9 @@ export function VaultTab() {
 
       {/* Allocation breakdown */}
       {!loading && <AllocationBar vault={vault} />}
+
+      {/* Share price history chart */}
+      <SharePriceChart />
 
       {/* Role tabs */}
       <Tabs
