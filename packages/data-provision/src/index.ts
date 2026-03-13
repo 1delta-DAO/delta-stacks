@@ -38,3 +38,6 @@ export type {
   UserDataPayload,
 } from './lending/user-data/utils/types'
 export { convertPublicDataToMeta } from './lending/user-data/convertPublicToMeta'
+
+// Vault
+export { fetchVaultSnapshot, type VaultSnapshot } from './vault'

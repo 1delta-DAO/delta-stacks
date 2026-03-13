@@ -1,9 +1,11 @@
 import {
   getStacksLenderPublicData,
   fetchAllPrices,
+  fetchVaultSnapshot,
   type StacksLender,
   type AllLendingData,
   type USDPriceMap,
+  type VaultSnapshot,
 } from '@delta-stacks/data-provision'
 
 interface Env {
@@ -13,6 +15,8 @@ interface Env {
 const LENDERS: StacksLender[] = ['zest-v1', 'zest-v2', 'granite']
 const ROTATION_KEY = 'cron:next-lender-index'
 const PRICES_KEY = 'prices'
+const VAULT_HISTORY_KEY = 'vault:share-price-history'
+const MAX_VAULT_HISTORY = 21_600 // ~30 days at 2-min intervals
 
 /**
  * Cron trigger (every 2 min):
@@ -57,6 +61,24 @@ async function handleScheduled(env: Env): Promise<void> {
 
   // Advance rotation
   await env.LENDING_KV.put(ROTATION_KEY, String((idx + 1) % LENDERS.length))
+
+  // Step 3: Vault snapshot (every invocation — lightweight single batch call)
+  try {
+    const snapshot = await fetchVaultSnapshot({ concurrency: 2 })
+    const raw = await env.LENDING_KV.get(VAULT_HISTORY_KEY)
+    const history: VaultSnapshot[] = raw ? JSON.parse(raw) : []
+    history.push(snapshot)
+
+    // Trim to cap
+    if (history.length > MAX_VAULT_HISTORY) {
+      history.splice(0, history.length - MAX_VAULT_HISTORY)
+    }
+
+    await env.LENDING_KV.put(VAULT_HISTORY_KEY, JSON.stringify(history))
+    console.log(`Cron: vault snapshot stored (price=${snapshot.sharePrice}, history=${history.length})`)
+  } catch (e) {
+    console.error('Cron: failed to fetch vault snapshot', e)
+  }
 }
 
 /**
@@ -73,6 +95,30 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'public, max-age=60',
+  }
+
+  // Vault history endpoint
+  if (path === 'vault/history') {
+    const raw = await env.LENDING_KV.get(VAULT_HISTORY_KEY)
+    if (!raw) {
+      return new Response(JSON.stringify({ error: 'No vault history yet' }), {
+        status: 404,
+        headers,
+      })
+    }
+
+    // Optional query params: ?from=<unix>&to=<unix> for filtering
+    const from = url.searchParams.get('from')
+    const to = url.searchParams.get('to')
+    if (from || to) {
+      const history: VaultSnapshot[] = JSON.parse(raw)
+      const fromTs = from ? parseInt(from, 10) : 0
+      const toTs = to ? parseInt(to, 10) : Infinity
+      const filtered = history.filter(s => s.timestamp >= fromTs && s.timestamp <= toTs)
+      return new Response(JSON.stringify(filtered), { headers })
+    }
+
+    return new Response(raw, { headers })
   }
 
   // Prices endpoint
