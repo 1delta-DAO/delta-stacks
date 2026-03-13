@@ -145,7 +145,7 @@ export function VaultTab() {
         onChange={setRoleTab}
       />
 
-      {roleTab === 0 && <UserPanel balances={balances} onTxConfirm={onTxConfirm} />}
+      {roleTab === 0 && <UserPanel balances={balances} vault={vault} onTxConfirm={onTxConfirm} />}
       {roleTab === 1 && <AllocatorPanel vault={vault} onTxConfirm={onTxConfirm} />}
       {roleTab === 2 && <OwnerPanel onTxConfirm={onTxConfirm} />}
     </div>
@@ -283,7 +283,7 @@ function AllocationLegendItem({
 // User Panel — Deposit / Withdraw / Redeem
 // ---------------------------------------------------------------------------
 
-function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm: () => void }) {
+function UserPanel({ balances, vault, onTxConfirm }: { balances: Balances; vault: VaultStateV3; onTxConfirm: () => void }) {
   const [opTab, setOpTab] = useState(0)
   const [amount, setAmount] = useState('')
   const { connected, stxAddress, connect } = useWallet()
@@ -310,24 +310,31 @@ function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm:
     return 0
   }, [balances])
 
+  // Withdrawable USDCx = shares * share price (floored to 6 decimals)
+  const withdrawableBalance = useMemo(() => {
+    return Math.floor(shareBalance * vault.sharePrice * 1e6) / 1e6
+  }, [shareBalance, vault.sharePrice])
+
   const maxAmount = useMemo((): number => {
     switch (op) {
       case 'Deposit':
         return walletBalance
       case 'Withdraw':
-        return walletBalance // withdrawable amount (approximate)
+        return withdrawableBalance
       case 'Redeem':
         return shareBalance
       default:
         return 0
     }
-  }, [op, walletBalance, shareBalance])
+  }, [op, walletBalance, shareBalance, withdrawableBalance])
 
   const setPercent = useCallback(
     (pct: number) => {
       if (maxAmount <= 0) return
-      const val = (maxAmount * pct) / 100
-      setAmount(pct === 100 ? String(maxAmount) : val.toPrecision(6))
+      const raw = (maxAmount * pct) / 100
+      // Floor to 6 decimals to match on-chain micro-unit precision
+      const val = Math.floor(raw * 1e6) / 1e6
+      setAmount(String(val))
       if (tx.status !== 'idle') tx.reset()
     },
     [maxAmount, tx],
@@ -383,6 +390,15 @@ function UserPanel({ balances, onTxConfirm }: { balances: Balances; onTxConfirm:
             </div>
             <span className="font-mono text-text-muted">{formatAmount(shareBalance)}</span>
           </div>
+          {shareBalance > 0 && (
+            <div className="flex items-center justify-between border-t border-border-subtle pt-2">
+              <div className="flex items-center gap-1.5">
+                <img src={getTokenIcon('USDCx')} alt="USDCx" className="w-4 h-4 rounded-full opacity-60" />
+                <span className="text-text-dim">Withdrawable</span>
+              </div>
+              <span className="font-mono text-text-muted">{formatAmount(withdrawableBalance)} USDCx</span>
+            </div>
+          )}
         </div>
       )}
 
