@@ -1,45 +1,27 @@
 ;; vault-usdcx-v3.clar
 ;;
-;; ERC-4626-style yield vault for mock-usdcx with AUTO-ALLOCATION on deposit.
-;; Vault shares are a SIP-010 fungible token (dUSDCx), transferable between users.
+;; ERC-4626-style yield vault -- PORTABLE across any SIP-010 base asset.
+;; Vault shares are a SIP-010 fungible token, transferable between users.
 ;;
-;; v3 difference from v2:
-;; ----------------------
-;; Deposits are **proportionally allocated** to Granite and Zest V2 based on
-;; the CURRENT allocation balances (alloc-granite / alloc-zest-v2).
-;; This maintains the vault's existing balance across markets without requiring
-;; manual allocator intervention.
+;; Portability
+;; -----------
+;; Call `initialize` once after deployment to configure the base asset,
+;; decimals, share metadata, and virtual offset (10^decimals).
+;; The base asset is passed as a SIP-010 trait arg to deposit/withdraw/etc.
+;; and validated against the stored principal at runtime.
 ;;
-;; - If capital is already deployed, new deposits match the existing ratio.
-;; - If NO capital is deployed yet (both allocs are zero), everything stays idle.
-;; - An idle buffer (configurable bps, default 5%) is retained from each deposit
-;;   for instant withdrawal liquidity.
-;; - If adapters aren't registered, deposits gracefully fall back to 100% idle.
-;; - Adapter call failures are non-fatal: deposit succeeds, capital stays idle.
-;;
-;; Auto-allocation math (on deposit)
-;; ----------------------------------
-;; Given deposit D, idle-buffer-bps B, alloc-granite AG, alloc-zest-v2 AZ:
-;;   deploy-total   = D * (10000 - B) / 10000
-;;   total-deployed = AG + AZ
-;;   if total-deployed > 0:
-;;     deploy-granite = deploy-total * AG / total-deployed
-;;     deploy-zest    = deploy-total - deploy-granite
-;;   else:
-;;     deploy-granite = 0, deploy-zest = 0  (all stays idle)
-;;   idle = D - deploy-granite - deploy-zest
-;;
-;; Proportional withdrawal math (unchanged from v2)
-;; -------------------------------------------------
-;; Given withdrawal amount A and vault total T:
-;;   pull-idle    = floor(A * idle-book / T)
-;;   remaining    = A - pull-idle
-;;   pull-granite = floor(remaining * ag / (ag+az))
-;;   pull-zest-v2 = remaining - pull-granite
-;;
-;; Virtual-shares anti-inflation: pre-seeded with 100,000,000 phantom shares.
+;; v3 features
+;; -----------
+;; - Auto-allocation on deposit (proportional to current lending balances)
+;; - Proportional withdrawal across idle + markets
+;; - Performance fees (MetaMorpho-style dilution via share minting)
+;; - Zero-sum rebalancing (reallocate)
+;; - Recall (market -> idle)
+;; - Symmetric virtual offset = 10^decimals for share pricing
+;; - Bookkeeping-based total-assets prevents donation attacks
 
 (use-trait lat .lending-adapter-trait.lending-adapter-trait)
+(use-trait ft 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait)
 (impl-trait 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait)
 
 (define-fungible-token vault-shares)
@@ -57,16 +39,17 @@
 (define-constant err-not-allocator        (err u109))
 (define-constant err-invalid-adapter      (err u111))
 (define-constant err-invalid-weights      (err u112))
+(define-constant err-not-zero-sum         (err u113))
+(define-constant err-already-initialized  (err u114))
+(define-constant err-invalid-decimals     (err u115))
+(define-constant err-invalid-asset        (err u116))
 
 ;; ---------------------------------------------------------------------------
 ;; Constants
 ;; ---------------------------------------------------------------------------
-(define-constant virtual-shares u100000000)
 (define-constant bps-base u10000)
 
-;; ---------------------------------------------------------------------------
-;; Hardcoded market addresses (for read-only live position queries)
-;; ---------------------------------------------------------------------------
+;; Hardcoded market addresses (mainnet live position queries -- deployment-specific)
 (define-constant granite-usdcx-state
   'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE.state-v1)
 
@@ -85,18 +68,56 @@
 (define-data-var adapter-granite-usdcx (optional principal) none)
 (define-data-var adapter-zest-v2-usdc  (optional principal) none)
 
+;; --- Configurable base asset (set via initialize) ---
+(define-data-var base-asset principal .mock-token)
+(define-data-var virtual-offset uint u1000000)  ;; 10^decimals, default 10^6 for USDCx
+(define-data-var vault-initialized bool false)
+
+;; --- Configurable SIP-010 share metadata ---
+(define-data-var vault-name     (string-ascii 32) "1delta Vault v3")
+(define-data-var vault-symbol   (string-ascii 10) "dVAULT")
+(define-data-var vault-decimals uint u6)
+
 ;; --- v3: idle buffer ---
-;; Minimum idle buffer in bps retained from each deposit.
-;; E.g. 500 = 5% stays idle for instant withdrawal liquidity.
 (define-data-var idle-buffer-bps uint u500)
 
+;; --- v3: performance fees (MetaMorpho-style) ---
+(define-data-var fee-bps uint u0)
+(define-data-var fee-recipient principal tx-sender)
+
 ;; ---------------------------------------------------------------------------
-;; SIP-010 interface
+;; Decimals -> 10^decimals lookup (Clarity has no pow)
 ;; ---------------------------------------------------------------------------
 
-(define-read-only (get-name)   (ok "1delta USDCx Vault v3"))
-(define-read-only (get-symbol) (ok "dUSDCx"))
-(define-read-only (get-decimals) (ok u6))
+(define-private (decimals-to-offset (d uint))
+  (if (is-eq d u0)  u1
+  (if (is-eq d u1)  u10
+  (if (is-eq d u2)  u100
+  (if (is-eq d u3)  u1000
+  (if (is-eq d u4)  u10000
+  (if (is-eq d u5)  u100000
+  (if (is-eq d u6)  u1000000
+  (if (is-eq d u7)  u10000000
+  (if (is-eq d u8)  u100000000
+  (if (is-eq d u9)  u1000000000
+  (if (is-eq d u10) u10000000000
+  (if (is-eq d u11) u100000000000
+  (if (is-eq d u12) u1000000000000
+  (if (is-eq d u13) u10000000000000
+  (if (is-eq d u14) u100000000000000
+  (if (is-eq d u15) u1000000000000000
+  (if (is-eq d u16) u10000000000000000
+  (if (is-eq d u17) u100000000000000000
+  (if (is-eq d u18) u1000000000000000000
+  u0)))))))))))))))))))) ;; u0 = invalid
+
+;; ---------------------------------------------------------------------------
+;; SIP-010 interface (vault shares token)
+;; ---------------------------------------------------------------------------
+
+(define-read-only (get-name)     (ok (var-get vault-name)))
+(define-read-only (get-symbol)   (ok (var-get vault-symbol)))
+(define-read-only (get-decimals) (ok (var-get vault-decimals)))
 (define-read-only (get-token-uri) (ok none))
 
 (define-read-only (get-balance (who principal))
@@ -118,7 +139,7 @@
 ;; ---------------------------------------------------------------------------
 
 (define-read-only (get-asset)
-  (ok .mock-token))
+  (ok (var-get base-asset)))
 
 (define-read-only (get-total-assets)
   (var-get total-assets-bookkeeping))
@@ -134,22 +155,24 @@
 
 (define-read-only (preview-mint (shares uint))
   (let ((supply (ft-get-supply vault-shares))
-        (total  (var-get total-assets-bookkeeping)))
+        (total  (var-get total-assets-bookkeeping))
+        (voff   (var-get virtual-offset)))
     (if (is-eq supply u0)
       shares
-      (/ (+ (* shares (+ total u1)) (- (+ supply virtual-shares) u1))
-         (+ supply virtual-shares)))))
+      (/ (+ (* shares (+ total voff)) (- (+ supply voff) u1))
+         (+ supply voff)))))
 
 (define-read-only (max-withdraw (owner principal))
   (convert-to-assets (ft-get-balance vault-shares owner)))
 
 (define-read-only (preview-withdraw (assets uint))
   (let ((supply (ft-get-supply vault-shares))
-        (total  (var-get total-assets-bookkeeping)))
+        (total  (var-get total-assets-bookkeeping))
+        (voff   (var-get virtual-offset)))
     (if (is-eq total u0)
       u0
-      (/ (+ (* assets (+ supply virtual-shares)) total)
-         (+ total u1)))))
+      (/ (+ (* assets (+ supply voff)) (- (+ total voff) u1))
+         (+ total voff)))))
 
 (define-read-only (max-redeem (owner principal))
   (ft-get-balance vault-shares owner))
@@ -186,8 +209,20 @@
 (define-read-only (get-idle-buffer-bps)
   (var-get idle-buffer-bps))
 
+(define-read-only (get-fee-bps)
+  (var-get fee-bps))
+
+(define-read-only (get-fee-recipient)
+  (var-get fee-recipient))
+
+(define-read-only (get-base-asset)
+  (var-get base-asset))
+
+(define-read-only (get-virtual-offset)
+  (var-get virtual-offset))
+
 ;; ---------------------------------------------------------------------------
-;; Live position reads
+;; Live position reads (deployment-specific -- references mainnet contracts)
 ;; ---------------------------------------------------------------------------
 
 (define-read-only (get-idle-balance)
@@ -233,15 +268,17 @@
 
 (define-read-only (convert-to-shares (amount uint))
   (let ((supply (ft-get-supply vault-shares))
-        (total  (var-get total-assets-bookkeeping)))
-    (/ (* amount (+ supply virtual-shares)) (+ total amount u1))))
+        (total  (var-get total-assets-bookkeeping))
+        (voff   (var-get virtual-offset)))
+    (/ (* amount (+ supply voff)) (+ total voff))))
 
 (define-read-only (convert-to-assets (shares uint))
   (let ((supply (ft-get-supply vault-shares))
-        (total  (var-get total-assets-bookkeeping)))
+        (total  (var-get total-assets-bookkeeping))
+        (voff   (var-get virtual-offset)))
     (if (is-eq supply u0)
       u0
-      (/ (* shares total) (+ supply virtual-shares)))))
+      (/ (* shares (+ total voff)) (+ supply voff)))))
 
 ;; ---------------------------------------------------------------------------
 ;; Vault-owner management
@@ -272,7 +309,6 @@
     (ok adapter)))
 
 ;; --- v3: Set idle buffer ---
-;; `buffer` in bps (0-10000).  E.g. 500 = 5%.
 (define-public (set-idle-buffer (buffer uint))
   (begin
     (asserts! (is-eq tx-sender (var-get vault-owner)) err-owner-only)
@@ -280,25 +316,55 @@
     (var-set idle-buffer-bps buffer)
     (ok true)))
 
+;; --- v3: Performance fee setters ---
+(define-public (set-fee-bps (new-fee uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get vault-owner)) err-owner-only)
+    (asserts! (<= new-fee bps-base) err-invalid-weights)
+    (var-set fee-bps new-fee)
+    (ok true)))
+
+(define-public (set-fee-recipient (recipient principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get vault-owner)) err-owner-only)
+    (var-set fee-recipient recipient)
+    (ok true)))
+
+;; ---------------------------------------------------------------------------
+;; Initialize -- configure base asset, decimals, virtual offset, share metadata.
+;; Owner-only, callable once. Sets virtual-offset = 10^decimals automatically.
+;; ---------------------------------------------------------------------------
+
+(define-public (initialize
+               (asset <ft>)
+               (name (string-ascii 32))
+               (symbol (string-ascii 10))
+               (decimals uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get vault-owner)) err-owner-only)
+    (asserts! (not (var-get vault-initialized)) err-already-initialized)
+    (let ((offset (decimals-to-offset decimals)))
+      (asserts! (> offset u0) err-invalid-decimals)
+      (var-set base-asset (contract-of asset))
+      (var-set virtual-offset offset)
+      (var-set vault-name name)
+      (var-set vault-symbol symbol)
+      (var-set vault-decimals decimals)
+      (var-set vault-initialized true)
+      (ok true))))
+
 ;; ---------------------------------------------------------------------------
 ;; User-facing vault functions
 ;; ---------------------------------------------------------------------------
 
 ;; Deposit `amount` assets on behalf of `owner`, mint shares, and
 ;; AUTO-ALLOCATE proportionally based on current lending balances.
-;;
-;; The split mirrors the existing allocation ratio:
-;;   - If vault has 60% in Granite and 40% in Zest, new deposits go 60/40.
-;;   - If nothing is deployed yet, 100% goes to idle (allocator deploys first).
-;;   - An idle buffer (default 5%) is retained for withdrawal liquidity.
-;;   - If adapters aren't registered, 100% goes to idle.
-;;   - Adapter call failures are non-fatal (capital stays idle).
-;;
 ;; Returns: (ok shares-minted)
 (define-public (deposit (amount uint) (owner principal)
-               (granite <lat>) (zest-v2 <lat>))
+               (token <ft>) (granite <lat>) (zest-v2 <lat>))
   (begin
     (asserts! (> amount u0) err-amount-zero)
+    (asserts! (is-eq (contract-of token) (var-get base-asset)) err-invalid-asset)
     ;; Auto-sync yields before computing share price.
     (let ((sg (if (> (var-get alloc-granite) u0)
                (begin
@@ -315,22 +381,20 @@
                  (try! (do-sync-zest-v2 zest-v2)))
                u0)))
       ;; Transfer tokens from depositor to vault.
-      (try! (contract-call? .mock-token transfer amount tx-sender (as-contract tx-sender) none))
-      ;; Mint shares based on post-sync bookkeeping.
-      (let ((supply    (ft-get-supply vault-shares))
-            (new-total (+ (var-get total-assets-bookkeeping) amount)))
-        (let ((shares (/ (* amount (+ supply virtual-shares)) (+ new-total u1))))
+      (try! (contract-call? token transfer amount tx-sender (as-contract tx-sender) none))
+      ;; Mint shares based on post-sync, PRE-deposit bookkeeping (1:1 peg).
+      (let ((supply (ft-get-supply vault-shares))
+            (total  (var-get total-assets-bookkeeping))
+            (voff   (var-get virtual-offset)))
+        (let ((shares (/ (* amount (+ supply voff)) (+ total voff))))
           (asserts! (> shares u0) err-shares-zero)
           (try! (ft-mint? vault-shares shares owner))
-          (var-set total-assets-bookkeeping new-total)
+          (var-set total-assets-bookkeeping (+ total amount))
           ;; --- v3: Auto-allocate based on current lending balances ---
           (let ((ag (var-get alloc-granite))
                 (az (var-get alloc-zest-v2))
                 (total-deployed (+ ag az))
                 (buffer (var-get idle-buffer-bps)))
-            ;; Only auto-allocate if capital is already deployed (ratio exists).
-            ;; If nothing deployed yet, everything stays idle for the allocator
-            ;; to make the initial deployment decision.
             (if (and (> total-deployed u0)
                      (is-some (var-get adapter-granite-usdcx))
                      (is-some (var-get adapter-zest-v2-usdc))
@@ -338,33 +402,29 @@
                             (var-get adapter-granite-usdcx))
                      (is-eq (some (contract-of zest-v2))
                             (var-get adapter-zest-v2-usdc)))
-              ;; Compute deployable amount after idle buffer.
               (let ((deploy-total (/ (* amount (- bps-base buffer)) bps-base)))
-                ;; Split proportionally to current balances.
                 (let ((to-granite (/ (* deploy-total ag) total-deployed))
                       (to-zest    (- deploy-total
                                      (/ (* deploy-total ag) total-deployed))))
-                  ;; Deploy to Granite (non-fatal on failure).
                   (if (> to-granite u0)
                     (match (as-contract (do-allocate-granite to-granite granite))
                       ok-val true
                       err-val true)
                     true)
-                  ;; Deploy to Zest (non-fatal on failure).
                   (if (> to-zest u0)
                     (match (as-contract (do-allocate-zest-v2 to-zest zest-v2))
                       ok-val true
                       err-val true)
                     true)
                   (ok shares)))
-              ;; Nothing deployed or adapters missing --everything stays idle.
               (ok shares))))))))
 
-;; Mint exactly `shares` vault shares (no auto-alloc --use deposit for that).
+;; Mint exactly `shares` vault shares (no auto-alloc -- use deposit for that).
 (define-public (mint (shares uint) (receiver principal)
-               (granite <lat>) (zest-v2 <lat>))
+               (token <ft>) (granite <lat>) (zest-v2 <lat>))
   (begin
     (asserts! (> shares u0) err-shares-zero)
+    (asserts! (is-eq (contract-of token) (var-get base-asset)) err-invalid-asset)
     (let ((sg (if (> (var-get alloc-granite) u0)
                (begin
                  (asserts! (is-eq (some (contract-of granite))
@@ -380,20 +440,22 @@
                  (try! (do-sync-zest-v2 zest-v2)))
                u0)))
       (let ((supply (ft-get-supply vault-shares))
-            (total  (var-get total-assets-bookkeeping)))
-        (let ((assets (/ (+ (* shares (+ total u1)) (- (+ supply virtual-shares) u1))
-                         (+ supply virtual-shares))))
+            (total  (var-get total-assets-bookkeeping))
+            (voff   (var-get virtual-offset)))
+        (let ((assets (/ (+ (* shares (+ total voff)) (- (+ supply voff) u1))
+                         (+ supply voff))))
           (asserts! (> assets u0) err-amount-zero)
-          (try! (contract-call? .mock-token transfer assets tx-sender (as-contract tx-sender) none))
+          (try! (contract-call? token transfer assets tx-sender (as-contract tx-sender) none))
           (try! (ft-mint? vault-shares shares receiver))
           (var-set total-assets-bookkeeping (+ total assets))
           (ok assets))))))
 
-;; Withdraw exactly `amount` assets (unchanged --proportional pull).
+;; Withdraw exactly `amount` assets -- proportional pull from idle + markets.
 (define-public (withdraw (amount uint) (receiver principal) (owner principal)
-               (granite <lat>) (zest-v2 <lat>))
+               (token <ft>) (granite <lat>) (zest-v2 <lat>))
   (begin
     (asserts! (is-eq tx-sender owner) err-owner-only)
+    (asserts! (is-eq (contract-of token) (var-get base-asset)) err-invalid-asset)
     (let ((sg (if (> (var-get alloc-granite) u0)
                (begin
                  (asserts! (is-eq (some (contract-of granite))
@@ -412,12 +474,13 @@
           (total  (var-get total-assets-bookkeeping))
           (bal    (ft-get-balance vault-shares owner))
           (ag     (var-get alloc-granite))
-          (az     (var-get alloc-zest-v2)))
+          (az     (var-get alloc-zest-v2))
+          (voff   (var-get virtual-offset)))
       (asserts! (> amount u0) err-amount-zero)
       (asserts! (> total u0) err-insufficient-balance)
-      (let ((shares (/ (* amount (+ supply virtual-shares)) (+ total u1))))
+      (let ((shares (/ (* amount (+ supply voff)) (+ total voff))))
         (let ((shares-to-burn
-                (if (< (* shares (+ total u1)) (* amount (+ supply virtual-shares)))
+                (if (< (* shares (+ total voff)) (* amount (+ supply voff)))
                   (+ shares u1)
                   shares)))
           (asserts! (>= bal shares-to-burn) err-insufficient-shares)
@@ -447,21 +510,22 @@
                                  u0)))
                       (let ((total-after (var-get total-assets-bookkeeping)))
                         (asserts!
-                          (>= (unwrap! (contract-call? .mock-token get-balance (as-contract tx-sender))
+                          (>= (unwrap! (contract-call? token get-balance (as-contract tx-sender))
                                        err-transfer-failed)
                               amount)
                           err-insufficient-balance)
                         (try! (ft-burn? vault-shares shares-to-burn owner))
                         (var-set total-assets-bookkeeping (- total-after amount))
-                        (match (contract-call? .mock-token transfer amount (as-contract tx-sender) receiver none)
+                        (match (contract-call? token transfer amount (as-contract tx-sender) receiver none)
                           success (ok shares-to-burn)
                           e       (err e)))))))))))))))
 
-;; Redeem exactly `shares` (unchanged --proportional pull).
+;; Redeem exactly `shares` -- proportional pull from idle + markets.
 (define-public (redeem (shares uint) (receiver principal) (owner principal)
-               (granite <lat>) (zest-v2 <lat>))
+               (token <ft>) (granite <lat>) (zest-v2 <lat>))
   (begin
     (asserts! (is-eq tx-sender owner) err-owner-only)
+    (asserts! (is-eq (contract-of token) (var-get base-asset)) err-invalid-asset)
     (let ((sg (if (> (var-get alloc-granite) u0)
                (begin
                  (asserts! (is-eq (some (contract-of granite))
@@ -480,11 +544,12 @@
           (total  (var-get total-assets-bookkeeping))
           (bal    (ft-get-balance vault-shares owner))
           (ag     (var-get alloc-granite))
-          (az     (var-get alloc-zest-v2)))
+          (az     (var-get alloc-zest-v2))
+          (voff   (var-get virtual-offset)))
       (asserts! (> shares u0) err-shares-zero)
       (asserts! (>= bal shares) err-insufficient-shares)
       (asserts! (> supply u0) err-insufficient-balance)
-      (let ((amt (/ (* shares total) (+ supply virtual-shares))))
+      (let ((amt (/ (* shares (+ total voff)) (+ supply voff))))
         (asserts! (> amt u0) err-amount-zero)
         (let ((idle-book  (if (>= total (+ ag az)) (- total (+ ag az)) u0)))
           (let ((pull-idle   (/ (* amt idle-book) total))
@@ -512,13 +577,13 @@
                                u0)))
                     (let ((total-after (var-get total-assets-bookkeeping)))
                       (asserts!
-                        (>= (unwrap! (contract-call? .mock-token get-balance (as-contract tx-sender))
+                        (>= (unwrap! (contract-call? token get-balance (as-contract tx-sender))
                                      err-transfer-failed)
                             amt)
                         err-insufficient-balance)
                       (try! (ft-burn? vault-shares shares owner))
                       (var-set total-assets-bookkeeping (- total-after amt))
-                      (match (contract-call? .mock-token transfer amt (as-contract tx-sender) receiver none)
+                      (match (contract-call? token transfer amt (as-contract tx-sender) receiver none)
                         success (ok amt)
                         e       (err e))))))))))))))
 
@@ -557,6 +622,28 @@
     (ok received)))
 
 ;; ---------------------------------------------------------------------------
+;; Allocation layer -- performance fee helper
+;; ---------------------------------------------------------------------------
+
+(define-private (mint-fee-shares (yield-amount uint))
+  (let ((fee-rate (var-get fee-bps)))
+    (if (is-eq fee-rate u0)
+      (ok u0)
+      (let ((fee-assets (/ (* yield-amount fee-rate) bps-base)))
+        (if (is-eq fee-assets u0)
+          (ok u0)
+          (let ((supply (ft-get-supply vault-shares))
+                (total  (var-get total-assets-bookkeeping))
+                (voff   (var-get virtual-offset))
+                (fee-shares (/ (* fee-assets (+ supply voff))
+                               (+ (- total fee-assets) voff))))
+            (if (is-eq fee-shares u0)
+              (ok u0)
+              (begin
+                (try! (ft-mint? vault-shares fee-shares (var-get fee-recipient)))
+                (ok fee-shares)))))))))
+
+;; ---------------------------------------------------------------------------
 ;; Allocation layer -- yield sync
 ;; ---------------------------------------------------------------------------
 
@@ -567,6 +654,7 @@
       (let ((yield (- live-value book-cost)))
         (var-set alloc-granite live-value)
         (var-set total-assets-bookkeeping (+ (var-get total-assets-bookkeeping) yield))
+        (try! (mint-fee-shares yield))
         (ok yield))
       (ok u0))))
 
@@ -577,6 +665,7 @@
       (let ((yield (- live-value book-cost)))
         (var-set alloc-zest-v2 live-value)
         (var-set total-assets-bookkeeping (+ (var-get total-assets-bookkeeping) yield))
+        (try! (mint-fee-shares yield))
         (ok yield))
       (ok u0))))
 
@@ -612,6 +701,22 @@
     (asserts! (> amount u0) err-amount-zero)
     (as-contract (do-allocate-zest-v2 amount adapter))))
 
+(define-public (recall-from-granite (amount uint) (adapter <lat>))
+  (begin
+    (asserts! (is-eq tx-sender (var-get vault-allocator)) err-not-allocator)
+    (asserts! (is-eq (some (contract-of adapter)) (var-get adapter-granite-usdcx))
+              err-invalid-adapter)
+    (asserts! (> amount u0) err-amount-zero)
+    (as-contract (do-deallocate-granite amount adapter))))
+
+(define-public (recall-from-zest-v2 (amount uint) (adapter <lat>))
+  (begin
+    (asserts! (is-eq tx-sender (var-get vault-allocator)) err-not-allocator)
+    (asserts! (is-eq (some (contract-of adapter)) (var-get adapter-zest-v2-usdc))
+              err-invalid-adapter)
+    (asserts! (> amount u0) err-amount-zero)
+    (as-contract (do-deallocate-zest-v2 amount adapter))))
+
 (define-public (rebalance-granite-to-zest-v2 (amount uint)
                (granite <lat>) (zest-v2 <lat>))
   (begin
@@ -635,3 +740,29 @@
     (asserts! (> amount u0) err-amount-zero)
     (try! (as-contract (do-deallocate-zest-v2 amount zest-v2)))
     (as-contract (do-allocate-granite amount granite))))
+
+;; --- v3: Zero-sum rebalancing (MetaMorpho-style) ---
+(define-public (reallocate
+               (from-granite uint) (from-zest uint)
+               (to-granite uint)   (to-zest uint)
+               (granite <lat>)     (zest-v2 <lat>))
+  (begin
+    (asserts! (is-eq tx-sender (var-get vault-allocator)) err-not-allocator)
+    (asserts! (is-eq (+ from-granite from-zest) (+ to-granite to-zest)) err-not-zero-sum)
+    (asserts! (is-eq (some (contract-of granite)) (var-get adapter-granite-usdcx))
+              err-invalid-adapter)
+    (asserts! (is-eq (some (contract-of zest-v2)) (var-get adapter-zest-v2-usdc))
+              err-invalid-adapter)
+    (if (> from-granite u0)
+      (begin (try! (as-contract (do-deallocate-granite from-granite granite))) true)
+      true)
+    (if (> from-zest u0)
+      (begin (try! (as-contract (do-deallocate-zest-v2 from-zest zest-v2))) true)
+      true)
+    (if (> to-granite u0)
+      (begin (try! (as-contract (do-allocate-granite to-granite granite))) true)
+      true)
+    (if (> to-zest u0)
+      (begin (try! (as-contract (do-allocate-zest-v2 to-zest zest-v2))) true)
+      true)
+    (ok true)))

@@ -59,6 +59,11 @@ plan:
       path: contracts/mock-adapter.clar
       clarity-version: 3
     - transaction-type: emulated-contract-publish
+      contract-name: mock-adapter-2
+      emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
+      path: contracts/mock-adapter-2.clar
+      clarity-version: 3
+    - transaction-type: emulated-contract-publish
       contract-name: user-reader-v2
       emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
       path: contracts/user-reader-v2.clar

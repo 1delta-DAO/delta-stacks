@@ -1,9 +1,17 @@
 ;; Mock usdcx token for testing
+;; Structurally implements SIP-010 (all required functions present).
+;; impl-trait omitted to avoid external contract resolution during clarinet check.
+
 (define-fungible-token mock-usdcx)
 (define-constant err-unauthorized (err u1))
 (define-constant err-insufficient (err u2))
 ;; `tx-sender` or `contract-caller` tried to move a token it does not own.
 (define-constant ERR_NOT_OWNER (err u4))
+
+(define-read-only (get-name)      (ok "Mock USDCx"))
+(define-read-only (get-symbol)    (ok "mUSDCx"))
+(define-read-only (get-decimals)  (ok u6))
+(define-read-only (get-token-uri) (ok none))
 
 (define-read-only (get-balance (owner principal))
   (ok (ft-get-balance mock-usdcx owner)))

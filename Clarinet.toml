@@ -41,6 +41,11 @@ path = "contracts/mock-adapter.clar"
 clarity_version = 3
 epoch = 3.0
 
+[contracts.mock-adapter-2]
+path = "contracts/mock-adapter-2.clar"
+clarity_version = 3
+epoch = 3.0
+
 # Production contracts (mainnet-only, not loaded in simnet).
 # To deploy: uncomment below and run `clarinet deployments generate --testnet`
 #
