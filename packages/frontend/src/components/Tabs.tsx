@@ -7,7 +7,7 @@ interface TabsProps {
 
 export function Tabs({ tabs, active, onChange, size = 'md' }: TabsProps) {
   return (
-    <div className="flex gap-0.5 bg-surface/80 rounded-xl p-1 border border-border-subtle">
+    <div className="flex flex-wrap gap-0.5 bg-surface/80 rounded-xl p-1 border border-border-subtle">
       {tabs.map((tab, i) => (
         <button
           key={tab}
