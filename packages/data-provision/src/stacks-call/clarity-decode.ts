@@ -12,11 +12,28 @@ export function decodeClarityValue(hex: string): any {
 }
 
 /**
+ * Unwrap (ok ...) response wrapper if present.
+ * Read-only Clarity functions typically return (ok <value>).
+ */
+function unwrap(decoded: any): any {
+  if (decoded?.success === true && decoded?.value) return decoded.value
+  return decoded
+}
+
+/**
  * Extract a uint from a decoded Clarity value.
  */
 export function extractUint(decoded: any): bigint {
-  if (decoded?.type === ClarityType.UInt || decoded?.value !== undefined) {
-    return BigInt(decoded.value)
+  const inner = unwrap(decoded)
+  if (inner?.type === ClarityType.UInt) {
+    return BigInt(inner.value)
+  }
+  // cvToJSON serialises type as a string in some versions
+  if (inner?.type === 'uint' || inner?.type === 1) {
+    return BigInt(inner.value)
+  }
+  if (typeof inner?.value === 'string' || typeof inner?.value === 'number' || typeof inner?.value === 'bigint') {
+    return BigInt(inner.value)
   }
   throw new Error(`Expected uint, got: ${JSON.stringify(decoded)}`)
 }
@@ -25,9 +42,10 @@ export function extractUint(decoded: any): bigint {
  * Extract a bool from a decoded Clarity value.
  */
 export function extractBool(decoded: any): boolean {
-  if (decoded?.type === ClarityType.BoolTrue) return true
-  if (decoded?.type === ClarityType.BoolFalse) return false
-  if (typeof decoded?.value === 'boolean') return decoded.value
+  const inner = unwrap(decoded)
+  if (inner?.type === ClarityType.BoolTrue) return true
+  if (inner?.type === ClarityType.BoolFalse) return false
+  if (typeof inner?.value === 'boolean') return inner.value
   throw new Error(`Expected bool, got: ${JSON.stringify(decoded)}`)
 }
 
@@ -36,8 +54,9 @@ export function extractBool(decoded: any): boolean {
  * Returns a Record<string, any> of the tuple fields.
  */
 export function extractTuple(decoded: any): Record<string, any> {
-  if (decoded?.value && typeof decoded.value === 'object') {
-    return decoded.value
+  const inner = unwrap(decoded)
+  if (inner?.value && typeof inner.value === 'object') {
+    return inner.value
   }
   throw new Error(`Expected tuple, got: ${JSON.stringify(decoded)}`)
 }
@@ -46,6 +65,7 @@ export function extractTuple(decoded: any): Record<string, any> {
  * Extract a principal string from a decoded Clarity value.
  */
 export function extractPrincipal(decoded: any): string {
-  if (decoded?.value) return String(decoded.value)
+  const inner = unwrap(decoded)
+  if (inner?.value) return String(inner.value)
   throw new Error(`Expected principal, got: ${JSON.stringify(decoded)}`)
 }

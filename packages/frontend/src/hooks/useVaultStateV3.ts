@@ -167,6 +167,8 @@ async function fetchVaultStateV3(): Promise<VaultStateV3> {
     graniteLpParamsHex,
     graniteOpenInterestHex,
     zestInterestRateHex,
+    zestUtilizationHex,
+    zestFeeReserveHex,
   ] = await Promise.all([
     callRead(SENDER, vaultContract, 'get-total-assets'),
     callRead(SENDER, vaultContract, 'get-alloc-granite'),
@@ -183,6 +185,8 @@ async function fetchVaultStateV3(): Promise<VaultStateV3> {
     callRead(GRANITE_STATE, GRANITE_CONTRACT, 'get-lp-params'),
     callRead(GRANITE_STATE, GRANITE_CONTRACT, 'get-open-interest'),
     callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-interest-rate'),
+    callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-utilization'),
+    callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-fee-reserve'),
   ])
 
   const totalAssets = decodeUint(totalAssetsHex)
@@ -224,9 +228,11 @@ async function fetchVaultStateV3(): Promise<VaultStateV3> {
     }
   }
 
-  // --- Zest V2 APR ---
-  const zestRateRaw = decodeUint(zestInterestRateHex)
-  const zestApr = Number(zestRateRaw) / 100
+  // --- Zest V2 APR (supply rate = borrowRate * utilization * (1 - feeReserve)) ---
+  const zestBorrowRate = Number(decodeUint(zestInterestRateHex)) / 10_000
+  const zestUtilization = Number(decodeUint(zestUtilizationHex)) / 10_000
+  const zestFeeReserve = Number(decodeUint(zestFeeReserveHex)) / 10_000
+  const zestApr = zestBorrowRate * zestUtilization * (1 - zestFeeReserve) * 100
 
   // --- Blended APR ---
   let blendedApr = 0
