@@ -5,9 +5,18 @@ import { VAULT_STX_DEPLOYER } from '@delta-stacks/calldata-sdk-stacks'
 const API = 'https://api.hiro.so'
 const SENDER = VAULT_STX_DEPLOYER
 
+/** Derive the backend base URL from the VITE_DATA_API_URL env var */
+function getBackendBase(): string {
+  const dataUrl = import.meta.env.VITE_DATA_API_URL as string | undefined
+  if (dataUrl) {
+    try { return new URL(dataUrl).origin } catch { return dataUrl.replace(/\/[^/]*$/, '') }
+  }
+  return ''
+}
+
 // Zest V1 (wSTX pool — Aave-like)
 const ZEST_V1_DEPLOYER = 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N'
-const ZEST_V1_WSTX_ZTOKEN = 'zwstx-v2-0'
+const ZEST_V1_WSTX_MARKET_UID = `stacks-mainnet:zest-v1:${ZEST_V1_DEPLOYER}.wstx`
 
 // Zest V2 STX vault (ERC-4626)
 const ZEST_V2_DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7'
@@ -171,11 +180,23 @@ async function fetchVaultStateSTX(): Promise<VaultStateSTX> {
   const feeBps = decodeUint(feeBpsHex)
   const idleBufferBps = decodeUint(idleBufferBpsHex)
 
-  // --- Zest V1 APR ---
-  // Zest V1 wSTX uses an Aave-like model; the supply rate is embedded in the
-  // z-token normalized income. For a rough estimate we use the Zest V1 pool's
-  // wSTX supply rate from the lending data (fetched separately). For now, 0.
-  const zestV1Apr = 0
+  // --- Zest V1 APR (fetch deposit rate from backend API) ---
+  let zestV1Apr = 0
+  try {
+    const backendBase = getBackendBase()
+    if (backendBase) {
+      const res = await fetch(`${backendBase}/zest-v1`)
+      if (res.ok) {
+        const lenderData = await res.json()
+        const wstxMarket = lenderData?.data?.[ZEST_V1_WSTX_MARKET_UID]
+        if (wstxMarket?.depositRate != null) {
+          zestV1Apr = wstxMarket.depositRate * 100 // depositRate is decimal, convert to %
+        }
+      }
+    }
+  } catch {
+    // Fallback: keep 0 if backend unavailable
+  }
 
   // --- Zest V2 APR (supply rate = borrowRate * utilization * (1 - feeReserve)) ---
   const zestV2BorrowRate = Number(decodeUint(zestV2InterestRateHex)) / 10_000
