@@ -44,6 +44,16 @@ plan:
       path: contracts/lending-adapter-trait.clar
       clarity-version: 3
     - transaction-type: emulated-contract-publish
+      contract-name: adapter-zest-v1-wstx-v3
+      emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
+      path: contracts/prod/v3/stx/adapter-zest-v1-wstx.clar
+      clarity-version: 3
+    - transaction-type: emulated-contract-publish
+      contract-name: adapter-zest-v2-stx-v3
+      emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
+      path: contracts/prod/v3/stx/adapter-zest-v2-stx.clar
+      clarity-version: 3
+    - transaction-type: emulated-contract-publish
       contract-name: lending-reader-v3
       emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
       path: contracts/lending-reader-v3.clar
@@ -67,6 +77,11 @@ plan:
       contract-name: user-reader-v2
       emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
       path: contracts/user-reader-v2.clar
+      clarity-version: 3
+    - transaction-type: emulated-contract-publish
+      contract-name: vault-stx-v3
+      emulated-sender: STC5KHM41H6WHAST7MWWDD807YSPRQKJ68T330BQ
+      path: contracts/prod/v3/stx/vault-stx-v3.clar
       clarity-version: 3
     - transaction-type: emulated-contract-publish
       contract-name: vault-usdcx

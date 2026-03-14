@@ -86,6 +86,26 @@ epoch = 3.0
 # clarity_version = 3
 # epoch = 3.0
 
+# --- v3 / STX ---
+# Uncomment for deployment. These reference mainnet contracts (wSTX, borrow-helper,
+# Zest vaults) so clarinet check will show "unresolved contract" warnings locally.
+# Deployment via: clarinet deployments apply --deployment-plan-path deployments/vault-v3-stx.mainnet-plan.yaml
+#
+# [contracts.vault-stx-v3]
+# path = "contracts/prod/v3/stx/vault-stx-v3.clar"
+# clarity_version = 3
+# epoch = 3.0
+#
+# [contracts.adapter-zest-v1-wstx-v3]
+# path = "contracts/prod/v3/stx/adapter-zest-v1-wstx.clar"
+# clarity_version = 3
+# epoch = 3.0
+#
+# [contracts.adapter-zest-v2-stx-v3]
+# path = "contracts/prod/v3/stx/adapter-zest-v2-stx.clar"
+# clarity_version = 3
+# epoch = 3.0
+
 [repl.remote_data]
 enabled = true
 initial_height = 6972000

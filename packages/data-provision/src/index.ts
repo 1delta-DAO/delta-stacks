@@ -40,4 +40,4 @@ export type {
 export { convertPublicDataToMeta } from './lending/user-data/convertPublicToMeta'
 
 // Vault
-export { fetchVaultSnapshot, type VaultSnapshot } from './vault'
+export { fetchVaultSnapshot, VAULT_USDCX_CONFIG, VAULT_STX_CONFIG, type VaultSnapshot, type VaultConfig } from './vault'

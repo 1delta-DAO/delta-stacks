@@ -44,12 +44,21 @@ export {
   VAULT_UNDERLYING,
 } from './vault'
 
-// Delta Vault V3
+// Delta Vault V3 (USDCx)
 export {
   DeltaVaultV3,
   VAULT_V3_DEPLOYER,
   VAULT_V3_CONTRACTS,
   VAULT_V3_UNDERLYING,
+} from './vault'
+
+// Delta Vault V3 STX
+export {
+  DeltaVaultSTX,
+  VAULT_STX_DEPLOYER,
+  VAULT_STX_CONTRACTS,
+  VAULT_STX_UNDERLYING,
+  WSTX_ZEST_V1,
 } from './vault'
 
 // Pyth oracle helpers

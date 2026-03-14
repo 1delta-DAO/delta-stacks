@@ -8,9 +8,9 @@ const W = 600
 const H = 200
 const PAD = { top: 20, right: 16, bottom: 28, left: 64 }
 
-export function SharePriceChart() {
+export function SharePriceChart({ historyEndpoint = 'vault/history' }: { historyEndpoint?: string }) {
   const [range, setRange] = useState<Range>('7d')
-  const { data: history, isLoading } = useVaultHistory(range)
+  const { data: history, isLoading } = useVaultHistory(range, historyEndpoint)
 
   const points = useMemo(() => history ?? [], [history])
 

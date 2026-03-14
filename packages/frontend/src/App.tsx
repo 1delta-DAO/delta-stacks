@@ -5,11 +5,14 @@ import { BalancesTab } from './components/BalancesTab'
 import { LendingTab } from './components/LendingTab'
 import { VaultTab } from './components/VaultTab'
 import { VaultLegacyTab } from './components/VaultLegacyTab'
+import { VaultSelector } from './components/VaultSelector'
+import { ALL_VAULTS, type VaultDef } from './config/vaults'
 
-const MAIN_TABS = ['Balances', 'Lending', 'Vault', 'Vault (Legacy)']
+const MAIN_TABS = ['Balances', 'Lending', 'Vaults', 'Vault (Legacy)']
 
 function App() {
   const [tab, setTab] = useState(0)
+  const [selectedVault, setSelectedVault] = useState<VaultDef | null>(null)
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -18,7 +21,11 @@ function App() {
         <Tabs tabs={MAIN_TABS} active={tab} onChange={setTab} />
         {tab === 0 && <BalancesTab />}
         {tab === 1 && <LendingTab />}
-        {tab === 2 && <VaultTab />}
+        {tab === 2 && (
+          selectedVault
+            ? <VaultTab vault={selectedVault} onBack={() => setSelectedVault(null)} />
+            : <VaultSelector vaults={ALL_VAULTS} onSelect={setSelectedVault} />
+        )}
         {tab === 3 && <VaultLegacyTab />}
       </main>
     </div>

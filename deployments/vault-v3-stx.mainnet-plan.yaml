@@ -1,0 +1,217 @@
+# =============================================================================
+# Delta Vault V3 / STX — Mainnet Deployment Plan
+# =============================================================================
+#
+# Deploys the v3 STX yield vault system:
+#   Batch 0: lending-adapter-trait  (shared trait — SKIP, already deployed from v1)
+#   Batch 1: adapter-zest-v1-wstx-v3, adapter-zest-v2-stx-v3, vault-stx-v3
+#   Batch 2: initialize, register adapters
+#   Batch 3: (optional) fee config, allocator delegation
+#
+# STX vault specifics:
+#   - Markets: Zest V1 (wSTX, Aave-like pool) + Zest V2 (wSTX, ERC-4626 vault)
+#   - No Granite market for STX
+#   - wSTX is a SIP-010 wrapper around native STX (balance = stx-get-balance)
+#   - Supports both native STX (deposit-stx/withdraw-stx) and wSTX (deposit/withdraw)
+#   - Zest V1 adapter handles wSTX wrapping internally via borrow-helper
+#   - Zest V1 withdraw passes none for Pyth (no debt = infinite health factor)
+#
+# Pre-flight checklist
+# --------------------
+#   [ ] clarinet check passes (ignoring mainnet-only external contract warnings)
+#   [ ] All vitest tests pass: npm test  (174 tests)
+#   [ ] Testnet deployment verified successfully
+#   [ ] Verify deployer STX balance covers estimated costs (~5 STX total)
+#   [ ] Confirm deployer address matches expected-sender below
+#   [ ] Confirm external contract addresses are correct for mainnet:
+#         wSTX (V2):   SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.wstx
+#         wSTX (V1):   SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.wstx
+#         zwSTX:       SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zwstx-v2-0
+#         Borrow Hlp:  SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.borrow-helper-v2-1-7
+#         Pool Res:    SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0
+#         Incentives:  SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.incentives-v2-2
+#         STX Oracle:  SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.stx-btc-oracle-v1-4
+#         Zest V2:     SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.v0-vault-stx
+#         SIP-010:     SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard
+#   [ ] CONTRACTS ARE IMMUTABLE ONCE DEPLOYED — review code one final time
+#
+# Usage
+# -----
+#   clarinet deployments apply --deployment-plan-path deployments/vault-v3-stx.mainnet-plan.yaml
+#
+# =============================================================================
+
+id: 3
+name: Delta Vault V3 STX mainnet deployment
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    # ------------------------------------------------------------------
+    # Batch 0 — SKIPPED (lending-adapter-trait already deployed from v1)
+    # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Batch 1 — Deploy adapters + vault
+    # ------------------------------------------------------------------
+    # Adapters impl-trait the shared lending-adapter-trait.
+    # The vault use-trait the same trait + SIP-010 ft trait.
+    #
+    # NOTE: The Zest V1 adapter is the largest contract due to the
+    # hardcoded 10-asset list required by borrow-helper.withdraw.
+    #
+    # Cost estimates:
+    #   adapter-zest-v1-wstx: ~0.8 STX (larger due to asset list)
+    #   adapter-zest-v2-stx:  ~0.5 STX
+    #   vault-stx-v3:         ~2.0 STX (largest — includes native STX functions)
+    - id: 1
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: adapter-zest-v1-wstx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 800000
+          path: contracts/prod/v3/stx/adapter-zest-v1-wstx.clar
+          anchor-block-only: true
+          clarity-version: 3
+
+        - transaction-type: contract-publish
+          contract-name: adapter-zest-v2-stx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/v3/stx/adapter-zest-v2-stx.clar
+          anchor-block-only: true
+          clarity-version: 3
+
+        - transaction-type: contract-publish
+          contract-name: vault-stx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 2000000
+          path: contracts/prod/v3/stx/vault-stx-v3.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 2 — Post-deploy initialization
+    # ------------------------------------------------------------------
+    # 1. initialize: locks base asset to wSTX, sets share metadata + virtual offset
+    #    This is callable ONCE — subsequent calls return err u114.
+    # 2. Register adapters with the vault.
+    #    Until registered, vault operates in idle-only mode.
+    - id: 2
+      transactions:
+        # --- Initialize vault ---
+        # Sets: base-asset = wSTX (Zest V2's), name = "1delta STX Vault v3",
+        #       symbol = "1dSTX", decimals = 6, virtual-offset = 10^6
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: initialize
+          parameters:
+            - "'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.wstx"
+            - "\"1delta STX Vault v3\""
+            - "\"1dSTX\""
+            - "u6"
+          cost: 250000
+
+        # --- Register Zest V1 wSTX adapter ---
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v1-wstx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-wstx-v3"
+          cost: 250000
+
+        # --- Register Zest V2 STX adapter ---
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-stx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-stx-v3"
+          cost: 250000
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 3 — Fee & allocator configuration (optional)
+    # ------------------------------------------------------------------
+    # Uncomment and customize as needed. Can also be done later via
+    # stacks.js or a standalone deployment plan.
+    #
+    # - id: 3
+    #   transactions:
+    #     # Performance fee: 10% of yield (1000 bps)
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-fee-bps
+    #       parameters:
+    #         - "u1000"
+    #       cost: 250000
+    #
+    #     # Fee recipient
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-fee-recipient
+    #       parameters:
+    #         - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H"
+    #       cost: 250000
+    #
+    #     # Idle buffer: 5% (500 bps)
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-idle-buffer
+    #       parameters:
+    #         - "u500"
+    #       cost: 250000
+    #
+    #     # Delegate allocator to bot/multisig
+    #     - transaction-type: contract-call
+    #       contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3
+    #       expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+    #       method: set-vault-allocator
+    #       parameters:
+    #         - "'SPXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.allocator-bot"
+    #       cost: 250000
+    #   epoch: '3.0'
+
+# =============================================================================
+# Post-deployment verification
+# =============================================================================
+#
+# Manually verify:
+#
+#   1. Vault deployed and initialized:
+#      curl -s "https://api.hiro.so/v2/contracts/call-read/SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H/vault-stx-v3/get-total-assets" \
+#        -H 'Content-Type: application/json' \
+#        -d '{"sender":"SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H","arguments":[]}'
+#      # Should return u0
+#
+#   2. Base asset configured:
+#      get-base-asset => SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.wstx
+#
+#   3. Virtual offset set:
+#      get-virtual-offset => u1000000  (10^6)
+#
+#   4. Share metadata:
+#      get-name    => "1delta STX Vault v3"
+#      get-symbol  => "1dSTX"
+#      get-decimals => u6
+#
+#   5. Adapters registered:
+#      get-adapter-zest-v1-wstx => (some SP2DRPT...adapter-zest-v1-wstx-v3)
+#      get-adapter-zest-v2-stx  => (some SP2DRPT...adapter-zest-v2-stx-v3)
+#
+#   6. Allocations at zero:
+#      get-alloc-zest-v1  => u0
+#      get-alloc-zest-v2  => u0
+#
+#   7. Test native STX deposit:
+#      Call deposit-stx with a small amount (e.g. u100000 = 0.1 STX)
+#      Verify get-total-assets increases and user receives vault shares
+#
+# =============================================================================

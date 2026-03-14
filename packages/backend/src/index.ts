@@ -2,6 +2,8 @@ import {
   getStacksLenderPublicData,
   fetchAllPrices,
   fetchVaultSnapshot,
+  VAULT_USDCX_CONFIG,
+  VAULT_STX_CONFIG,
   type StacksLender,
   type AllLendingData,
   type USDPriceMap,
@@ -15,7 +17,8 @@ interface Env {
 const LENDERS: StacksLender[] = ['zest-v1', 'zest-v2', 'granite']
 const ROTATION_KEY = 'cron:next-lender-index'
 const PRICES_KEY = 'prices'
-const VAULT_HISTORY_KEY = 'vault:share-price-history'
+const VAULT_HISTORY_KEY = 'vault:share-price-history' // USDCx vault
+const VAULT_STX_HISTORY_KEY = 'vault-stx:share-price-history'
 const MAX_VAULT_HISTORY = 21_600 // ~30 days at 2-min intervals
 
 /**
@@ -62,23 +65,29 @@ async function handleScheduled(env: Env): Promise<void> {
   // Advance rotation
   await env.LENDING_KV.put(ROTATION_KEY, String((idx + 1) % LENDERS.length))
 
-  // Step 3: Vault snapshot (every invocation — lightweight single batch call)
-  try {
-    const snapshot = await fetchVaultSnapshot({ concurrency: 2 })
-    const raw = await env.LENDING_KV.get(VAULT_HISTORY_KEY)
-    const history: VaultSnapshot[] = raw ? JSON.parse(raw) : []
-    history.push(snapshot)
+  // Step 3: Vault snapshots (every invocation — lightweight single batch calls)
+  const vaultJobs: { key: string; label: string; config: typeof VAULT_USDCX_CONFIG }[] = [
+    { key: VAULT_HISTORY_KEY, label: 'USDCx', config: VAULT_USDCX_CONFIG },
+    { key: VAULT_STX_HISTORY_KEY, label: 'STX', config: VAULT_STX_CONFIG },
+  ]
 
-    // Trim to cap
-    if (history.length > MAX_VAULT_HISTORY) {
-      history.splice(0, history.length - MAX_VAULT_HISTORY)
+  await Promise.all(vaultJobs.map(async ({ key, label, config }) => {
+    try {
+      const snapshot = await fetchVaultSnapshot({ concurrency: 2, vault: config })
+      const raw = await env.LENDING_KV.get(key)
+      const history: VaultSnapshot[] = raw ? JSON.parse(raw) : []
+      history.push(snapshot)
+
+      if (history.length > MAX_VAULT_HISTORY) {
+        history.splice(0, history.length - MAX_VAULT_HISTORY)
+      }
+
+      await env.LENDING_KV.put(key, JSON.stringify(history))
+      console.log(`Cron: ${label} vault snapshot (price=${snapshot.sharePrice}, history=${history.length})`)
+    } catch (e) {
+      console.error(`Cron: failed to fetch ${label} vault snapshot`, e)
     }
-
-    await env.LENDING_KV.put(VAULT_HISTORY_KEY, JSON.stringify(history))
-    console.log(`Cron: vault snapshot stored (price=${snapshot.sharePrice}, history=${history.length})`)
-  } catch (e) {
-    console.error('Cron: failed to fetch vault snapshot', e)
-  }
+  }))
 }
 
 /**
@@ -97,9 +106,14 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     'Cache-Control': 'public, max-age=60',
   }
 
-  // Vault history endpoint
-  if (path === 'vault/history') {
-    const raw = await env.LENDING_KV.get(VAULT_HISTORY_KEY)
+  // Vault history endpoints: /vault/history (USDCx) and /vault-stx/history (STX)
+  const vaultHistoryMap: Record<string, string> = {
+    'vault/history': VAULT_HISTORY_KEY,
+    'vault-stx/history': VAULT_STX_HISTORY_KEY,
+  }
+
+  if (vaultHistoryMap[path]) {
+    const raw = await env.LENDING_KV.get(vaultHistoryMap[path])
     if (!raw) {
       return new Response(JSON.stringify({ error: 'No vault history yet' }), {
         status: 404,

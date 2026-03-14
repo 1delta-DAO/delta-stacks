@@ -3,61 +3,89 @@ import { decodeClarityValue, extractUint } from '../stacks-call/clarity-decode'
 import type { StacksCall } from '../stacks-call/types'
 
 const VAULT_V3_DEPLOYER = 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H'
-const VAULT_V3_CONTRACT = 'vault-usdcx-v3'
 
 export interface VaultSnapshot {
   timestamp: number // Unix seconds
   totalAssets: string // stringified bigint for JSON safety
   totalSupply: string
   sharePrice: number // human-readable (assets per 1 share)
-  allocGranite: string
-  allocZest: string
+  allocMarket1: string // Granite (USDCx) or Zest V1 (STX)
+  allocMarket2: string // Zest V2
   idleBookkeeping: string
+}
+
+/** Configuration for a specific vault's on-chain read calls. */
+export interface VaultConfig {
+  deployer: string
+  contractName: string
+  /** Function name for market 1 allocation (e.g. 'get-alloc-granite' or 'get-alloc-zest-v1') */
+  allocMarket1Fn: string
+  /** Function name for market 2 allocation */
+  allocMarket2Fn: string
+}
+
+export const VAULT_USDCX_CONFIG: VaultConfig = {
+  deployer: VAULT_V3_DEPLOYER,
+  contractName: 'vault-usdcx-v3',
+  allocMarket1Fn: 'get-alloc-granite',
+  allocMarket2Fn: 'get-alloc-zest-v2',
+}
+
+export const VAULT_STX_CONFIG: VaultConfig = {
+  deployer: VAULT_V3_DEPLOYER,
+  contractName: 'vault-stx-v3-1',
+  allocMarket1Fn: 'get-alloc-zest-v1',
+  allocMarket2Fn: 'get-alloc-zest-v2',
 }
 
 /**
  * Fetch the current vault state and compute a share price snapshot.
  * Uses the data-provision executeStacksReadCalls infrastructure
  * (with retry/backoff).
+ *
+ * @param vault - vault config (defaults to USDCx for backward compat)
  */
 export async function fetchVaultSnapshot(options?: {
   apiUrl?: string
   concurrency?: number
+  vault?: VaultConfig
 }): Promise<VaultSnapshot> {
+  const vault = options?.vault ?? VAULT_USDCX_CONFIG
+
   const calls: StacksCall[] = [
     {
-      contractAddress: VAULT_V3_DEPLOYER,
-      contractName: VAULT_V3_CONTRACT,
+      contractAddress: vault.deployer,
+      contractName: vault.contractName,
       functionName: 'get-total-assets',
       args: [],
     },
     {
-      contractAddress: VAULT_V3_DEPLOYER,
-      contractName: VAULT_V3_CONTRACT,
+      contractAddress: vault.deployer,
+      contractName: vault.contractName,
       functionName: 'get-total-supply',
       args: [],
     },
     {
-      contractAddress: VAULT_V3_DEPLOYER,
-      contractName: VAULT_V3_CONTRACT,
-      functionName: 'get-alloc-granite',
+      contractAddress: vault.deployer,
+      contractName: vault.contractName,
+      functionName: vault.allocMarket1Fn,
       args: [],
     },
     {
-      contractAddress: VAULT_V3_DEPLOYER,
-      contractName: VAULT_V3_CONTRACT,
-      functionName: 'get-alloc-zest-v2',
+      contractAddress: vault.deployer,
+      contractName: vault.contractName,
+      functionName: vault.allocMarket2Fn,
       args: [],
     },
     {
-      contractAddress: VAULT_V3_DEPLOYER,
-      contractName: VAULT_V3_CONTRACT,
+      contractAddress: vault.deployer,
+      contractName: vault.contractName,
       functionName: 'get-idle-bookkeeping',
       args: [],
     },
     {
-      contractAddress: VAULT_V3_DEPLOYER,
-      contractName: VAULT_V3_CONTRACT,
+      contractAddress: vault.deployer,
+      contractName: vault.contractName,
       functionName: 'get-virtual-offset',
       args: [],
     },
@@ -81,8 +109,8 @@ export async function fetchVaultSnapshot(options?: {
 
   const totalAssets = decode(0)
   const totalSupply = decode(1)
-  const allocGranite = decode(2)
-  const allocZest = decode(3)
+  const allocMarket1 = decode(2)
+  const allocMarket2 = decode(3)
   const idleBookkeeping = decode(4)
   const virtualOffset = decode(5)
 
@@ -98,8 +126,8 @@ export async function fetchVaultSnapshot(options?: {
     totalAssets: totalAssets.toString(),
     totalSupply: totalSupply.toString(),
     sharePrice,
-    allocGranite: allocGranite.toString(),
-    allocZest: allocZest.toString(),
+    allocMarket1: allocMarket1.toString(),
+    allocMarket2: allocMarket2.toString(),
     idleBookkeeping: idleBookkeeping.toString(),
   }
 }

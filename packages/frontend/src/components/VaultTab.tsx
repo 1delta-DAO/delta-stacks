@@ -5,33 +5,43 @@ import { useTransact } from '../hooks/useTransact'
 import { usePendingTx } from '../hooks/usePendingTx'
 import { useBalances, type Balances } from '../hooks/useBalances'
 import { useVaultStateV3, type VaultStateV3 } from '../hooks/useVaultStateV3'
+import { useVaultStateSTX } from '../hooks/useVaultStateSTX'
 import {
   DeltaVaultV3,
+  DeltaVaultSTX,
   VAULT_V3_CONTRACTS,
   VAULT_V3_UNDERLYING,
+  VAULT_STX_CONTRACTS,
+  VAULT_STX_UNDERLYING,
 } from '@delta-stacks/calldata-sdk-stacks'
 
 import { SharePriceChart } from './SharePriceChart'
-import graniteLogo from '../assets/granite.png'
-import zestLogo from '../assets/zest.png'
 import { getTokenIcon } from '../utils/tokenIcons'
+import { type VaultDef, VAULT_USDCX } from '../config/vaults'
 
 // ---------------------------------------------------------------------------
-// Vault operations
+// Vault operations (dynamic based on vault markets)
 // ---------------------------------------------------------------------------
 
 const USER_OPS = ['Deposit', 'Withdraw', 'Redeem'] as const
-const ALLOCATOR_OPS = [
-  'Deploy Granite', 'Deploy Zest',
-  'Recall Granite', 'Recall Zest',
-  'Rebalance G→Z', 'Rebalance Z→G',
-  'Reallocate',
-] as const
-const OWNER_OPS = [
-  'Set Allocator', 'Set Owner',
-  'Register Granite', 'Register Zest',
-  'Set Fee', 'Set Fee Recipient', 'Set Idle Buffer',
-] as const
+
+function getAllocatorOps(v: VaultDef) {
+  return [
+    `Deploy ${v.market1Label}`, `Deploy ${v.market2Label}`,
+    `Recall ${v.market1Label}`, `Recall ${v.market2Label}`,
+    `Rebalance ${v.market1Label[0]}→${v.market2Label[0]}`,
+    `Rebalance ${v.market2Label[0]}→${v.market1Label[0]}`,
+    'Reallocate',
+  ] as const
+}
+
+function getOwnerOps(v: VaultDef) {
+  return [
+    'Set Allocator', 'Set Owner',
+    `Register ${v.market1Label}`, `Register ${v.market2Label}`,
+    'Set Fee', 'Set Fee Recipient', 'Set Idle Buffer',
+  ] as const
+}
 
 const PCT_BUTTONS = [25, 50, 75, 100] as const
 
@@ -66,12 +76,89 @@ function bpsPct(bps: bigint): string {
 // Component
 // ---------------------------------------------------------------------------
 
-export function VaultTab() {
+/** Normalized vault state shape used by all panels. */
+interface NormalizedVault {
+  totalAssets: bigint
+  allocMarket1: bigint
+  allocMarket2: bigint
+  idleBookkeeping: bigint
+  totalSupply: bigint
+  sharePrice: number
+  liveIdle: bigint
+  liveMarket1: bigint
+  liveMarket2: bigint
+  liveTotal: bigint
+  unrealizedYield: bigint
+  market1Apr: number
+  market2Apr: number
+  blendedApr: number
+  feeBps: bigint
+  idleBufferBps: bigint
+  virtualOffset: bigint
+}
+
+function useNormalizedVault(vaultDef: VaultDef): { vault: NormalizedVault; loading: boolean; refresh: () => void } {
+  const usdcx = useVaultStateV3()
+  const stx = useVaultStateSTX()
+
+  if (vaultDef.id === 'stx') {
+    const s = stx.state
+    return {
+      vault: {
+        totalAssets: s.totalAssets,
+        allocMarket1: s.allocZestV1,
+        allocMarket2: s.allocZestV2,
+        idleBookkeeping: s.idleBookkeeping,
+        totalSupply: s.totalSupply,
+        sharePrice: s.sharePrice,
+        liveIdle: s.liveIdle,
+        liveMarket1: s.liveZestV1,
+        liveMarket2: s.liveZestV2,
+        liveTotal: s.liveTotal,
+        unrealizedYield: s.unrealizedYield,
+        market1Apr: s.zestV1Apr,
+        market2Apr: s.zestV2Apr,
+        blendedApr: s.blendedApr,
+        feeBps: s.feeBps,
+        idleBufferBps: s.idleBufferBps,
+        virtualOffset: s.virtualOffset,
+      },
+      loading: stx.loading,
+      refresh: stx.refresh,
+    }
+  }
+
+  const u = usdcx.state
+  return {
+    vault: {
+      totalAssets: u.totalAssets,
+      allocMarket1: u.allocGranite,
+      allocMarket2: u.allocZest,
+      idleBookkeeping: u.idleBookkeeping,
+      totalSupply: u.totalSupply,
+      sharePrice: u.sharePrice,
+      liveIdle: u.liveIdle,
+      liveMarket1: u.liveGranite,
+      liveMarket2: u.liveZest,
+      liveTotal: u.liveTotal,
+      unrealizedYield: u.unrealizedYield,
+      market1Apr: u.graniteApr,
+      market2Apr: u.zestApr,
+      blendedApr: u.blendedApr,
+      feeBps: u.feeBps,
+      idleBufferBps: u.idleBufferBps,
+      virtualOffset: u.virtualOffset,
+    },
+    loading: usdcx.loading,
+    refresh: usdcx.refresh,
+  }
+}
+
+export function VaultTab({ vault: vaultDef = VAULT_USDCX, onBack }: { vault?: VaultDef; onBack?: () => void }) {
   const [roleTab, setRoleTab] = useState(0)
-  const { state: vault, loading, refresh: refreshVault } = useVaultStateV3()
+  const { vault, loading, refresh: refreshVault } = useNormalizedVault(vaultDef)
   const { balances, refresh: refreshBalances } = useBalances()
 
-  /** Called when any pending tx confirms — refresh both user balances and vault state */
   const onTxConfirm = useCallback(() => {
     refreshBalances()
     refreshVault()
@@ -83,17 +170,28 @@ export function VaultTab() {
       <div className="glass-card rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="mr-1 p-1.5 rounded-lg hover:bg-surface-alt text-text-dim hover:text-text transition-all"
+                title="Back to vault list"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
             <img
-              src={getTokenIcon('USDCx')}
-              alt="USDCx"
+              src={getTokenIcon(vaultDef.asset)}
+              alt={vaultDef.asset}
               className="w-8 h-8 rounded-full bg-surface-alt ring-2 ring-border-subtle"
               onError={(e) => {
-                ;(e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=USDCx&background=2e2e4a&color=eaeaf4&size=36&bold=true`
+                ;(e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${vaultDef.asset}&background=2e2e4a&color=eaeaf4&size=36&bold=true`
               }}
             />
             <div>
-              <h2 className="text-sm font-semibold">1delta USDCx Vault v3</h2>
-              <span className="text-[11px] text-text-dim">1dUSDCx</span>
+              <h2 className="text-sm font-semibold">{vaultDef.name}</h2>
+              <span className="text-[11px] text-text-dim">{vaultDef.symbol}</span>
             </div>
           </div>
           {!loading && vault.blendedApr > 0 && (
@@ -107,12 +205,12 @@ export function VaultTab() {
 
         {/* Key metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.liveTotal)} USDCx`} />
+          <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.liveTotal)} ${vaultDef.asset}`} />
           <MetricCard label="Share Price" value={loading ? '...' : vault.sharePrice.toFixed(6)} />
           <MetricCard label="Total Shares" value={loading ? '...' : micro(vault.totalSupply)} />
           <MetricCard
             label="Unrealized Yield"
-            value={loading ? '...' : `${micro(vault.unrealizedYield)} USDCx`}
+            value={loading ? '...' : `${micro(vault.unrealizedYield)} ${vaultDef.asset}`}
             positive={vault.unrealizedYield > 0n}
           />
         </div>
@@ -120,27 +218,18 @@ export function VaultTab() {
         {/* V3 config row */}
         {!loading && (
           <div className="grid grid-cols-3 gap-3 mt-3">
-            <MetricCard
-              label="Performance Fee"
-              value={bpsPct(vault.feeBps)}
-            />
-            <MetricCard
-              label="Idle Buffer"
-              value={bpsPct(vault.idleBufferBps)}
-            />
-            <MetricCard
-              label="Virtual Offset"
-              value={vault.virtualOffset.toLocaleString()}
-            />
+            <MetricCard label="Performance Fee" value={bpsPct(vault.feeBps)} />
+            <MetricCard label="Idle Buffer" value={bpsPct(vault.idleBufferBps)} />
+            <MetricCard label="Virtual Offset" value={vault.virtualOffset.toLocaleString()} />
           </div>
         )}
       </div>
 
       {/* Allocation breakdown */}
-      {!loading && <AllocationBar vault={vault} />}
+      {!loading && <AllocationBar vault={vault} vaultDef={vaultDef} />}
 
       {/* Share price history chart */}
-      <SharePriceChart />
+      <SharePriceChart historyEndpoint={vaultDef.historyEndpoint} />
 
       {/* Role tabs */}
       <Tabs
@@ -149,9 +238,9 @@ export function VaultTab() {
         onChange={setRoleTab}
       />
 
-      {roleTab === 0 && <UserPanel balances={balances} vault={vault} onTxConfirm={onTxConfirm} />}
-      {roleTab === 1 && <AllocatorPanel vault={vault} onTxConfirm={onTxConfirm} />}
-      {roleTab === 2 && <OwnerPanel onTxConfirm={onTxConfirm} />}
+      {roleTab === 0 && <UserPanel balances={balances} vault={vault} vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
+      {roleTab === 1 && <AllocatorPanel vault={vault} vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
+      {roleTab === 2 && <OwnerPanel vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
     </div>
   )
 }
@@ -173,37 +262,37 @@ function MetricCard({ label, value, positive }: { label: string; value: string; 
 // Allocation breakdown bar + table
 // ---------------------------------------------------------------------------
 
-function AllocationBar({ vault }: { vault: VaultStateV3 }) {
+function AllocationBar({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: VaultDef }) {
   const total = vault.totalAssets
   const idle = vault.idleBookkeeping
-  const granite = vault.allocGranite
-  const zest = vault.allocZest
+  const m1 = vault.allocMarket1
+  const m2 = vault.allocMarket2
 
   const idlePct = total > 0n ? Number(idle * 10000n / total) / 100 : 100
-  const granitePct = total > 0n ? Number(granite * 10000n / total) / 100 : 0
-  const zestPct = total > 0n ? Number(zest * 10000n / total) / 100 : 0
+  const m1Pct = total > 0n ? Number(m1 * 10000n / total) / 100 : 0
+  const m2Pct = total > 0n ? Number(m2 * 10000n / total) / 100 : 0
 
   return (
     <div className="glass-card rounded-xl p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-text-dim">Allocation</h3>
-        <span className="text-xs text-text-dim font-mono">{micro(total)} USDCx total</span>
+        <span className="text-xs text-text-dim font-mono">{micro(total)} {vaultDef.asset} total</span>
       </div>
 
       {/* Stacked bar */}
       <div className="h-3 rounded-full overflow-hidden flex bg-surface-alt border border-border-subtle">
-        {granitePct > 0 && (
+        {m1Pct > 0 && (
           <div
             className="h-full bg-gradient-to-r from-accent-blue to-accent-blue/80 transition-all duration-500"
-            style={{ width: `${granitePct}%` }}
-            title={`Granite: ${pct(granitePct)}`}
+            style={{ width: `${m1Pct}%` }}
+            title={`${vaultDef.market1Label}: ${pct(m1Pct)}`}
           />
         )}
-        {zestPct > 0 && (
+        {m2Pct > 0 && (
           <div
             className="h-full bg-gradient-to-r from-accent-purple to-accent-purple/80 transition-all duration-500"
-            style={{ width: `${zestPct}%` }}
-            title={`Zest V2: ${pct(zestPct)}`}
+            style={{ width: `${m2Pct}%` }}
+            title={`${vaultDef.market2Label}: ${pct(m2Pct)}`}
           />
         )}
         {idlePct > 0 && (
@@ -218,19 +307,19 @@ function AllocationBar({ vault }: { vault: VaultStateV3 }) {
       {/* Legend + details */}
       <div className="grid grid-cols-3 gap-3 text-xs">
         <AllocationLegendItem
-          icon={graniteLogo}
-          label="Granite"
-          amount={micro(granite)}
-          percentage={pct(granitePct)}
-          apr={vault.graniteApr > 0 ? pct(vault.graniteApr) : null}
+          icon={vaultDef.market1Logo}
+          label={vaultDef.market1Label}
+          amount={micro(m1)}
+          percentage={pct(m1Pct)}
+          apr={vault.market1Apr > 0 ? pct(vault.market1Apr) : null}
           color="accent-blue"
         />
         <AllocationLegendItem
-          icon={zestLogo}
-          label="Zest V2"
-          amount={micro(zest)}
-          percentage={pct(zestPct)}
-          apr={vault.zestApr > 0 ? pct(vault.zestApr) : null}
+          icon={vaultDef.market2Logo}
+          label={vaultDef.market2Label}
+          amount={micro(m2)}
+          percentage={pct(m2Pct)}
+          apr={vault.market2Apr > 0 ? pct(vault.market2Apr) : null}
           color="accent-purple"
         />
         <div className="space-y-1.5">
@@ -238,7 +327,7 @@ function AllocationBar({ vault }: { vault: VaultStateV3 }) {
             <span className="w-2.5 h-2.5 rounded-full bg-text-dim/30 inline-block" />
             <span className="text-text-dim font-medium">Idle</span>
           </div>
-          <div className="font-mono pl-4 text-text-muted">{micro(idle)}</div>
+          <div className="font-mono pl-4 text-text-muted">{micro(vault.liveIdle)}</div>
           <div className="text-text-dim pl-4">{pct(idlePct)}</div>
           <div className="text-text-dim pl-4 font-mono">0.00% APR</div>
         </div>
@@ -248,7 +337,7 @@ function AllocationBar({ vault }: { vault: VaultStateV3 }) {
       {vault.unrealizedYield > 0n && (
         <div className="text-xs text-text-dim bg-surface-alt/60 rounded-xl p-3 flex justify-between border border-border-subtle">
           <span>Live total (incl. unrealized)</span>
-          <span className="font-mono text-text-muted">{micro(vault.liveTotal)} USDCx</span>
+          <span className="font-mono text-text-muted">{micro(vault.liveTotal)} {vaultDef.asset}</span>
         </div>
       )}
     </div>
@@ -287,7 +376,7 @@ function AllocationLegendItem({
 // User Panel — Deposit / Withdraw / Redeem
 // ---------------------------------------------------------------------------
 
-function UserPanel({ balances, vault, onTxConfirm }: { balances: Balances; vault: VaultStateV3; onTxConfirm: () => void }) {
+function UserPanel({ balances, vault, vaultDef, onTxConfirm }: { balances: Balances; vault: NormalizedVault; vaultDef: VaultDef; onTxConfirm: () => void }) {
   const [opTab, setOpTab] = useState(0)
   const [amount, setAmount] = useState('')
   const { connected, stxAddress, connect } = useWallet()
@@ -296,23 +385,30 @@ function UserPanel({ balances, vault, onTxConfirm }: { balances: Balances; vault
 
   const op = USER_OPS[opTab]
 
-  // USDCx wallet balance (human-readable)
+  const underlying = vaultDef.assetContract
+  const vaultContract = vaultDef.vaultContract
+
+  // Wallet balance (human-readable)
   const walletBalance = useMemo(() => {
+    // For STX vault, use native STX balance (balances.stx is a raw bigint)
+    if (vaultDef.id === 'stx') {
+      return Number(balances.stx) / 1e6
+    }
     const key = Object.keys(balances.fungible).find(
-      (k) => k.toLowerCase() === VAULT_V3_UNDERLYING.toLowerCase(),
+      (k) => k.toLowerCase() === underlying.toLowerCase(),
     )
     if (key) return Number(balances.fungible[key].balance) / 1e6
     return 0
-  }, [balances])
+  }, [balances, underlying, vaultDef.id])
 
-  // 1dUSDCx (vault share) balance
+  // Vault share balance
   const shareBalance = useMemo(() => {
     const key = Object.keys(balances.fungible).find(
-      (k) => k.toLowerCase() === VAULT_V3_CONTRACTS.vault.toLowerCase(),
+      (k) => k.toLowerCase() === vaultContract.toLowerCase(),
     )
     if (key) return Number(balances.fungible[key].balance) / 1e6
     return 0
-  }, [balances])
+  }, [balances, vaultContract])
 
   // Withdrawable USDCx = shares * share price (floored to 6 decimals)
   const withdrawableBalance = useMemo(() => {
@@ -351,16 +447,27 @@ function UserPanel({ balances, vault, onTxConfirm }: { balances: Balances; vault
     const amtSmallest = BigInt(Math.floor(amtRaw * 1e6))
 
     await tx.execute(async () => {
-      switch (op) {
-        case 'Deposit':
-          return DeltaVaultV3.encodeDeposit(amtSmallest, stxAddress)
-        case 'Withdraw':
-          return DeltaVaultV3.encodeWithdraw(amtSmallest, stxAddress, stxAddress)
-        case 'Redeem':
-          return DeltaVaultV3.encodeRedeem(amtSmallest, stxAddress, stxAddress)
+      if (vaultDef.id === 'stx') {
+        switch (op) {
+          case 'Deposit':
+            return DeltaVaultSTX.encodeDepositStx(amtSmallest, stxAddress)
+          case 'Withdraw':
+            return DeltaVaultSTX.encodeWithdrawStx(amtSmallest, stxAddress, stxAddress)
+          case 'Redeem':
+            return DeltaVaultSTX.encodeRedeemForStx(amtSmallest, stxAddress, stxAddress)
+        }
+      } else {
+        switch (op) {
+          case 'Deposit':
+            return DeltaVaultV3.encodeDeposit(amtSmallest, stxAddress)
+          case 'Withdraw':
+            return DeltaVaultV3.encodeWithdraw(amtSmallest, stxAddress, stxAddress)
+          case 'Redeem':
+            return DeltaVaultV3.encodeRedeem(amtSmallest, stxAddress, stxAddress)
+        }
       }
     })
-  }, [stxAddress, amount, op, tx])
+  }, [stxAddress, amount, op, tx, vaultDef.id])
 
   useEffect(() => {
     if (tx.status === 'submitted' && tx.txId) pending.addTx(tx.txId)
@@ -382,25 +489,25 @@ function UserPanel({ balances, vault, onTxConfirm }: { balances: Balances; vault
         <div className="bg-surface-alt/60 rounded-xl p-3 space-y-2 text-xs border border-border-subtle">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <img src={getTokenIcon('USDCx')} alt="USDCx" className="w-4 h-4 rounded-full" />
-              <span className="text-text-dim">USDCx wallet</span>
+              <img src={getTokenIcon(vaultDef.asset)} alt={vaultDef.asset} className="w-4 h-4 rounded-full" />
+              <span className="text-text-dim">{vaultDef.asset} wallet</span>
             </div>
             <span className="font-mono text-text-muted">{formatAmount(walletBalance)}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="w-4 h-4 rounded-full bg-gradient-to-br from-accent-blue to-accent-purple flex items-center justify-center text-[8px] font-bold text-white">d</span>
-              <span className="text-text-dim">1dUSDCx shares</span>
+              <span className="text-text-dim">{vaultDef.symbol} shares</span>
             </div>
             <span className="font-mono text-text-muted">{formatAmount(shareBalance)}</span>
           </div>
           {shareBalance > 0 && (
             <div className="flex items-center justify-between border-t border-border-subtle pt-2">
               <div className="flex items-center gap-1.5">
-                <img src={getTokenIcon('USDCx')} alt="USDCx" className="w-4 h-4 rounded-full opacity-60" />
+                <img src={getTokenIcon(vaultDef.asset)} alt={vaultDef.asset} className="w-4 h-4 rounded-full opacity-60" />
                 <span className="text-text-dim">Withdrawable</span>
               </div>
-              <span className="font-mono text-text-muted">{formatAmount(withdrawableBalance)} USDCx</span>
+              <span className="font-mono text-text-muted">{formatAmount(withdrawableBalance)} {vaultDef.asset}</span>
             </div>
           )}
         </div>
@@ -410,7 +517,7 @@ function UserPanel({ balances, vault, onTxConfirm }: { balances: Balances; vault
       <AmountInput
         amount={amount}
         setAmount={(v) => { setAmount(v); if (tx.status !== 'idle') tx.reset() }}
-        label={op === 'Redeem' ? 'Shares (1dUSDCx)' : 'Amount (USDCx)'}
+        label={op === 'Redeem' ? `Shares (${vaultDef.symbol})` : `Amount (${vaultDef.asset})`}
         maxAmount={maxAmount}
         exceedsMax={amtExceedsMax}
         pctButtons
@@ -435,28 +542,32 @@ function UserPanel({ balances, vault, onTxConfirm }: { balances: Balances; vault
 // Allocator Panel — Deploy / Recall / Rebalance / Reallocate
 // ---------------------------------------------------------------------------
 
-function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfirm: () => void }) {
+function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVault; vaultDef: VaultDef; onTxConfirm: () => void }) {
+  const allocOps = useMemo(() => getAllocatorOps(vaultDef), [vaultDef])
   const [opTab, setOpTab] = useState(0)
   const [amount, setAmount] = useState('')
-  // Reallocate needs 4 fields
-  const [reallocFields, setReallocFields] = useState({ fromGranite: '', fromZest: '', toGranite: '', toZest: '' })
+  const [reallocFields, setReallocFields] = useState({ fromM1: '', fromM2: '', toM1: '', toM2: '' })
   const { connected, stxAddress, connect } = useWallet()
   const tx = useTransact()
   const pending = usePendingTx(onTxConfirm)
 
-  const op = ALLOCATOR_OPS[opTab]
+  const op = allocOps[opTab]
   const isReallocate = op === 'Reallocate'
 
   const handleSubmit = useCallback(async () => {
     if (!stxAddress) return
 
     if (isReallocate) {
-      const fg = BigInt(Math.floor(parseFloat(reallocFields.fromGranite || '0') * 1e6))
-      const fz = BigInt(Math.floor(parseFloat(reallocFields.fromZest || '0') * 1e6))
-      const tg = BigInt(Math.floor(parseFloat(reallocFields.toGranite || '0') * 1e6))
-      const tz = BigInt(Math.floor(parseFloat(reallocFields.toZest || '0') * 1e6))
+      const f1 = BigInt(Math.floor(parseFloat(reallocFields.fromM1 || '0') * 1e6))
+      const f2 = BigInt(Math.floor(parseFloat(reallocFields.fromM2 || '0') * 1e6))
+      const t1 = BigInt(Math.floor(parseFloat(reallocFields.toM1 || '0') * 1e6))
+      const t2 = BigInt(Math.floor(parseFloat(reallocFields.toM2 || '0') * 1e6))
 
-      await tx.execute(async () => DeltaVaultV3.encodeReallocate(fg, fz, tg, tz))
+      await tx.execute(async () =>
+        vaultDef.id === 'stx'
+          ? DeltaVaultSTX.encodeReallocate(f1, f2, t1, t2)
+          : DeltaVaultV3.encodeReallocate(f1, f2, t1, t2),
+      )
       return
     }
 
@@ -466,22 +577,30 @@ function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfi
     const amtSmallest = BigInt(Math.floor(amtRaw * 1e6))
 
     await tx.execute(async () => {
-      switch (op) {
-        case 'Deploy Granite':
-          return DeltaVaultV3.encodeDeployToGranite(amtSmallest)
-        case 'Deploy Zest':
-          return DeltaVaultV3.encodeDeployToZestV2(amtSmallest)
-        case 'Recall Granite':
-          return DeltaVaultV3.encodeRecallFromGranite(amtSmallest)
-        case 'Recall Zest':
-          return DeltaVaultV3.encodeRecallFromZestV2(amtSmallest)
-        case 'Rebalance G→Z':
-          return DeltaVaultV3.encodeRebalanceGraniteToZestV2(amtSmallest)
-        case 'Rebalance Z→G':
-          return DeltaVaultV3.encodeRebalanceZestV2ToGranite(amtSmallest)
+      const isM1Deploy = op === `Deploy ${vaultDef.market1Label}`
+      const isM2Deploy = op === `Deploy ${vaultDef.market2Label}`
+      const isM1Recall = op === `Recall ${vaultDef.market1Label}`
+      const isM2Recall = op === `Recall ${vaultDef.market2Label}`
+      const isRebal12 = op === `Rebalance ${vaultDef.market1Label[0]}→${vaultDef.market2Label[0]}`
+      const isRebal21 = op === `Rebalance ${vaultDef.market2Label[0]}→${vaultDef.market1Label[0]}`
+
+      if (vaultDef.id === 'stx') {
+        if (isM1Deploy) return DeltaVaultSTX.encodeDeployToZestV1(amtSmallest)
+        if (isM2Deploy) return DeltaVaultSTX.encodeDeployToZestV2(amtSmallest)
+        if (isM1Recall) return DeltaVaultSTX.encodeRecallFromZestV1(amtSmallest)
+        if (isM2Recall) return DeltaVaultSTX.encodeRecallFromZestV2(amtSmallest)
+        if (isRebal12) return DeltaVaultSTX.encodeRebalanceV1ToV2(amtSmallest)
+        if (isRebal21) return DeltaVaultSTX.encodeRebalanceV2ToV1(amtSmallest)
+      } else {
+        if (isM1Deploy) return DeltaVaultV3.encodeDeployToGranite(amtSmallest)
+        if (isM2Deploy) return DeltaVaultV3.encodeDeployToZestV2(amtSmallest)
+        if (isM1Recall) return DeltaVaultV3.encodeRecallFromGranite(amtSmallest)
+        if (isM2Recall) return DeltaVaultV3.encodeRecallFromZestV2(amtSmallest)
+        if (isRebal12) return DeltaVaultV3.encodeRebalanceGraniteToZestV2(amtSmallest)
+        if (isRebal21) return DeltaVaultV3.encodeRebalanceZestV2ToGranite(amtSmallest)
       }
     })
-  }, [stxAddress, amount, op, tx, isReallocate, reallocFields])
+  }, [stxAddress, amount, op, tx, isReallocate, reallocFields, vaultDef])
 
   useEffect(() => {
     if (tx.status === 'submitted' && tx.txId) pending.addTx(tx.txId)
@@ -490,9 +609,9 @@ function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfi
   return (
     <div className="glass-card rounded-xl p-5 space-y-4">
       <Tabs
-        tabs={[...ALLOCATOR_OPS]}
+        tabs={[...allocOps]}
         active={opTab}
-        onChange={(i) => { setOpTab(i); setAmount(''); setReallocFields({ fromGranite: '', fromZest: '', toGranite: '', toZest: '' }); tx.reset() }}
+        onChange={(i) => { setOpTab(i); setAmount(''); setReallocFields({ fromM1: '', fromM2: '', toM1: '', toM2: '' }); tx.reset() }}
         size="sm"
       />
 
@@ -503,19 +622,19 @@ function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfi
         Allocator-only operations. Only the address set via <span className="font-mono text-text-muted">set-vault-allocator</span> can execute these.
       </div>
 
-      {/* Current balances context */}
+      {/* Current balances context — shows live (actual) idle, not bookkeeping */}
       <div className="bg-surface-alt/60 rounded-xl p-3 space-y-1.5 text-xs border border-border-subtle">
         <div className="flex justify-between">
-          <span className="text-text-dim">Idle</span>
-          <span className="font-mono text-text-muted">{micro(vault.idleBookkeeping)} USDCx</span>
+          <span className="text-text-dim">Idle (deployable)</span>
+          <span className="font-mono text-text-muted">{micro(vault.liveIdle)} {vaultDef.asset}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-text-dim">Granite</span>
-          <span className="font-mono text-text-muted">{micro(vault.allocGranite)} USDCx</span>
+          <span className="text-text-dim">{vaultDef.market1Label}</span>
+          <span className="font-mono text-text-muted">{micro(vault.allocMarket1)} {vaultDef.asset}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-text-dim">Zest V2</span>
-          <span className="font-mono text-text-muted">{micro(vault.allocZest)} USDCx</span>
+          <span className="text-text-dim">{vaultDef.market2Label}</span>
+          <span className="font-mono text-text-muted">{micro(vault.allocMarket2)} {vaultDef.asset}</span>
         </div>
       </div>
 
@@ -526,38 +645,38 @@ function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfi
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">From Granite</label>
+              <label className="text-xs text-text-muted font-medium">From {vaultDef.market1Label}</label>
               <input
                 type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.fromGranite}
-                onChange={(e) => { setReallocFields(f => ({ ...f, fromGranite: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
+                value={reallocFields.fromM1}
+                onChange={(e) => { setReallocFields(f => ({ ...f, fromM1: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
                 className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">From Zest V2</label>
+              <label className="text-xs text-text-muted font-medium">From {vaultDef.market2Label}</label>
               <input
                 type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.fromZest}
-                onChange={(e) => { setReallocFields(f => ({ ...f, fromZest: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
+                value={reallocFields.fromM2}
+                onChange={(e) => { setReallocFields(f => ({ ...f, fromM2: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
                 className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">To Granite</label>
+              <label className="text-xs text-text-muted font-medium">To {vaultDef.market1Label}</label>
               <input
                 type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.toGranite}
-                onChange={(e) => { setReallocFields(f => ({ ...f, toGranite: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
+                value={reallocFields.toM1}
+                onChange={(e) => { setReallocFields(f => ({ ...f, toM1: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
                 className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">To Zest V2</label>
+              <label className="text-xs text-text-muted font-medium">To {vaultDef.market2Label}</label>
               <input
                 type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.toZest}
-                onChange={(e) => { setReallocFields(f => ({ ...f, toZest: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
+                value={reallocFields.toM2}
+                onChange={(e) => { setReallocFields(f => ({ ...f, toM2: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
                 className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
               />
             </div>
@@ -567,7 +686,7 @@ function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfi
         <AmountInput
           amount={amount}
           setAmount={(v) => { setAmount(v); if (tx.status !== 'idle') tx.reset() }}
-          label="Amount (USDCx)"
+          label={`Amount (${vaultDef.asset})`}
         />
       )}
 
@@ -593,87 +712,94 @@ function AllocatorPanel({ vault, onTxConfirm }: { vault: VaultStateV3; onTxConfi
 // Owner Panel — Config / Register / Set roles
 // ---------------------------------------------------------------------------
 
-function OwnerPanel({ onTxConfirm }: { onTxConfirm: () => void }) {
+function OwnerPanel({ vaultDef, onTxConfirm }: { vaultDef: VaultDef; onTxConfirm: () => void }) {
+  const ownerOps = useMemo(() => getOwnerOps(vaultDef), [vaultDef])
   const [opTab, setOpTab] = useState(0)
   const [inputValue, setInputValue] = useState('')
   const { connected, stxAddress, connect } = useWallet()
   const tx = useTransact()
   const pending = usePendingTx(onTxConfirm)
 
-  const op = OWNER_OPS[opTab]
+  const op = ownerOps[opTab]
 
   // Whether the input is a number (fee/buffer) or principal
   const isNumericInput = op === 'Set Fee' || op === 'Set Idle Buffer'
+
+  const regM1 = `Register ${vaultDef.market1Label}`
+  const regM2 = `Register ${vaultDef.market2Label}`
 
   const inputLabel = useMemo(() => {
     switch (op) {
       case 'Set Allocator': return 'New allocator principal'
       case 'Set Owner': return 'New owner principal'
-      case 'Register Granite': return 'Adapter principal (blank for default)'
-      case 'Register Zest': return 'Adapter principal (blank for default)'
+      case regM1: return 'Adapter principal (blank for default)'
+      case regM2: return 'Adapter principal (blank for default)'
       case 'Set Fee': return 'Fee (basis points, e.g. 1000 = 10%)'
       case 'Set Fee Recipient': return 'Fee recipient principal'
       case 'Set Idle Buffer': return 'Idle buffer (basis points, e.g. 500 = 5%)'
       default: return 'Value'
     }
-  }, [op])
+  }, [op, regM1, regM2])
 
   const inputPlaceholder = useMemo(() => {
-    switch (op) {
-      case 'Set Allocator':
-      case 'Set Owner':
-      case 'Set Fee Recipient':
-        return 'SP...'
-      case 'Register Granite': return VAULT_V3_CONTRACTS.adapterGranite
-      case 'Register Zest': return VAULT_V3_CONTRACTS.adapterZestV2
-      case 'Set Fee': return '1000'
-      case 'Set Idle Buffer': return '500'
-      default: return ''
-    }
-  }, [op])
+    if (op === 'Set Allocator' || op === 'Set Owner' || op === 'Set Fee Recipient') return 'SP...'
+    if (op === regM1 || op === regM2) return 'SP...'
+    if (op === 'Set Fee') return '1000'
+    if (op === 'Set Idle Buffer') return '500'
+    return ''
+  }, [op, regM1, regM2])
 
   const handleSubmit = useCallback(async () => {
     if (!stxAddress) return
+    const sdk = vaultDef.id === 'stx' ? DeltaVaultSTX : DeltaVaultV3
 
     await tx.execute(async () => {
       switch (op) {
         case 'Set Allocator':
           if (!inputValue) throw new Error('Principal required')
-          return DeltaVaultV3.encodeSetVaultAllocator(inputValue)
+          return sdk.encodeSetVaultAllocator(inputValue)
         case 'Set Owner':
           if (!inputValue) throw new Error('Principal required')
-          return DeltaVaultV3.encodeSetVaultOwner(inputValue)
-        case 'Register Granite':
-          return DeltaVaultV3.encodeRegisterAdapterGranite(inputValue || undefined)
-        case 'Register Zest':
-          return DeltaVaultV3.encodeRegisterAdapterZestV2(inputValue || undefined)
+          return sdk.encodeSetVaultOwner(inputValue)
         case 'Set Fee': {
           const bps = parseInt(inputValue, 10)
           if (isNaN(bps) || bps < 0) throw new Error('Invalid basis points')
-          return DeltaVaultV3.encodeSetFeeBps(BigInt(bps))
+          return sdk.encodeSetFeeBps(BigInt(bps))
         }
         case 'Set Fee Recipient':
           if (!inputValue) throw new Error('Principal required')
-          return DeltaVaultV3.encodeSetFeeRecipient(inputValue)
+          return sdk.encodeSetFeeRecipient(inputValue)
         case 'Set Idle Buffer': {
           const bps = parseInt(inputValue, 10)
           if (isNaN(bps) || bps < 0) throw new Error('Invalid basis points')
-          return DeltaVaultV3.encodeSetIdleBuffer(BigInt(bps))
+          return sdk.encodeSetIdleBuffer(BigInt(bps))
         }
+        default:
+          // Register adapters
+          if (op === regM1) {
+            return vaultDef.id === 'stx'
+              ? DeltaVaultSTX.encodeRegisterAdapterZestV1(inputValue || undefined)
+              : DeltaVaultV3.encodeRegisterAdapterGranite(inputValue || undefined)
+          }
+          if (op === regM2) {
+            return vaultDef.id === 'stx'
+              ? DeltaVaultSTX.encodeRegisterAdapterZestV2(inputValue || undefined)
+              : DeltaVaultV3.encodeRegisterAdapterZestV2(inputValue || undefined)
+          }
       }
     })
-  }, [stxAddress, inputValue, op, tx])
+  }, [stxAddress, inputValue, op, tx, vaultDef, regM1, regM2])
 
   useEffect(() => {
     if (tx.status === 'submitted' && tx.txId) pending.addTx(tx.txId)
   }, [tx.status, tx.txId, pending])
 
-  const needsInput = op !== 'Register Granite' && op !== 'Register Zest'
+  const needsInput = op !== regM1 && op !== regM2
 
   return (
     <div className="glass-card rounded-xl p-5 space-y-4">
       <Tabs
-        tabs={[...OWNER_OPS]}
+        tabs={[...ownerOps]}
         active={opTab}
         onChange={(i) => { setOpTab(i); setInputValue(''); tx.reset() }}
         size="sm"

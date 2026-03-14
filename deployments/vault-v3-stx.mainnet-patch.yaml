@@ -1,0 +1,68 @@
+# =============================================================================
+# Delta Vault V3 / STX — Mainnet PATCH (vault redeploy + re-register)
+# =============================================================================
+#
+# The original vault-stx-v3 deployment aborted due to a type error
+# (to-uint on a value already uint). Adapters deployed successfully.
+#
+# This plan:
+#   Batch 1: Redeploy vault as vault-stx-v3-1 (fixed contract)
+#   Batch 2: Initialize + register the EXISTING adapters with the new vault
+#
+# =============================================================================
+
+id: 4
+name: Delta Vault V3 STX mainnet patch
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    # ------------------------------------------------------------------
+    # Batch 1 — Redeploy vault with fixed contract name
+    # ------------------------------------------------------------------
+    - id: 1
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: vault-stx-v3-1
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 2000000
+          path: contracts/prod/v3/stx/vault-stx-v3.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 2 — Initialize + register existing adapters
+    # ------------------------------------------------------------------
+    - id: 2
+      transactions:
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3-1
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: initialize
+          parameters:
+            - "'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.wstx"
+            - "\"1delta STX Vault v3\""
+            - "\"1dSTX\""
+            - "u6"
+          cost: 250000
+
+        # Register the ALREADY-DEPLOYED Zest V1 adapter
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3-1
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v1-wstx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-wstx-v3"
+          cost: 250000
+
+        # Register the ALREADY-DEPLOYED Zest V2 adapter
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3-1
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-stx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-stx-v3"
+          cost: 250000
+      epoch: '3.0'

@@ -26,11 +26,15 @@ function getBackendBase(): string {
   return ''
 }
 
-export function useVaultHistory(range: '24h' | '7d' | '30d' = '7d') {
+/**
+ * @param range   - time range
+ * @param endpoint - backend path, e.g. 'vault/history' or 'vault-stx/history'
+ */
+export function useVaultHistory(range: '24h' | '7d' | '30d' = '7d', endpoint = 'vault/history') {
   const base = getBackendBase()
 
   return useQuery<VaultSnapshotEntry[]>({
-    queryKey: ['vault-history', range],
+    queryKey: ['vault-history', endpoint, range],
     queryFn: async () => {
       if (!base) return []
 
@@ -38,7 +42,7 @@ export function useVaultHistory(range: '24h' | '7d' | '30d' = '7d') {
       const rangeSeconds = range === '24h' ? 86400 : range === '7d' ? 604800 : 2592000
       const from = now - rangeSeconds
 
-      const res = await fetch(`${base}/vault/history?from=${from}&to=${now}`)
+      const res = await fetch(`${base}/${endpoint}?from=${from}&to=${now}`)
       if (!res.ok) return []
       return res.json()
     },
