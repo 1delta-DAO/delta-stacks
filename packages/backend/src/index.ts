@@ -75,11 +75,12 @@ async function handleScheduled(env: Env): Promise<void> {
     try {
       const snapshot = await fetchVaultSnapshot({ concurrency: 2, vault: config })
 
-      // Skip snapshots where share price is exactly 1 but the vault has
-      // deposits — this indicates the virtual offset masked a bad read.
+      // Share price must be >= 1 due to virtual offset. Skip bad reads:
+      // - price < 1: garbage RPC data
+      // - price exactly 1 with deposits: virtual offset masked a bad read
       const hasDeposits = snapshot.totalAssets !== '0' || snapshot.totalSupply !== '0'
-      if (hasDeposits && snapshot.sharePrice === 1) {
-        console.warn(`Cron: ${label} vault snapshot looks stale (price=1 with deposits), skipping`)
+      if (snapshot.sharePrice < 1 || (hasDeposits && snapshot.sharePrice === 1)) {
+        console.warn(`Cron: ${label} vault snapshot invalid (price=${snapshot.sharePrice}), skipping`)
         return
       }
 
@@ -90,7 +91,7 @@ async function handleScheduled(env: Env): Promise<void> {
       // 1 while totalAssets is non-zero (indicates earlier bad RPC reads).
       const beforeLen = history.length
       history = history.filter(s =>
-        s.sharePrice > 0 &&
+        s.sharePrice >= 1 &&
         !(s.sharePrice === 1 && s.totalAssets !== '0')
       )
       if (history.length < beforeLen) {
