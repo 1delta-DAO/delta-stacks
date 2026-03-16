@@ -74,8 +74,29 @@ async function handleScheduled(env: Env): Promise<void> {
   await Promise.all(vaultJobs.map(async ({ key, label, config }) => {
     try {
       const snapshot = await fetchVaultSnapshot({ concurrency: 2, vault: config })
+
+      // Skip snapshots where share price is exactly 1 but the vault has
+      // deposits — this indicates the virtual offset masked a bad read.
+      const hasDeposits = snapshot.totalAssets !== '0' || snapshot.totalSupply !== '0'
+      if (hasDeposits && snapshot.sharePrice === 1) {
+        console.warn(`Cron: ${label} vault snapshot looks stale (price=1 with deposits), skipping`)
+        return
+      }
+
       const raw = await env.LENDING_KV.get(key)
-      const history: VaultSnapshot[] = raw ? JSON.parse(raw) : []
+      let history: VaultSnapshot[] = raw ? JSON.parse(raw) : []
+
+      // Purge any existing bad entries: sharePrice <= 0, or sharePrice exactly
+      // 1 while totalAssets is non-zero (indicates earlier bad RPC reads).
+      const beforeLen = history.length
+      history = history.filter(s =>
+        s.sharePrice > 0 &&
+        !(s.sharePrice === 1 && s.totalAssets !== '0')
+      )
+      if (history.length < beforeLen) {
+        console.log(`Cron: ${label} purged ${beforeLen - history.length} bad history entries`)
+      }
+
       history.push(snapshot)
 
       if (history.length > MAX_VAULT_HISTORY) {

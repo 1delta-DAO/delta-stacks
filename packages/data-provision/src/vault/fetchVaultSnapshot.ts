@@ -107,12 +107,25 @@ export async function fetchVaultSnapshot(options?: {
     }
   }
 
+  // Track which calls succeeded
+  const ok = (i: number): boolean => results[i]?.okay === true
+
   const totalAssets = decode(0)
   const totalSupply = decode(1)
   const allocMarket1 = decode(2)
   const allocMarket2 = decode(3)
   const idleBookkeeping = decode(4)
   const virtualOffset = decode(5)
+
+  // If the two critical calls (totalAssets, totalSupply) both failed or returned
+  // 0 while allocations are non-zero, the RPC gave us garbage — abort.
+  if (!ok(0) || !ok(1)) {
+    throw new Error('Vault snapshot: RPC failed for totalAssets or totalSupply')
+  }
+  const allocSum = allocMarket1 + allocMarket2
+  if (totalAssets === 0n && totalSupply === 0n && allocSum > 0n) {
+    throw new Error('Vault snapshot: totalAssets/totalSupply are 0 but allocations are non-zero — stale RPC')
+  }
 
   // V3 symmetric share price: (totalAssets + V) / (totalSupply + V)
   const vo = virtualOffset > 0n ? virtualOffset : 1_000_000n
