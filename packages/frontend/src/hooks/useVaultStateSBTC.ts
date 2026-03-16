@@ -1,12 +1,12 @@
 import { useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { VAULT_STX_DEPLOYER } from '@delta-stacks/calldata-sdk-stacks'
+import { VAULT_SBTC_DEPLOYER } from '@delta-stacks/calldata-sdk-stacks'
 
 const API = 'https://api.hiro.so'
-const SENDER = VAULT_STX_DEPLOYER
+const SENDER = VAULT_SBTC_DEPLOYER
 
-// Vault reader contract (same deployer)
-const READER_DEPLOYER = VAULT_STX_DEPLOYER
+// Vault reader contract (same deployer as STX vault reader)
+const READER_DEPLOYER = VAULT_SBTC_DEPLOYER
 const READER_CONTRACT = 'vault-reader-v1'
 
 /** Derive the backend base URL from the VITE_DATA_API_URL env var */
@@ -18,13 +18,13 @@ function getBackendBase(): string {
   return ''
 }
 
-// Zest V1 (wSTX pool — Aave-like)
+// Zest V1 (sBTC pool — Aave-like)
 const ZEST_V1_DEPLOYER = 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N'
-const ZEST_V1_WSTX_MARKET_UID = `stacks-mainnet:zest-v1:${ZEST_V1_DEPLOYER}.wstx`
+const ZEST_V1_SBTC_MARKET_UID = `stacks-mainnet:zest-v1:SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token`
 
-// Zest V2 STX vault (ERC-4626)
+// Zest V2 sBTC vault (ERC-4626)
 const ZEST_V2_DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7'
-const ZEST_V2_CONTRACT = 'v0-vault-stx'
+const ZEST_V2_CONTRACT = 'v0-vault-sbtc'
 
 // ---------------------------------------------------------------------------
 // Clarity hex decode helpers
@@ -89,7 +89,7 @@ async function callRead(
 // State type
 // ---------------------------------------------------------------------------
 
-export interface VaultStateSTX {
+export interface VaultStateSBTC {
   totalAssets: bigint
   allocZestV1: bigint
   allocZestV2: bigint
@@ -115,7 +115,7 @@ export interface VaultStateSTX {
   vaultAllocator: string
 }
 
-const EMPTY: VaultStateSTX = {
+const EMPTY: VaultStateSBTC = {
   totalAssets: 0n,
   allocZestV1: 0n,
   allocZestV2: 0n,
@@ -133,7 +133,7 @@ const EMPTY: VaultStateSTX = {
   feeBps: 0n,
   feeRecipient: '',
   idleBufferBps: 500n,
-  virtualOffset: 1_000_000n,
+  virtualOffset: 100_000_000n,
   vaultOwner: '',
   vaultAllocator: '',
 }
@@ -143,19 +143,19 @@ const EMPTY: VaultStateSTX = {
 // Falls back to individual calls if reader not deployed
 // ---------------------------------------------------------------------------
 
-async function fetchVaultStateSTX(): Promise<VaultStateSTX> {
+async function fetchVaultStateSBTC(): Promise<VaultStateSBTC> {
   // Try reader first
-  const readerHex = await callRead(READER_DEPLOYER, READER_CONTRACT, 'read-vault-stx')
+  const readerHex = await callRead(READER_DEPLOYER, READER_CONTRACT, 'read-vault-sbtc')
 
   if (readerHex) {
     return parseReaderResponse(readerHex)
   }
 
   // Fallback: individual calls
-  return fetchVaultStateSTXFallback()
+  return fetchVaultStateSBTCFallback()
 }
 
-async function parseReaderResponse(hex: string): Promise<VaultStateSTX> {
+async function parseReaderResponse(hex: string): Promise<VaultStateSBTC> {
   const totalAssets = decodeTupleUint(hex, 'total-assets')
   const totalSupply = decodeTupleUint(hex, 'total-supply')
   const allocZestV1 = decodeTupleUint(hex, 'alloc-zest-v1')
@@ -170,10 +170,10 @@ async function parseReaderResponse(hex: string): Promise<VaultStateSTX> {
   const idleBufferBps = decodeTupleUint(hex, 'idle-buffer-bps')
   const virtualOffset = decodeTupleUint(hex, 'virtual-offset')
 
-  const vo = virtualOffset > 0n ? virtualOffset : 1_000_000n
+  const vo = virtualOffset > 0n ? virtualOffset : 100_000_000n
   const sharePrice =
     totalSupply > 0n
-      ? Number((totalAssets + vo) * 1_000_000n / (totalSupply + vo)) / 1e6
+      ? Number((totalAssets + vo) * 100_000_000n / (totalSupply + vo)) / 1e8
       : 1
 
   const unrealizedYield = liveTotal > totalAssets ? liveTotal - totalAssets : 0n
@@ -186,9 +186,9 @@ async function parseReaderResponse(hex: string): Promise<VaultStateSTX> {
       const res = await fetch(`${backendBase}/zest-v1`)
       if (res.ok) {
         const lenderData = await res.json()
-        const wstxMarket = lenderData?.data?.[ZEST_V1_WSTX_MARKET_UID]
-        if (wstxMarket?.depositRate != null) {
-          zestV1Apr = wstxMarket.depositRate * 100
+        const sbtcMarket = lenderData?.data?.[ZEST_V1_SBTC_MARKET_UID]
+        if (sbtcMarket?.depositRate != null) {
+          zestV1Apr = sbtcMarket.depositRate * 100
         }
       }
     }
@@ -236,8 +236,8 @@ async function parseReaderResponse(hex: string): Promise<VaultStateSTX> {
 // Fallback: individual calls (for when reader is not deployed)
 // ---------------------------------------------------------------------------
 
-async function fetchVaultStateSTXFallback(): Promise<VaultStateSTX> {
-  const vaultContract = 'vault-stx-v3-1'
+async function fetchVaultStateSBTCFallback(): Promise<VaultStateSBTC> {
+  const vaultContract = 'vault-sbtc-v3'
 
   const [
     totalAssetsHex,
@@ -262,8 +262,8 @@ async function fetchVaultStateSTXFallback(): Promise<VaultStateSTX> {
     callRead(SENDER, vaultContract, 'get-idle-bookkeeping'),
     callRead(SENDER, vaultContract, 'get-total-supply'),
     callRead(SENDER, vaultContract, 'get-idle-balance'),
-    callRead(SENDER, vaultContract, 'get-zest-v1-wstx-position'),
-    callRead(SENDER, vaultContract, 'get-zest-v2-stx-position'),
+    callRead(SENDER, vaultContract, 'get-zest-v1-sbtc-position'),
+    callRead(SENDER, vaultContract, 'get-zest-v2-sbtc-position'),
     callRead(SENDER, vaultContract, 'get-live-total-assets'),
     callRead(SENDER, vaultContract, 'get-fee-bps'),
     callRead(SENDER, vaultContract, 'get-idle-buffer-bps'),
@@ -285,10 +285,10 @@ async function fetchVaultStateSTXFallback(): Promise<VaultStateSTX> {
   const liveTotal = liveTotalDeployed + liveIdle
 
   const virtualOffset = decodeUint(virtualOffsetHex)
-  const vo = virtualOffset > 0n ? virtualOffset : 1_000_000n
+  const vo = virtualOffset > 0n ? virtualOffset : 100_000_000n
   const sharePrice =
     totalSupply > 0n
-      ? Number((totalAssets + vo) * 1_000_000n / (totalSupply + vo)) / 1e6
+      ? Number((totalAssets + vo) * 100_000_000n / (totalSupply + vo)) / 1e8
       : 1
 
   const unrealizedYield = liveTotal > totalAssets ? liveTotal - totalAssets : 0n
@@ -304,9 +304,9 @@ async function fetchVaultStateSTXFallback(): Promise<VaultStateSTX> {
       const res = await fetch(`${backendBase}/zest-v1`)
       if (res.ok) {
         const lenderData = await res.json()
-        const wstxMarket = lenderData?.data?.[ZEST_V1_WSTX_MARKET_UID]
-        if (wstxMarket?.depositRate != null) {
-          zestV1Apr = wstxMarket.depositRate * 100
+        const sbtcMarket = lenderData?.data?.[ZEST_V1_SBTC_MARKET_UID]
+        if (sbtcMarket?.depositRate != null) {
+          zestV1Apr = sbtcMarket.depositRate * 100
         }
       }
     }
@@ -354,20 +354,20 @@ async function fetchVaultStateSTXFallback(): Promise<VaultStateSTX> {
 // Hook
 // ---------------------------------------------------------------------------
 
-const VAULT_STX_STATE_KEY = ['vault-stx-state'] as const
+const VAULT_SBTC_STATE_KEY = ['vault-sbtc-state'] as const
 
-export function useVaultStateSTX(pollIntervalMs = 60_000) {
+export function useVaultStateSBTC(pollIntervalMs = 60_000) {
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
-    queryKey: VAULT_STX_STATE_KEY,
-    queryFn: fetchVaultStateSTX,
+    queryKey: VAULT_SBTC_STATE_KEY,
+    queryFn: fetchVaultStateSBTC,
     staleTime: 30_000,
     refetchInterval: pollIntervalMs,
   })
 
   const refresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: VAULT_STX_STATE_KEY })
+    queryClient.invalidateQueries({ queryKey: VAULT_SBTC_STATE_KEY })
   }, [queryClient])
 
   return {

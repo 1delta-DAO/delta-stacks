@@ -5,13 +5,9 @@ import { VAULT_V3_DEPLOYER } from '@delta-stacks/calldata-sdk-stacks'
 const API = 'https://api.hiro.so'
 const SENDER = VAULT_V3_DEPLOYER
 
-// Granite market (state-v1)
-const GRANITE_STATE = 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE'
-const GRANITE_CONTRACT = 'state-v1'
-
-// Zest V2 vault
-const ZEST_DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7'
-const ZEST_CONTRACT = 'v0-vault-usdc'
+// Vault reader contract (deployed on mainnet)
+const READER_DEPLOYER = VAULT_V3_DEPLOYER
+const READER_CONTRACT = 'vault-reader-v1'
 
 // ---------------------------------------------------------------------------
 // Clarity hex decode helpers
@@ -133,23 +129,140 @@ const EMPTY: VaultStateV3 = {
 }
 
 // ---------------------------------------------------------------------------
-// Decode a standard principal from hex
-// ---------------------------------------------------------------------------
-
-function decodePrincipal(hex: string): string {
-  // Standard principal: 0x05 + 1-byte version + 20-byte hash160
-  // Contract principal: 0x06 + 1-byte version + 20-byte hash160 + name-length + name
-  // For display we just return the hex — the UI only needs it for comparison
-  // For simplicity, return the raw hex; a full decode would need c32check
-  return hex
-}
-
-// ---------------------------------------------------------------------------
-// Fetch function
+// Fetch function — single reader call (1 RPC request instead of 17)
+// Falls back to individual calls if reader is not deployed yet
 // ---------------------------------------------------------------------------
 
 async function fetchVaultStateV3(): Promise<VaultStateV3> {
+  // Try reader first
+  const readerHex = await callRead(READER_DEPLOYER, READER_CONTRACT, 'read-vault-usdcx')
+
+  if (readerHex) {
+    return parseReaderResponse(readerHex)
+  }
+
+  // Fallback: individual calls (17 RPC requests)
+  return fetchVaultStateV3Fallback()
+}
+
+function parseReaderResponse(hex: string): VaultStateV3 {
+  const totalAssets = decodeTupleUint(hex, 'total-assets')
+  const totalSupply = decodeTupleUint(hex, 'total-supply')
+  const allocGranite = decodeTupleUint(hex, 'alloc-granite')
+  const allocZest = decodeTupleUint(hex, 'alloc-zest-v2')
+  const idleBookkeeping = decodeTupleUint(hex, 'idle-bookkeeping')
+  const liveIdle = decodeTupleUint(hex, 'idle-balance')
+  const liveGranite = decodeTupleUint(hex, 'live-granite')
+  const liveZest = decodeTupleUint(hex, 'live-zest-v2')
+  const liveTotalDeployed = decodeTupleUint(hex, 'live-total')
+  const liveTotal = liveTotalDeployed + liveIdle
+  const feeBps = decodeTupleUint(hex, 'fee-bps')
+  const idleBufferBps = decodeTupleUint(hex, 'idle-buffer-bps')
+  const virtualOffset = decodeTupleUint(hex, 'virtual-offset')
+
+  const vo = virtualOffset > 0n ? virtualOffset : 1_000_000n
+  const sharePrice =
+    totalSupply > 0n
+      ? Number((totalAssets + vo) * 1_000_000n / (totalSupply + vo)) / 1e6
+      : 1
+
+  const unrealizedYield = liveTotal > totalAssets ? liveTotal - totalAssets : 0n
+
+  // --- Granite APR (from reader's granite-lp-params and granite-open-interest) ---
+  // The reader returns nested tuples; the field names are still accessible
+  const graniteTotalAssets = decodeTupleUint(hex, 'total-assets')
+  // Ambiguous with vault total-assets — use the granite-specific subfields
+  // The granite-lp-params tuple is nested inside the reader tuple, so we need
+  // to find the granite-specific data. Since tuple field names are sorted
+  // alphabetically in Clarity hex, we search for the granite-specific markers.
+  // For now, parse the specific granite fields:
+  const graniteTotalShares = decodeTupleUint(hex, 'total-shares')
+  let graniteApr = 0
+  if (graniteTotalShares > 0n) {
+    // granite-lp-params contains total-assets and total-shares
+    // But 'total-assets' is ambiguous with the vault's own total-assets.
+    // We need to find the SECOND occurrence. Use a dedicated extractor.
+    const graniteExchangeRate = extractGraniteExchangeRate(hex)
+    if (graniteExchangeRate > 0) {
+      const premium = graniteExchangeRate - 1
+      if (premium > 0) graniteApr = premium * 2 * 100
+    }
+  }
+
+  // --- Zest V2 APR ---
+  const zestBorrowRate = Number(decodeTupleUint(hex, 'zest-v2-interest-rate')) / 10_000
+  const zestUtilization = Number(decodeTupleUint(hex, 'zest-v2-utilization')) / 10_000
+  const zestFeeReserve = Number(decodeTupleUint(hex, 'zest-v2-fee-reserve')) / 10_000
+  const zestApr = zestBorrowRate * zestUtilization * (1 - zestFeeReserve) * 100
+
+  // --- Blended APR ---
+  let blendedApr = 0
+  if (totalAssets > 0n) {
+    const gWeight = Number(allocGranite) / Number(totalAssets)
+    const zWeight = Number(allocZest) / Number(totalAssets)
+    blendedApr = graniteApr * gWeight + zestApr * zWeight
+  }
+
+  return {
+    totalAssets,
+    allocGranite,
+    allocZest,
+    idleBookkeeping,
+    totalSupply,
+    sharePrice,
+    liveIdle,
+    liveGranite,
+    liveZest,
+    liveTotal,
+    unrealizedYield,
+    graniteApr,
+    zestApr,
+    blendedApr,
+    feeBps,
+    feeRecipient: '',
+    idleBufferBps,
+    virtualOffset: vo,
+    vaultOwner: '',
+    vaultAllocator: '',
+  }
+}
+
+/**
+ * Extract Granite exchange rate from the nested granite-lp-params tuple.
+ * The reader response contains a nested tuple for granite-lp-params with
+ * its own total-assets and total-shares fields. Since 'total-assets' appears
+ * twice (vault-level and granite-level), we find the granite-lp-params marker
+ * and extract from within that nested tuple.
+ */
+function extractGraniteExchangeRate(hex: string): number {
+  const clean = hex.startsWith('0x') ? hex.slice(2) : hex
+  // Find 'granite-lp-params' field in the outer tuple
+  const fieldName = 'granite-lp-params'
+  const nameHex = strToHex(fieldName)
+  const nameLen = fieldName.length.toString(16).padStart(2, '0')
+  const marker = nameLen + nameHex
+  const idx = clean.indexOf(marker)
+  if (idx === -1) return 0
+
+  // The value after the field name is a tuple (0x0c prefix)
+  // Extract from this sub-region to avoid ambiguity
+  const subHex = clean.slice(idx)
+  const totalAssets = decodeTupleUint(subHex, 'total-assets')
+  const totalShares = decodeTupleUint(subHex, 'total-shares')
+  if (totalShares === 0n) return 0
+  return Number(totalAssets * 1_000_000n / totalShares) / 1_000_000
+}
+
+// ---------------------------------------------------------------------------
+// Fallback: individual calls (for when reader is not deployed)
+// ---------------------------------------------------------------------------
+
+async function fetchVaultStateV3Fallback(): Promise<VaultStateV3> {
   const vaultContract = 'vault-usdcx-v3'
+  const GRANITE_STATE = 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE'
+  const GRANITE_CONTRACT = 'state-v1'
+  const ZEST_DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7'
+  const ZEST_CONTRACT = 'v0-vault-usdc'
 
   const [
     totalAssetsHex,
@@ -198,10 +311,8 @@ async function fetchVaultStateV3(): Promise<VaultStateV3> {
   const liveGranite = decodeUint(liveGraniteHex)
   const liveZest = decodeUint(liveZestHex)
   const liveTotalDeployed = decodeUint(liveTotalHex)
-  // get-live-total-assets only returns deployed capital — add idle to get true TVL
   const liveTotal = liveTotalDeployed + liveIdle
 
-  // V3 uses symmetric virtual offset = 10^decimals (1_000_000 for USDCx)
   const virtualOffset = decodeUint(virtualOffsetHex)
   const vo = virtualOffset > 0n ? virtualOffset : 1_000_000n
   const sharePrice =
@@ -211,24 +322,20 @@ async function fetchVaultStateV3(): Promise<VaultStateV3> {
 
   const unrealizedYield = liveTotal > totalAssets ? liveTotal - totalAssets : 0n
 
-  // V3 fee & config
   const feeBps = decodeUint(feeBpsHex)
   const idleBufferBps = decodeUint(idleBufferBpsHex)
 
   // --- Granite APR ---
   const graniteTotalAssets = decodeTupleUint(graniteLpParamsHex, 'total-assets')
   const graniteTotalShares = decodeTupleUint(graniteLpParamsHex, 'total-shares')
-
   let graniteApr = 0
   if (graniteTotalShares > 0n && graniteTotalAssets > 0n) {
     const exchangeRate = Number(graniteTotalAssets * 1_000_000n / graniteTotalShares) / 1_000_000
     const premium = exchangeRate - 1
-    if (premium > 0) {
-      graniteApr = premium * 2 * 100
-    }
+    if (premium > 0) graniteApr = premium * 2 * 100
   }
 
-  // --- Zest V2 APR (supply rate = borrowRate * utilization * (1 - feeReserve)) ---
+  // --- Zest V2 APR ---
   const zestBorrowRate = Number(decodeUint(zestInterestRateHex)) / 10_000
   const zestUtilization = Number(decodeUint(zestUtilizationHex)) / 10_000
   const zestFeeReserve = Number(decodeUint(zestFeeReserveHex)) / 10_000
@@ -258,7 +365,7 @@ async function fetchVaultStateV3(): Promise<VaultStateV3> {
     zestApr,
     blendedApr,
     feeBps,
-    feeRecipient: '', // raw hex — display handled in UI
+    feeRecipient: '',
     idleBufferBps,
     virtualOffset: vo,
     vaultOwner: '',

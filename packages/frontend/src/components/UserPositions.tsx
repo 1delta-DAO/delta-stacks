@@ -144,9 +144,11 @@ function PositionTile({
   const showCollateralToggle = (lender === 'zest-v1' || lender === 'zest-v2') && hasDeposit && onToggleCollateral
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }}
       className={`text-left rounded-xl p-3.5 space-y-2.5 transition-all duration-200 border ${
         selected
           ? 'bg-primary/8 border-primary/30 shadow-sm shadow-primary/10'
@@ -201,7 +203,7 @@ function PositionTile({
           </>
         )}
       </div>
-    </button>
+    </div>
   )
 }
 

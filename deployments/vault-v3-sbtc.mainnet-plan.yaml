@@ -1,0 +1,54 @@
+---
+id: 0
+name: sBTC Vault V3 Deployment
+network: mainnet
+stacks-node: "https://api.hiro.so"
+
+plan:
+  batches:
+    # Batch 0: Deploy adapters + vault contract
+    - id: 0
+      transactions:
+        - emulated-contract-publish:
+            contract-name: adapter-zest-v1-sbtc-v3
+            emulated-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+            path: contracts/prod/v3/sbtc/adapter-zest-v1-sbtc.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: adapter-zest-v2-sbtc-v3
+            emulated-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+            path: contracts/prod/v3/sbtc/adapter-zest-v2-sbtc.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: vault-sbtc-v3
+            emulated-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+            path: contracts/prod/v3/sbtc/vault-sbtc-v3.clar
+            clarity-version: 3
+
+    # Batch 1: Initialize vault + register adapters
+    - id: 1
+      transactions:
+        # Initialize: sBTC token, "1delta sBTC Vault v3", "1dsBTC", 8 decimals
+        - emulated-contract-call:
+            contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-sbtc-v3
+            emulated-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+            method: initialize
+            parameters:
+              - "'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token"
+              - "\"1delta sBTC Vault v3\""
+              - "\"1dsBTC\""
+              - "u8"
+        # Register Zest V1 sBTC adapter
+        - emulated-contract-call:
+            contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-sbtc-v3
+            emulated-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+            method: register-adapter-zest-v1-sbtc
+            parameters:
+              - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-sbtc-v3"
+        # Register Zest V2 sBTC adapter
+        - emulated-contract-call:
+            contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-sbtc-v3
+            emulated-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+            method: register-adapter-zest-v2-sbtc
+            parameters:
+              - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-sbtc-v3"

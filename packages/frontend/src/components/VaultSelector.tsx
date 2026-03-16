@@ -2,6 +2,7 @@ import { type VaultDef } from '../config/vaults'
 import { getTokenIcon } from '../utils/tokenIcons'
 import { useVaultStateV3 } from '../hooks/useVaultStateV3'
 import { useVaultStateSTX } from '../hooks/useVaultStateSTX'
+import { useVaultStateSBTC } from '../hooks/useVaultStateSBTC'
 
 function formatTvl(n: bigint, decimals = 6): string {
   const num = Number(n) / 10 ** decimals
@@ -25,7 +26,16 @@ interface VaultTileData {
 function useVaultTileData(vault: VaultDef): VaultTileData {
   const usdcx = useVaultStateV3()
   const stx = useVaultStateSTX()
+  const sbtc = useVaultStateSBTC()
 
+  if (vault.id === 'sbtc') {
+    return {
+      tvl: sbtc.state.liveTotal,
+      sharePrice: sbtc.state.sharePrice,
+      blendedApr: sbtc.state.blendedApr,
+      loading: sbtc.loading,
+    }
+  }
   if (vault.id === 'stx') {
     return {
       tvl: stx.state.liveTotal,
@@ -69,7 +79,7 @@ function VaultTile({ vault, onClick }: { vault: VaultDef; onClick: () => void })
         <div>
           <div className="text-[10px] text-text-dim uppercase tracking-wider font-semibold mb-0.5">TVL</div>
           <div className="font-mono text-sm">
-            {loading ? '...' : `${formatTvl(tvl)} ${vault.asset}`}
+            {loading ? '...' : `${formatTvl(tvl, vault.decimals)} ${vault.asset}`}
           </div>
         </div>
         <div>

@@ -61,6 +61,14 @@ export {
   WSTX_ZEST_V1,
 } from './vault'
 
+// Delta Vault V3 sBTC
+export {
+  DeltaVaultSBTC,
+  VAULT_SBTC_DEPLOYER,
+  VAULT_SBTC_CONTRACTS,
+  VAULT_SBTC_UNDERLYING,
+} from './vault'
+
 // Pyth oracle helpers
 export {
   PYTH_FEED_IDS,

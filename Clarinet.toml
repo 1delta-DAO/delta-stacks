@@ -86,6 +86,33 @@ epoch = 3.0
 # clarity_version = 3
 # epoch = 3.0
 
+# --- v3 / sBTC ---
+# Deployment via: clarinet deployments apply --deployment-plan-path deployments/vault-v3-sbtc-and-reader.mainnet-plan.yaml
+#
+# [contracts.vault-sbtc-v3]
+# path = "contracts/prod/v3/sbtc/vault-sbtc-v3.clar"
+# clarity_version = 3
+# epoch = 3.0
+#
+# [contracts.adapter-zest-v1-sbtc-v3]
+# path = "contracts/prod/v3/sbtc/adapter-zest-v1-sbtc.clar"
+# clarity_version = 3
+# epoch = 3.0
+#
+# [contracts.adapter-zest-v2-sbtc-v3]
+# path = "contracts/prod/v3/sbtc/adapter-zest-v2-sbtc.clar"
+# clarity_version = 3
+# epoch = 3.0
+
+# --- Vault Reader ---
+# Aggregates all V3 vault reads into single RPC calls.
+# Deploy-only (references mainnet contracts).
+#
+# [contracts.vault-reader-v1]
+# path = "contracts/vault-reader-v1.clar"
+# clarity_version = 3
+# epoch = 3.0
+
 # --- v3 / STX ---
 # Uncomment for deployment. These reference mainnet contracts (wSTX, borrow-helper,
 # Zest vaults) so clarinet check will show "unresolved contract" warnings locally.

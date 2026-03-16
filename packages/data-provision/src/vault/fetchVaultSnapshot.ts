@@ -38,6 +38,13 @@ export const VAULT_STX_CONFIG: VaultConfig = {
   allocMarket2Fn: 'get-alloc-zest-v2',
 }
 
+export const VAULT_SBTC_CONFIG: VaultConfig = {
+  deployer: VAULT_V3_DEPLOYER,
+  contractName: 'vault-sbtc-v3',
+  allocMarket1Fn: 'get-alloc-zest-v1',
+  allocMarket2Fn: 'get-alloc-zest-v2',
+}
+
 /**
  * Fetch the current vault state and compute a share price snapshot.
  * Uses the data-provision executeStacksReadCalls infrastructure

@@ -4,6 +4,7 @@ import {
   fetchVaultSnapshot,
   VAULT_USDCX_CONFIG,
   VAULT_STX_CONFIG,
+  VAULT_SBTC_CONFIG,
   type StacksLender,
   type AllLendingData,
   type USDPriceMap,
@@ -19,6 +20,7 @@ const ROTATION_KEY = 'cron:next-lender-index'
 const PRICES_KEY = 'prices'
 const VAULT_HISTORY_KEY = 'vault:share-price-history' // USDCx vault
 const VAULT_STX_HISTORY_KEY = 'vault-stx:share-price-history'
+const VAULT_SBTC_HISTORY_KEY = 'vault-sbtc:share-price-history'
 const MAX_VAULT_HISTORY = 21_600 // ~30 days at 2-min intervals
 
 /**
@@ -69,18 +71,24 @@ async function handleScheduled(env: Env): Promise<void> {
   const vaultJobs: { key: string; label: string; config: typeof VAULT_USDCX_CONFIG }[] = [
     { key: VAULT_HISTORY_KEY, label: 'USDCx', config: VAULT_USDCX_CONFIG },
     { key: VAULT_STX_HISTORY_KEY, label: 'STX', config: VAULT_STX_CONFIG },
+    { key: VAULT_SBTC_HISTORY_KEY, label: 'sBTC', config: VAULT_SBTC_CONFIG },
   ]
 
   await Promise.all(vaultJobs.map(async ({ key, label, config }) => {
     try {
       const snapshot = await fetchVaultSnapshot({ concurrency: 2, vault: config })
 
-      // Share price must be >= 1 due to virtual offset. Skip bad reads:
-      // - price < 1: garbage RPC data
-      // - price exactly 1 with deposits: virtual offset masked a bad read
-      const hasDeposits = snapshot.totalAssets !== '0' || snapshot.totalSupply !== '0'
-      if (snapshot.sharePrice < 1 || (hasDeposits && snapshot.sharePrice === 1)) {
+      // Share price must be >= 1 due to virtual offset. Skip bad reads.
+      const hasActivity = snapshot.totalAssets !== '0' ||
+        snapshot.allocMarket1 !== '0' || snapshot.allocMarket2 !== '0' ||
+        snapshot.idleBookkeeping !== '0'
+      if (snapshot.sharePrice < 1 || (hasActivity && snapshot.sharePrice === 1)) {
         console.warn(`Cron: ${label} vault snapshot invalid (price=${snapshot.sharePrice}), skipping`)
+        return
+      }
+      // totalAssets=0 but allocations non-zero = garbage RPC
+      if (snapshot.totalAssets === '0' && (snapshot.allocMarket1 !== '0' || snapshot.allocMarket2 !== '0')) {
+        console.warn(`Cron: ${label} vault snapshot inconsistent (assets=0, allocs non-zero), skipping`)
         return
       }
 
@@ -90,10 +98,19 @@ async function handleScheduled(env: Env): Promise<void> {
       // Purge any existing bad entries: sharePrice <= 0, or sharePrice exactly
       // 1 while totalAssets is non-zero (indicates earlier bad RPC reads).
       const beforeLen = history.length
-      history = history.filter(s =>
-        s.sharePrice >= 1 &&
-        !(s.sharePrice === 1 && s.totalAssets !== '0')
-      )
+      history = history.filter(s => {
+        if (s.sharePrice < 1) return false
+        // sharePrice=1 is only valid for an empty vault (no allocs)
+        if (s.sharePrice === 1) {
+          const hasActivity = s.totalAssets !== '0' ||
+            s.allocMarket1 !== '0' || s.allocMarket2 !== '0' ||
+            s.idleBookkeeping !== '0'
+          if (hasActivity) return false
+        }
+        // totalAssets=0 but allocations non-zero means bad RPC read
+        if (s.totalAssets === '0' && (s.allocMarket1 !== '0' || s.allocMarket2 !== '0')) return false
+        return true
+      })
       if (history.length < beforeLen) {
         console.log(`Cron: ${label} purged ${beforeLen - history.length} bad history entries`)
       }
@@ -132,6 +149,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   const vaultHistoryMap: Record<string, string> = {
     'vault/history': VAULT_HISTORY_KEY,
     'vault-stx/history': VAULT_STX_HISTORY_KEY,
+    'vault-sbtc/history': VAULT_SBTC_HISTORY_KEY,
   }
 
   if (vaultHistoryMap[path]) {

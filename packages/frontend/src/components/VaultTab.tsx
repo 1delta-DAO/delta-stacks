@@ -6,9 +6,11 @@ import { usePendingTx } from '../hooks/usePendingTx'
 import { useBalances, type Balances } from '../hooks/useBalances'
 import { useVaultStateV3, type VaultStateV3 } from '../hooks/useVaultStateV3'
 import { useVaultStateSTX } from '../hooks/useVaultStateSTX'
+import { useVaultStateSBTC } from '../hooks/useVaultStateSBTC'
 import {
   DeltaVaultV3,
   DeltaVaultSTX,
+  DeltaVaultSBTC,
   VAULT_V3_CONTRACTS,
   VAULT_V3_UNDERLYING,
   VAULT_STX_CONTRACTS,
@@ -56,9 +58,9 @@ function formatAmount(n: number): string {
   return n.toFixed(6)
 }
 
-/** Format micro-units (6 decimals) to human-readable */
-function micro(n: bigint): string {
-  const num = Number(n) / 1e6
+/** Format smallest-units to human-readable (default 6 decimals) */
+function micro(n: bigint, decimals = 6): string {
+  const num = Number(n) / (10 ** decimals)
   return formatAmount(num)
 }
 
@@ -100,6 +102,34 @@ interface NormalizedVault {
 function useNormalizedVault(vaultDef: VaultDef): { vault: NormalizedVault; loading: boolean; refresh: () => void } {
   const usdcx = useVaultStateV3()
   const stx = useVaultStateSTX()
+  const sbtc = useVaultStateSBTC()
+
+  if (vaultDef.id === 'sbtc') {
+    const b = sbtc.state
+    return {
+      vault: {
+        totalAssets: b.totalAssets,
+        allocMarket1: b.allocZestV1,
+        allocMarket2: b.allocZestV2,
+        idleBookkeeping: b.idleBookkeeping,
+        totalSupply: b.totalSupply,
+        sharePrice: b.sharePrice,
+        liveIdle: b.liveIdle,
+        liveMarket1: b.liveZestV1,
+        liveMarket2: b.liveZestV2,
+        liveTotal: b.liveTotal,
+        unrealizedYield: b.unrealizedYield,
+        market1Apr: b.zestV1Apr,
+        market2Apr: b.zestV2Apr,
+        blendedApr: b.blendedApr,
+        feeBps: b.feeBps,
+        idleBufferBps: b.idleBufferBps,
+        virtualOffset: b.virtualOffset,
+      },
+      loading: sbtc.loading,
+      refresh: sbtc.refresh,
+    }
+  }
 
   if (vaultDef.id === 'stx') {
     const s = stx.state
@@ -205,12 +235,12 @@ export function VaultTab({ vault: vaultDef = VAULT_USDCX, onBack }: { vault?: Va
 
         {/* Key metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.liveTotal)} ${vaultDef.asset}`} />
+          <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.liveTotal, vaultDef.decimals)} ${vaultDef.asset}`} />
           <MetricCard label="Share Price" value={loading ? '...' : vault.sharePrice.toFixed(6)} />
-          <MetricCard label="Total Shares" value={loading ? '...' : micro(vault.totalSupply)} />
+          <MetricCard label="Total Shares" value={loading ? '...' : micro(vault.totalSupply, vaultDef.decimals)} />
           <MetricCard
             label="Unrealized Yield"
-            value={loading ? '...' : `${micro(vault.unrealizedYield)} ${vaultDef.asset}`}
+            value={loading ? '...' : `${micro(vault.unrealizedYield, vaultDef.decimals)} ${vaultDef.asset}`}
             positive={vault.unrealizedYield > 0n}
           />
         </div>
@@ -276,7 +306,7 @@ function AllocationBar({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: 
     <div className="glass-card rounded-xl p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-text-dim">Allocation</h3>
-        <span className="text-xs text-text-dim font-mono">{micro(total)} {vaultDef.asset} total</span>
+        <span className="text-xs text-text-dim font-mono">{micro(total, vaultDef.decimals)} {vaultDef.asset} total</span>
       </div>
 
       {/* Stacked bar */}
@@ -309,7 +339,7 @@ function AllocationBar({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: 
         <AllocationLegendItem
           icon={vaultDef.market1Logo}
           label={vaultDef.market1Label}
-          amount={micro(m1)}
+          amount={micro(m1, vaultDef.decimals)}
           percentage={pct(m1Pct)}
           apr={vault.market1Apr > 0 ? pct(vault.market1Apr) : null}
           color="accent-blue"
@@ -317,7 +347,7 @@ function AllocationBar({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: 
         <AllocationLegendItem
           icon={vaultDef.market2Logo}
           label={vaultDef.market2Label}
-          amount={micro(m2)}
+          amount={micro(m2, vaultDef.decimals)}
           percentage={pct(m2Pct)}
           apr={vault.market2Apr > 0 ? pct(vault.market2Apr) : null}
           color="accent-purple"
@@ -327,7 +357,7 @@ function AllocationBar({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: 
             <span className="w-2.5 h-2.5 rounded-full bg-text-dim/30 inline-block" />
             <span className="text-text-dim font-medium">Idle</span>
           </div>
-          <div className="font-mono pl-4 text-text-muted">{micro(vault.liveIdle)}</div>
+          <div className="font-mono pl-4 text-text-muted">{micro(vault.liveIdle, vaultDef.decimals)}</div>
           <div className="text-text-dim pl-4">{pct(idlePct)}</div>
           <div className="text-text-dim pl-4 font-mono">0.00% APR</div>
         </div>
@@ -337,7 +367,7 @@ function AllocationBar({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: 
       {vault.unrealizedYield > 0n && (
         <div className="text-xs text-text-dim bg-surface-alt/60 rounded-xl p-3 flex justify-between border border-border-subtle">
           <span>Live total (incl. unrealized)</span>
-          <span className="font-mono text-text-muted">{micro(vault.liveTotal)} {vaultDef.asset}</span>
+          <span className="font-mono text-text-muted">{micro(vault.liveTotal, vaultDef.decimals)} {vaultDef.asset}</span>
         </div>
       )}
     </div>
@@ -388,6 +418,8 @@ function UserPanel({ balances, vault, vaultDef, onTxConfirm }: { balances: Balan
   const underlying = vaultDef.assetContract
   const vaultContract = vaultDef.vaultContract
 
+  const decFactor = 10 ** vaultDef.decimals // 1e6 for STX/USDCx, 1e8 for sBTC
+
   // Wallet balance (human-readable)
   const walletBalance = useMemo(() => {
     // For STX vault, use native STX balance (balances.stx is a raw bigint)
@@ -397,23 +429,23 @@ function UserPanel({ balances, vault, vaultDef, onTxConfirm }: { balances: Balan
     const key = Object.keys(balances.fungible).find(
       (k) => k.toLowerCase() === underlying.toLowerCase(),
     )
-    if (key) return Number(balances.fungible[key].balance) / 1e6
+    if (key) return Number(balances.fungible[key].balance) / decFactor
     return 0
-  }, [balances, underlying, vaultDef.id])
+  }, [balances, underlying, vaultDef.id, decFactor])
 
   // Vault share balance
   const shareBalance = useMemo(() => {
     const key = Object.keys(balances.fungible).find(
       (k) => k.toLowerCase() === vaultContract.toLowerCase(),
     )
-    if (key) return Number(balances.fungible[key].balance) / 1e6
+    if (key) return Number(balances.fungible[key].balance) / decFactor
     return 0
-  }, [balances, vaultContract])
+  }, [balances, vaultContract, decFactor])
 
-  // Withdrawable USDCx = shares * share price (floored to 6 decimals)
+  // Withdrawable assets = shares * share price (floored to asset decimals)
   const withdrawableBalance = useMemo(() => {
-    return Math.floor(shareBalance * vault.sharePrice * 1e6) / 1e6
-  }, [shareBalance, vault.sharePrice])
+    return Math.floor(shareBalance * vault.sharePrice * decFactor) / decFactor
+  }, [shareBalance, vault.sharePrice, decFactor])
 
   const maxAmount = useMemo((): number => {
     switch (op) {
@@ -432,22 +464,31 @@ function UserPanel({ balances, vault, vaultDef, onTxConfirm }: { balances: Balan
     (pct: number) => {
       if (maxAmount <= 0) return
       const raw = (maxAmount * pct) / 100
-      // Floor to 6 decimals to match on-chain micro-unit precision
-      const val = Math.floor(raw * 1e6) / 1e6
+      // Floor to asset decimals to match on-chain smallest-unit precision
+      const val = Math.floor(raw * decFactor) / decFactor
       setAmount(String(val))
       if (tx.status !== 'idle') tx.reset()
     },
-    [maxAmount, tx],
+    [maxAmount, tx, decFactor],
   )
 
   const handleSubmit = useCallback(async () => {
     if (!stxAddress || !amount) return
     const amtRaw = parseFloat(amount)
     if (isNaN(amtRaw) || amtRaw <= 0) return
-    const amtSmallest = BigInt(Math.floor(amtRaw * 1e6))
+    const amtSmallest = BigInt(Math.floor(amtRaw * decFactor))
 
     await tx.execute(async () => {
-      if (vaultDef.id === 'stx') {
+      if (vaultDef.id === 'sbtc') {
+        switch (op) {
+          case 'Deposit':
+            return DeltaVaultSBTC.encodeDeposit(amtSmallest, stxAddress)
+          case 'Withdraw':
+            return DeltaVaultSBTC.encodeWithdraw(amtSmallest, stxAddress, stxAddress)
+          case 'Redeem':
+            return DeltaVaultSBTC.encodeRedeem(amtSmallest, stxAddress, stxAddress)
+        }
+      } else if (vaultDef.id === 'stx') {
         switch (op) {
           case 'Deposit':
             return DeltaVaultSTX.encodeDepositStx(amtSmallest, stxAddress)
@@ -467,7 +508,7 @@ function UserPanel({ balances, vault, vaultDef, onTxConfirm }: { balances: Balan
         }
       }
     })
-  }, [stxAddress, amount, op, tx, vaultDef.id])
+  }, [stxAddress, amount, op, tx, vaultDef.id, decFactor])
 
   useEffect(() => {
     if (tx.status === 'submitted' && tx.txId) pending.addTx(tx.txId)
@@ -554,19 +595,23 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
   const op = allocOps[opTab]
   const isReallocate = op === 'Reallocate'
 
+  const decFactor = 10 ** vaultDef.decimals
+
   const handleSubmit = useCallback(async () => {
     if (!stxAddress) return
 
     if (isReallocate) {
-      const f1 = BigInt(Math.floor(parseFloat(reallocFields.fromM1 || '0') * 1e6))
-      const f2 = BigInt(Math.floor(parseFloat(reallocFields.fromM2 || '0') * 1e6))
-      const t1 = BigInt(Math.floor(parseFloat(reallocFields.toM1 || '0') * 1e6))
-      const t2 = BigInt(Math.floor(parseFloat(reallocFields.toM2 || '0') * 1e6))
+      const f1 = BigInt(Math.floor(parseFloat(reallocFields.fromM1 || '0') * decFactor))
+      const f2 = BigInt(Math.floor(parseFloat(reallocFields.fromM2 || '0') * decFactor))
+      const t1 = BigInt(Math.floor(parseFloat(reallocFields.toM1 || '0') * decFactor))
+      const t2 = BigInt(Math.floor(parseFloat(reallocFields.toM2 || '0') * decFactor))
 
       await tx.execute(async () =>
-        vaultDef.id === 'stx'
-          ? DeltaVaultSTX.encodeReallocate(f1, f2, t1, t2)
-          : DeltaVaultV3.encodeReallocate(f1, f2, t1, t2),
+        vaultDef.id === 'sbtc'
+          ? DeltaVaultSBTC.encodeReallocate(f1, f2, t1, t2)
+          : vaultDef.id === 'stx'
+            ? DeltaVaultSTX.encodeReallocate(f1, f2, t1, t2)
+            : DeltaVaultV3.encodeReallocate(f1, f2, t1, t2),
       )
       return
     }
@@ -574,7 +619,7 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
     if (!amount) return
     const amtRaw = parseFloat(amount)
     if (isNaN(amtRaw) || amtRaw <= 0) return
-    const amtSmallest = BigInt(Math.floor(amtRaw * 1e6))
+    const amtSmallest = BigInt(Math.floor(amtRaw * decFactor))
 
     await tx.execute(async () => {
       const isM1Deploy = op === `Deploy ${vaultDef.market1Label}`
@@ -584,7 +629,14 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
       const isRebal12 = op === `Rebalance ${vaultDef.market1Label[0]}→${vaultDef.market2Label[0]}`
       const isRebal21 = op === `Rebalance ${vaultDef.market2Label[0]}→${vaultDef.market1Label[0]}`
 
-      if (vaultDef.id === 'stx') {
+      if (vaultDef.id === 'sbtc') {
+        if (isM1Deploy) return DeltaVaultSBTC.encodeDeployToZestV1(amtSmallest)
+        if (isM2Deploy) return DeltaVaultSBTC.encodeDeployToZestV2(amtSmallest)
+        if (isM1Recall) return DeltaVaultSBTC.encodeRecallFromZestV1(amtSmallest)
+        if (isM2Recall) return DeltaVaultSBTC.encodeRecallFromZestV2(amtSmallest)
+        if (isRebal12) return DeltaVaultSBTC.encodeRebalanceV1ToV2(amtSmallest)
+        if (isRebal21) return DeltaVaultSBTC.encodeRebalanceV2ToV1(amtSmallest)
+      } else if (vaultDef.id === 'stx') {
         if (isM1Deploy) return DeltaVaultSTX.encodeDeployToZestV1(amtSmallest)
         if (isM2Deploy) return DeltaVaultSTX.encodeDeployToZestV2(amtSmallest)
         if (isM1Recall) return DeltaVaultSTX.encodeRecallFromZestV1(amtSmallest)
@@ -600,7 +652,7 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
         if (isRebal21) return DeltaVaultV3.encodeRebalanceZestV2ToGranite(amtSmallest)
       }
     })
-  }, [stxAddress, amount, op, tx, isReallocate, reallocFields, vaultDef])
+  }, [stxAddress, amount, op, tx, isReallocate, reallocFields, vaultDef, decFactor])
 
   useEffect(() => {
     if (tx.status === 'submitted' && tx.txId) pending.addTx(tx.txId)
@@ -626,15 +678,15 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
       <div className="bg-surface-alt/60 rounded-xl p-3 space-y-1.5 text-xs border border-border-subtle">
         <div className="flex justify-between">
           <span className="text-text-dim">Idle (deployable)</span>
-          <span className="font-mono text-text-muted">{micro(vault.liveIdle)} {vaultDef.asset}</span>
+          <span className="font-mono text-text-muted">{micro(vault.liveIdle, vaultDef.decimals)} {vaultDef.asset}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-text-dim">{vaultDef.market1Label}</span>
-          <span className="font-mono text-text-muted">{micro(vault.allocMarket1)} {vaultDef.asset}</span>
+          <span className="font-mono text-text-muted">{micro(vault.allocMarket1, vaultDef.decimals)} {vaultDef.asset}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-text-dim">{vaultDef.market2Label}</span>
-          <span className="font-mono text-text-muted">{micro(vault.allocMarket2)} {vaultDef.asset}</span>
+          <span className="font-mono text-text-muted">{micro(vault.allocMarket2, vaultDef.decimals)} {vaultDef.asset}</span>
         </div>
       </div>
 
@@ -751,7 +803,7 @@ function OwnerPanel({ vaultDef, onTxConfirm }: { vaultDef: VaultDef; onTxConfirm
 
   const handleSubmit = useCallback(async () => {
     if (!stxAddress) return
-    const sdk = vaultDef.id === 'stx' ? DeltaVaultSTX : DeltaVaultV3
+    const sdk = vaultDef.id === 'sbtc' ? DeltaVaultSBTC : vaultDef.id === 'stx' ? DeltaVaultSTX : DeltaVaultV3
 
     await tx.execute(async () => {
       switch (op) {
@@ -777,14 +829,14 @@ function OwnerPanel({ vaultDef, onTxConfirm }: { vaultDef: VaultDef; onTxConfirm
         default:
           // Register adapters
           if (op === regM1) {
-            return vaultDef.id === 'stx'
-              ? DeltaVaultSTX.encodeRegisterAdapterZestV1(inputValue || undefined)
-              : DeltaVaultV3.encodeRegisterAdapterGranite(inputValue || undefined)
+            if (vaultDef.id === 'sbtc') return DeltaVaultSBTC.encodeRegisterAdapterZestV1(inputValue || undefined)
+            if (vaultDef.id === 'stx') return DeltaVaultSTX.encodeRegisterAdapterZestV1(inputValue || undefined)
+            return DeltaVaultV3.encodeRegisterAdapterGranite(inputValue || undefined)
           }
           if (op === regM2) {
-            return vaultDef.id === 'stx'
-              ? DeltaVaultSTX.encodeRegisterAdapterZestV2(inputValue || undefined)
-              : DeltaVaultV3.encodeRegisterAdapterZestV2(inputValue || undefined)
+            if (vaultDef.id === 'sbtc') return DeltaVaultSBTC.encodeRegisterAdapterZestV2(inputValue || undefined)
+            if (vaultDef.id === 'stx') return DeltaVaultSTX.encodeRegisterAdapterZestV2(inputValue || undefined)
+            return DeltaVaultV3.encodeRegisterAdapterZestV2(inputValue || undefined)
           }
       }
     })

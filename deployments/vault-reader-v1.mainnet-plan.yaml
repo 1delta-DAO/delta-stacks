@@ -1,0 +1,15 @@
+---
+id: 0
+name: Vault Reader V1 Deployment
+network: mainnet
+stacks-node: "https://api.hiro.so"
+
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - emulated-contract-publish:
+            contract-name: vault-reader-v1
+            emulated-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+            path: contracts/vault-reader-v1.clar
+            clarity-version: 3

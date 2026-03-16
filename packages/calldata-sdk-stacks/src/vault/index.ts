@@ -22,3 +22,11 @@ export {
   VAULT_STX_UNDERLYING,
   WSTX_ZEST_V1,
 } from './v3-stx'
+
+// V3 sBTC
+export {
+  DeltaVaultSBTC,
+  VAULT_SBTC_DEPLOYER,
+  VAULT_SBTC_CONTRACTS,
+  VAULT_SBTC_UNDERLYING,
+} from './v3-sbtc'
