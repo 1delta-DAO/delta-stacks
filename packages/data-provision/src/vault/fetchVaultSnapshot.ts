@@ -135,7 +135,10 @@ export async function fetchVaultSnapshot(options?: {
   }
 
   // V3 symmetric share price: (totalAssets + V) / (totalSupply + V)
-  const vo = virtualOffset > 0n ? virtualOffset : 1_000_000n
+  // Fallback offset depends on contract decimals (6 for USDCx/STX, 8 for sBTC).
+  // Use the contract name to infer if the RPC call failed.
+  const defaultOffset = vault.contractName.includes('sbtc') ? 100_000_000n : 1_000_000n
+  const vo = virtualOffset > 0n ? virtualOffset : defaultOffset
   const sharePrice =
     totalSupply > 0n
       ? Number((totalAssets + vo) * 1_000_000n / (totalSupply + vo)) / 1e6
