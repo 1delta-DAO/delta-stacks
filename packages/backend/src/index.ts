@@ -10,9 +10,23 @@ import {
   type USDPriceMap,
   type VaultSnapshot,
 } from '@delta-stacks/data-provision'
+import { runAllocation } from './allocator'
+import { deriveAddress } from './utils'
+import { VaultAllocationResult } from './allocator/types'
 
 interface Env {
   LENDING_KV: KVNamespace
+  /**
+   * Hex-encoded Stacks private key for the allocator bot (64 chars, no 0x prefix).
+   * Set via wrangler secret or wrangler.toml [vars] for local dev.
+   */
+  ALLOCATOR_PRIVATE_KEY?: string
+  /**
+   * Shared secret required in the Authorization header for POST /allocate.
+   * Prevents anyone on the internet from burning the allocator's gas.
+   * Example header: Authorization: Bearer <secret>
+   */
+  ALLOCATOR_SECRET?: string
 }
 
 const LENDERS: StacksLender[] = ['zest-v1', 'zest-v2', 'granite']
@@ -22,6 +36,13 @@ const VAULT_HISTORY_KEY = 'vault:share-price-history' // USDCx vault
 const VAULT_STX_HISTORY_KEY = 'vault-stx:share-price-history'
 const VAULT_SBTC_HISTORY_KEY = 'vault-sbtc:share-price-history'
 const MAX_VAULT_HISTORY = 21_600 // ~30 days at 2-min intervals
+
+// KV keys for each vault's latest snapshot (written by the 2-min cron, read by allocator)
+const VAULT_LATEST_KEY: Record<string, string> = {
+  usdcx: 'vault:latest',
+  stx:   'vault-stx:latest',
+  sbtc:  'vault-sbtc:latest',
+}
 
 /**
  * Cron trigger (every 2 min):
@@ -122,6 +143,9 @@ async function handleScheduled(env: Env): Promise<void> {
       }
 
       await env.LENDING_KV.put(key, JSON.stringify(history))
+      // Also persist the latest snapshot separately so the allocator can read it cheaply
+      const latestKey = VAULT_LATEST_KEY[label.toLowerCase()]
+      if (latestKey) await env.LENDING_KV.put(latestKey, JSON.stringify(snapshot))
       console.log(`Cron: ${label} vault snapshot (price=${snapshot.sharePrice}, history=${history.length})`)
     } catch (e) {
       console.error(`Cron: failed to fetch ${label} vault snapshot`, e)
@@ -130,10 +154,64 @@ async function handleScheduled(env: Env): Promise<void> {
 }
 
 /**
- * GET /           — all cached lending data
- * GET /lending    — same as above
- * GET /prices     — cached USD price map
- * GET /:lender    — data for a specific lender
+ * Load lending data + latest vault snapshots from KV, run the allocation
+ * strategy, log results, and return them.
+ * Used by both the 12-h cron and the POST /allocate endpoint.
+ */
+async function handleAllocation(env: Env): Promise<VaultAllocationResult[]> {
+  const privateKey = env.ALLOCATOR_PRIVATE_KEY
+  if (!privateKey) {
+    console.warn('Alloc: ALLOCATOR_PRIVATE_KEY not set, skipping')
+    return []
+  }
+
+  const [v1Raw, v2Raw, graniteRaw] = await Promise.all([
+    env.LENDING_KV.get('lending:zest-v1'),
+    env.LENDING_KV.get('lending:zest-v2'),
+    env.LENDING_KV.get('lending:granite'),
+  ])
+  const lending: AllLendingData = {
+    v1:      v1Raw      ? JSON.parse(v1Raw)      : undefined,
+    v2:      v2Raw      ? JSON.parse(v2Raw)      : undefined,
+    granite: graniteRaw ? JSON.parse(graniteRaw) : undefined,
+  }
+
+  const snapshotEntries = await Promise.all(
+    Object.entries(VAULT_LATEST_KEY).map(async ([id, key]) => {
+      const raw = await env.LENDING_KV.get(key)
+      return [id, raw ? JSON.parse(raw) as VaultSnapshot : undefined] as const
+    }),
+  )
+  const snapshots = Object.fromEntries(
+    snapshotEntries.filter(([, v]) => v !== undefined),
+  ) as Record<string, VaultSnapshot>
+
+  console.log('Alloc: running allocation strategy')
+  try {
+    const results = await runAllocation(privateKey, lending, snapshots)
+    for (const r of results) {
+      if (r.status === 'rebalanced') {
+        console.log(`Alloc: ${r.vault} rebalanced → txid=${r.txid} (${r.market1Label} ${(r.market1Apr! * 100).toFixed(2)}% vs ${r.market2Label} ${(r.market2Apr! * 100).toFixed(2)}%)`)
+      } else if (r.status === 'error') {
+        console.error(`Alloc: ${r.vault} error — ${r.reason}`)
+      } else {
+        console.log(`Alloc: ${r.vault} skipped — ${r.reason}`)
+      }
+    }
+    return results
+  } catch (e) {
+    console.error('Alloc: unexpected error', e)
+    return []
+  }
+}
+
+/**
+ * GET /                — all cached lending data
+ * GET /lending         — same as above
+ * GET /prices          — cached USD price map
+ * GET /:lender         — data for a specific lender
+ * GET /allocator-address — Stacks address derived from ALLOCATOR_PRIVATE_KEY
+ * POST /allocate       — trigger allocation immediately (requires Authorization header)
  */
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url)
@@ -216,6 +294,20 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return new Response(JSON.stringify(result), { headers })
   }
 
+  // Allocator address (derived from the private key — set this as the vault allocator in the UI)
+  if (path === 'allocator-address') {
+    if (!env.ALLOCATOR_PRIVATE_KEY) {
+      return new Response(JSON.stringify({ error: 'ALLOCATOR_PRIVATE_KEY not configured' }), {
+        status: 503,
+        headers,
+      })
+    }
+    return new Response(
+      JSON.stringify({ address: deriveAddress(env.ALLOCATOR_PRIVATE_KEY) }),
+      { headers },
+    )
+  }
+
   return new Response(JSON.stringify({ error: 'Not found' }), {
     status: 404,
     headers,
@@ -224,25 +316,62 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const jsonHeaders = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
       })
     }
+
+    // POST /allocate — manually trigger the allocation strategy
+    if (request.method === 'POST') {
+      const path = new URL(request.url).pathname.replace(/^\/+|\/+$/g, '')
+      if (path !== 'allocate') {
+        return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: jsonHeaders })
+      }
+
+      // Guard with shared secret when configured
+      const secret = env.ALLOCATOR_SECRET
+      if (secret) {
+        const auth = request.headers.get('Authorization') ?? ''
+        if (auth !== `Bearer ${secret}`) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders })
+        }
+      }
+
+      if (!env.ALLOCATOR_PRIVATE_KEY) {
+        return new Response(
+          JSON.stringify({ error: 'ALLOCATOR_PRIVATE_KEY not configured' }),
+          { status: 503, headers: jsonHeaders },
+        )
+      }
+
+      const results = await handleAllocation(env)
+      return new Response(JSON.stringify({ results }), { headers: jsonHeaders })
+    }
+
     if (request.method !== 'GET') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         status: 405,
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders,
       })
     }
+
     return handleRequest(request, env)
   },
 
-  async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
-    await handleScheduled(env)
+  async scheduled(controller: ScheduledController, env: Env): Promise<void> {
+    if (controller.cron === '*/2 * * * *') {
+      // Price refresh + lender rotation + vault snapshots
+      await handleScheduled(env)
+    } else if (controller.cron === '0 */4 * * *') {
+      // Auto-allocate: rebalance vaults to the best-APR market
+      await handleAllocation(env)
+    }
   },
 } satisfies ExportedHandler<Env>
