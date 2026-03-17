@@ -2,6 +2,11 @@ import { AllLendingData, VaultSnapshot } from "@delta-stacks/data-provision";
 import { VaultAllocConfig } from "./types";
 import { REBALANCE_THRESHOLD } from "./const";
 
+/** Fraction of the bookkeeping allocation retained in the source market on recall.
+ *  LP tokens appreciate over time, so the bookkeeping amount may exceed what can
+ *  actually be withdrawn. Keeping 5% back ensures ft-burn never underflows. */
+const RECALL_SAFETY_BPS = 500n  // 5%
+
 /**
  * Decide whether to rebalance and return the amounts to move, or null to skip.
  * Strategy: move ALL funds to the higher-APR market when the APR delta exceeds
@@ -34,10 +39,12 @@ export function computeRebalance(
   if (apr1 > apr2) {
     // Move all market-2 funds to market-1
     if (alloc2 < cfg.dustThreshold) return null
-    return { fromMarket1: 0n, fromMarket2: alloc2, toMarket1: alloc2, toMarket2: 0n, apr1, apr2 }
+    const amount = alloc2 * (10000n - RECALL_SAFETY_BPS) / 10000n
+    return { fromMarket1: 0n, fromMarket2: amount, toMarket1: amount, toMarket2: 0n, apr1, apr2 }
   } else {
     // Move all market-1 funds to market-2
     if (alloc1 < cfg.dustThreshold) return null
-    return { fromMarket1: alloc1, fromMarket2: 0n, toMarket1: 0n, toMarket2: alloc1, apr1, apr2 }
+    const amount = alloc1 * (10000n - RECALL_SAFETY_BPS) / 10000n
+    return { fromMarket1: amount, fromMarket2: 0n, toMarket1: 0n, toMarket2: amount, apr1, apr2 }
   }
 }

@@ -13,5 +13,3 @@ export const ZEST_V2_SBTC_UID = 'stacks-mainnet:zest-v2:2'
 /** Minimum APR advantage (absolute) required to trigger a rebalance. (0.5%) */
 export const REBALANCE_THRESHOLD = 0.005
 
-/** Gas budget per transaction in microSTX. */
-export const TX_FEE = 50_000n
