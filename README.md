@@ -10,8 +10,8 @@ delta-stacks/
   packages/
     data-provision/    Read-only data fetching & parsing for all protocols
     calldata-sdk-stacks/  Transaction calldata encoders for all protocols
-    backend/           Backend service (scaffold)
-    frontend/          Frontend app (scaffold)
+    backend/           Cloudflare Workers backend (REST API + cron + auto-allocator)
+    frontend/          React 19 + Tailwind 4 frontend
   tests/fork/          Mainnet fork integration tests
 ```
 

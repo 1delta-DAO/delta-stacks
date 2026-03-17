@@ -101,9 +101,17 @@ clarinet check
 ```
 
 ### Backend
-- Cron runs every 2 min: refreshes prices, rotates through lenders, snapshots vault
-- Endpoints: `GET /`, `/lending`, `/prices`, `/:lender`, `/vault/history`
-- KV keys: `prices`, `lending:{lender}`, `vault:share-price-history`, `cron:next-lender-index`
+- **Cron `*/2 * * * *`**: refreshes prices, rotates through lenders (one per invocation), snapshots all three vaults (USDCx, STX, sBTC)
+- **Cron `0 */4 * * *`**: auto-allocator — rebalances each vault to the higher-APR market when delta > 0.5%
+- **Endpoints**:
+  - `GET /` or `/lending` — all cached lending data
+  - `GET /prices` — cached USD price map
+  - `GET /:lender` — data for a specific lender (`zest-v1`, `zest-v2`, `granite`)
+  - `GET /vault/history`, `/vault-stx/history`, `/vault-sbtc/history` — vault share-price history (supports `?from=<unix>&to=<unix>`)
+  - `GET /allocator-address` — Stacks address derived from `ALLOCATOR_PRIVATE_KEY` (set this as the vault allocator on-chain)
+  - `POST /allocate` — manually trigger the allocation strategy; body `{ force: true }` bypasses the APR-delta threshold; requires `Authorization: Bearer <ALLOCATOR_SECRET>` header when secret is configured
+- **KV keys**: `prices`, `lending:{lender}`, `vault:share-price-history`, `vault-stx:share-price-history`, `vault-sbtc:share-price-history`, `vault:latest`, `vault-stx:latest`, `vault-sbtc:latest`, `cron:next-lender-index`
+- **Env vars**: `ALLOCATOR_PRIVATE_KEY` (hex, 64 chars, no 0x prefix), `ALLOCATOR_SECRET` (Bearer token for POST /allocate)
 
 ### Frontend
 - React 19 + Tailwind 4 + TanStack Query
