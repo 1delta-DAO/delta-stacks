@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useVaultHistory, type VaultSnapshotEntry } from '../hooks/useVaultHistory'
+import { useVaultHistory } from '../hooks/useVaultHistory'
 
 const RANGES = ['24h', '7d', '30d'] as const
 type Range = (typeof RANGES)[number]

@@ -46,7 +46,7 @@ export function useTransact() {
           functionArgs: call.functionArgs.map((arg) => cvToHex(arg)),
           postConditionMode: 'allow',
         })
-        setState({ status: 'submitted', txId: resp.txid, error: null })
+        setState({ status: 'submitted', txId: resp.txid ?? null, error: null })
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
         if (msg.includes('cancel') || msg.includes('denied')) {

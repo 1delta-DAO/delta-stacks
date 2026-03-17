@@ -60,9 +60,7 @@ export function Header() {
   const truncated = stxAddress
     ? `${stxAddress.slice(0, 6)}...${stxAddress.slice(-4)}`
     : ''
-
-  const currentTheme = THEMES.find((t) => t.id === theme)
-
+    
   // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {

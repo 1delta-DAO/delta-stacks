@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { Tabs } from './Tabs'
 import { ActionPanel } from './ActionPanel'
 import { UserPositions } from './UserPositions'
 import { useLendingData } from '../hooks/useLendingData'
 import { useUserData } from '../hooks/useUserData'
 import { useWallet } from '../context/WalletContext'
-import type { AllLendingData, AllUserData } from '@delta-stacks/data-provision'
+import type { AllLendingData } from '@delta-stacks/data-provision'
 import {
   ZEST_V1_CONTRACTS,
   ZEST_V2_CONTRACTS,
@@ -175,7 +174,7 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
         baseLtv: m.baseLtv,
         liquidationThreshold: m.liquidationThreshold,
         decimals: m.isCollateral ? (m.asset?.decimals ?? 8) : 6,
-        underlying: m.isCollateral ? m.asset?.address : m.underlying,
+        underlying: m.isCollateral ? m.asset?.address : undefined,
         graniteMarketId: (m.parentMarketId ?? m.marketId) as 'aeusdc' | 'usdcx',
         isCollateral: m.isCollateral || undefined,
         collateralToken: m.isCollateral ? m.asset?.address : undefined,
@@ -194,10 +193,7 @@ function normalizeMarkets(data: AllLendingData): UnifiedMarket[] {
  * must contain ALL 10 assets in the EXACT on-chain order, or the tx fails
  * with ERR_INVALID_ASSETS (u30024).
  */
-function buildV1PositionAssets(
-  _allMarkets: UnifiedMarket[],
-  _userData: AllUserData,
-): AssetOracleLp[] {
+function buildV1PositionAssets(): AssetOracleLp[] {
   return V1_ASSET_ORDER
     .map((asset) => ({
       asset,
@@ -393,7 +389,7 @@ export function LendingTab() {
     ? allMarkets
     : allMarkets.filter((m) => m.protocol === LENDERS[lenderTab])
 
-  const v1PositionAssets = buildV1PositionAssets(allMarkets, userData)
+  const v1PositionAssets = buildV1PositionAssets()
   const hasAnyData = data.v1 || data.v2 || data.granite
 
   return (

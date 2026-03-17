@@ -4,17 +4,13 @@ import { useWallet } from '../context/WalletContext'
 import { useTransact } from '../hooks/useTransact'
 import { usePendingTx } from '../hooks/usePendingTx'
 import { useBalances, type Balances } from '../hooks/useBalances'
-import { useVaultStateV3, type VaultStateV3 } from '../hooks/useVaultStateV3'
+import { useVaultStateV3 } from '../hooks/useVaultStateV3'
 import { useVaultStateSTX } from '../hooks/useVaultStateSTX'
 import { useVaultStateSBTC } from '../hooks/useVaultStateSBTC'
 import {
   DeltaVaultV3,
   DeltaVaultSTX,
   DeltaVaultSBTC,
-  VAULT_V3_CONTRACTS,
-  VAULT_V3_UNDERLYING,
-  VAULT_STX_CONTRACTS,
-  VAULT_STX_UNDERLYING,
 } from '@delta-stacks/calldata-sdk-stacks'
 
 import { SharePriceChart } from './SharePriceChart'
@@ -651,6 +647,7 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
         if (isRebal12) return DeltaVaultV3.encodeRebalanceGraniteToZestV2(amtSmallest)
         if (isRebal21) return DeltaVaultV3.encodeRebalanceZestV2ToGranite(amtSmallest)
       }
+      throw new Error(`Unknown operation: ${op}`)
     })
   }, [stxAddress, amount, op, tx, isReallocate, reallocFields, vaultDef, decFactor])
 
@@ -838,6 +835,7 @@ function OwnerPanel({ vaultDef, onTxConfirm }: { vaultDef: VaultDef; onTxConfirm
             if (vaultDef.id === 'stx') return DeltaVaultSTX.encodeRegisterAdapterZestV2(inputValue || undefined)
             return DeltaVaultV3.encodeRegisterAdapterZestV2(inputValue || undefined)
           }
+          throw new Error(`Unknown operation: ${op}`)
       }
     })
   }, [stxAddress, inputValue, op, tx, vaultDef, regM1, regM2])
