@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useWallet } from '../context/WalletContext'
-import { useTheme, THEMES, type ThemeId } from '../context/ThemeContext'
+import { useTheme, THEMES, type ThemeId } from '../context/useTheme'
 import staultLogo from '../assets/stault.png'
 
 /** SVG icons for each theme — small, crisp, and distinct */
