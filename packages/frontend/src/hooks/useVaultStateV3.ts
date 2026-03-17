@@ -170,7 +170,7 @@ function parseReaderResponse(hex: string): VaultStateV3 {
 
   // --- Granite APR (from reader's granite-lp-params and granite-open-interest) ---
   // The reader returns nested tuples; the field names are still accessible
-  const graniteTotalAssets = decodeTupleUint(hex, 'total-assets')
+  // const graniteTotalAssets = decodeTupleUint(hex, 'total-assets')
   // Ambiguous with vault total-assets — use the granite-specific subfields
   // The granite-lp-params tuple is nested inside the reader tuple, so we need
   // to find the granite-specific data. Since tuple field names are sorted
@@ -278,7 +278,7 @@ async function fetchVaultStateV3Fallback(): Promise<VaultStateV3> {
     idleBufferBpsHex,
     virtualOffsetHex,
     graniteLpParamsHex,
-    graniteOpenInterestHex,
+    _graniteOpenInterestHex,
     zestInterestRateHex,
     zestUtilizationHex,
     zestFeeReserveHex,

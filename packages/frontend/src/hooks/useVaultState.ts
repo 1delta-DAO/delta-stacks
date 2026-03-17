@@ -136,7 +136,7 @@ async function fetchVaultState(): Promise<VaultState> {
     liveZestHex,
     liveTotalHex,
     graniteLpParamsHex,
-    graniteOpenInterestHex,
+    _graniteOpenInterestHex,
     zestInterestRateHex,
     zestUtilizationHex,
     zestFeeReserveHex,
