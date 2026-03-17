@@ -158,7 +158,7 @@ async function handleScheduled(env: Env): Promise<void> {
  * strategy, log results, and return them.
  * Used by both the 12-h cron and the POST /allocate endpoint.
  */
-async function handleAllocation(env: Env): Promise<VaultAllocationResult[]> {
+async function handleAllocation(env: Env, force = false): Promise<VaultAllocationResult[]> {
   const privateKey = env.ALLOCATOR_PRIVATE_KEY
   if (!privateKey) {
     console.warn('Alloc: ALLOCATOR_PRIVATE_KEY not set, skipping')
@@ -188,7 +188,7 @@ async function handleAllocation(env: Env): Promise<VaultAllocationResult[]> {
 
   console.log('Alloc: running allocation strategy')
   try {
-    const results = await runAllocation(privateKey, lending, snapshots)
+    const results = await runAllocation(privateKey, lending, snapshots, force)
     for (const r of results) {
       if (r.status === 'rebalanced') {
         console.log(`Alloc: ${r.vault} rebalanced → txid=${r.txid} (${r.market1Label} ${(r.market1Apr! * 100).toFixed(2)}% vs ${r.market2Label} ${(r.market2Apr! * 100).toFixed(2)}%)`)
@@ -351,7 +351,8 @@ export default {
         )
       }
 
-      const results = await handleAllocation(env)
+      const body = await request.json().catch(() => ({})) as { force?: boolean }
+      const results = await handleAllocation(env, body.force === true)
       return new Response(JSON.stringify({ results }), { headers: jsonHeaders })
     }
 

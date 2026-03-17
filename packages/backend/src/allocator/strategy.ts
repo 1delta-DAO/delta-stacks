@@ -11,6 +11,7 @@ export function computeRebalance(
   cfg: VaultAllocConfig,
   snapshot: VaultSnapshot,
   lending: AllLendingData,
+  force = false,
 ): {
   fromMarket1: bigint; fromMarket2: bigint
   toMarket1: bigint;   toMarket2: bigint
@@ -28,7 +29,7 @@ export function computeRebalance(
   if (apr1 === undefined || apr2 === undefined) return null  // no APR data
 
   const delta = Math.abs(apr1 - apr2)
-  if (delta < REBALANCE_THRESHOLD) return null  // difference too small
+  if (!force && delta < REBALANCE_THRESHOLD) return null  // difference too small
 
   if (apr1 > apr2) {
     // Move all market-2 funds to market-1

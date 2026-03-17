@@ -38,6 +38,7 @@ export async function runAllocation(
   privateKey: string,
   lending: AllLendingData,
   snapshots: Record<string, VaultSnapshot>,
+  force = false,
 ): Promise<VaultAllocationResult[]> {
   const allocatorAddress = deriveAddress(privateKey)
   let nonce = await fetchNonce({ address: allocatorAddress })
@@ -59,7 +60,7 @@ export async function runAllocation(
       continue
     }
 
-    const rebalance = computeRebalance(cfg, snapshot, lending)
+    const rebalance = computeRebalance(cfg, snapshot, lending, force)
     if (!rebalance) {
       results.push({
         vault: cfg.id,
