@@ -1,7 +1,7 @@
 import { useTokenList } from '../hooks/useTokenList'
 import { useBalances } from '../hooks/useBalances'
 import type { StacksToken } from '@delta-stacks/data-provision'
-import { useWallet } from '../context/WalletContext'
+import { useWallet } from '../context/useWallet'
 
 function formatBalance(raw: bigint, decimals: number): string {
   if (raw === 0n) return '0'

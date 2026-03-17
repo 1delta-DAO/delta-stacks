@@ -1,21 +1,6 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { useState, useCallback, useEffect, type ReactNode } from 'react'
 import { disconnect as scDisconnect, isConnected, getLocalStorage, request } from '@stacks/connect'
-
-interface WalletState {
-  connected: boolean
-  stxAddress: string | null
-  connecting: boolean
-  connect: () => Promise<void>
-  disconnect: () => void
-}
-
-const WalletContext = createContext<WalletState>({
-  connected: false,
-  stxAddress: null,
-  connecting: false,
-  connect: async () => {},
-  disconnect: () => {},
-})
+import { WalletContext, type WalletState } from './useWallet'
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [stxAddress, setStxAddress] = useState<string | null>(null)
@@ -47,19 +32,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setStxAddress(null)
   }, [])
 
+  const value: WalletState = {
+    connected: !!stxAddress,
+    stxAddress,
+    connecting,
+    connect: handleConnect,
+    disconnect: handleDisconnect,
+  }
+
   return (
-    <WalletContext.Provider
-      value={{
-        connected: !!stxAddress,
-        stxAddress,
-        connecting,
-        connect: handleConnect,
-        disconnect: handleDisconnect,
-      }}
-    >
+    <WalletContext.Provider value={value}>
       {children}
     </WalletContext.Provider>
   )
 }
-
-export const useWallet = () => useContext(WalletContext)

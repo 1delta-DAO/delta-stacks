@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Tabs } from './Tabs'
-import { useWallet } from '../context/WalletContext'
+import { useWallet } from '../context/useWallet'
 import { useTransact } from '../hooks/useTransact'
 import { usePendingTx } from '../hooks/usePendingTx'
 import { useBalances } from '../hooks/useBalances'

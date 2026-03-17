@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useWallet } from '../context/WalletContext'
+import { useWallet } from '../context/useWallet'
 import { useTheme, THEMES, type ThemeId } from '../context/useTheme'
 import staultLogo from '../assets/stault.png'
 

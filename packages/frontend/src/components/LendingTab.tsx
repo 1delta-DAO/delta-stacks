@@ -3,7 +3,7 @@ import { ActionPanel } from './ActionPanel'
 import { UserPositions } from './UserPositions'
 import { useLendingData } from '../hooks/useLendingData'
 import { useUserData } from '../hooks/useUserData'
-import { useWallet } from '../context/WalletContext'
+import { useWallet } from '../context/useWallet'
 import type { AllLendingData } from '@delta-stacks/data-provision'
 import {
   ZEST_V1_CONTRACTS,

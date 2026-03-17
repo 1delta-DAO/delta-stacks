@@ -4,7 +4,7 @@ import type { UnifiedMarket } from './LendingTab'
 import type { AssetOracleLp } from '@delta-stacks/calldata-sdk-stacks'
 import { ZestV1Lending, ZestV2Lending } from '@delta-stacks/calldata-sdk-stacks'
 import { useTransact } from '../hooks/useTransact'
-import { useWallet } from '../context/WalletContext'
+import { useWallet } from '../context/useWallet'
 
 import graniteLogo from '../assets/granite.png'
 import zestLogo from '../assets/zest.png'

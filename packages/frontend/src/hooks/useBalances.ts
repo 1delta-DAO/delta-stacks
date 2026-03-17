@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useWallet } from '../context/WalletContext'
+import { useWallet } from '../context/useWallet'
 
 const API_URL = 'https://api.hiro.so'
 
