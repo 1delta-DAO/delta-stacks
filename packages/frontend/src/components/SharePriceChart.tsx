@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useVaultHistory } from '../hooks/useVaultHistory'
 
 const RANGES = ['24h', '7d', '30d'] as const
@@ -38,18 +38,22 @@ export function SharePriceChart({ historyEndpoint = 'vault/history' }: { history
     }
   }, [sampled])
 
-  const toX = (ts: number) =>
-    PAD.left + ((ts - minTs) / (maxTs - minTs || 1)) * (W - PAD.left - PAD.right)
+  const toX = useCallback(
+    (ts: number) => PAD.left + ((ts - minTs) / (maxTs - minTs || 1)) * (W - PAD.left - PAD.right),
+    [minTs, maxTs],
+  )
 
-  const toY = (price: number) =>
-    PAD.top + (1 - (price - minPrice) / (maxPrice - minPrice || 1)) * (H - PAD.top - PAD.bottom)
+  const toY = useCallback(
+    (price: number) => PAD.top + (1 - (price - minPrice) / (maxPrice - minPrice || 1)) * (H - PAD.top - PAD.bottom),
+    [minPrice, maxPrice],
+  )
 
   const linePath = useMemo(() => {
     if (sampled.length < 2) return ''
     return sampled
       .map((s, i) => `${i === 0 ? 'M' : 'L'}${toX(s.timestamp).toFixed(1)},${toY(s.sharePrice).toFixed(1)}`)
       .join(' ')
-  }, [sampled, minTs, maxTs, minPrice, maxPrice])
+  }, [sampled, toX, toY])
 
   const areaPath = useMemo(() => {
     if (!linePath) return ''
@@ -57,7 +61,7 @@ export function SharePriceChart({ historyEndpoint = 'vault/history' }: { history
     const first = toX(sampled[0].timestamp).toFixed(1)
     const last = toX(sampled[sampled.length - 1].timestamp).toFixed(1)
     return `${linePath} L${last},${bottom} L${first},${bottom} Z`
-  }, [linePath, sampled])
+  }, [linePath, sampled, toX])
 
   // Y-axis labels (4 ticks)
   const yTicks = useMemo(() => {

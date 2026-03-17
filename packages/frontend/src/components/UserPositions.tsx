@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import type { AllLendingData, AllUserData, UserData, LendingPosition } from '@delta-stacks/data-provision'
 import type { UnifiedMarket } from './LendingTab'
 import type { AssetOracleLp } from '@delta-stacks/calldata-sdk-stacks'
@@ -335,11 +335,10 @@ export function UserPositions({
 
   const symbolMap = buildSymbolMap(lendingData)
 
-  // Build marketUid → UnifiedMarket lookup
-  const marketLookup: Record<string, UnifiedMarket> = {}
-  for (const m of allMarkets) {
-    marketLookup[m.marketUid] = m
-  }
+  const marketLookup = useMemo(
+    () => Object.fromEntries(allMarkets.map((m) => [m.marketUid, m])) as Record<string, UnifiedMarket>,
+    [allMarkets],
+  )
 
   const handleToggleCollateral = useCallback(
     async (lender: string, pos: LendingPosition, enable: boolean) => {

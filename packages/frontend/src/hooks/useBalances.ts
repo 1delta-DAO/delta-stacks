@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useWallet } from '../context/WalletContext'
 
@@ -48,7 +48,7 @@ export function useBalances() {
   const { stxAddress, connected } = useWallet()
   const queryClient = useQueryClient()
 
-  const queryKey = ['balances', stxAddress] as const
+  const queryKey = useMemo(() => ['balances', stxAddress] as const, [stxAddress])
 
   const { data, isLoading } = useQuery({
     queryKey,
@@ -61,7 +61,7 @@ export function useBalances() {
 
   const refresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey })
-  }, [queryClient, queryKey[1]])
+  }, [queryClient, queryKey])
 
   return { balances: data ?? EMPTY, loading: isLoading, refresh }
 }
