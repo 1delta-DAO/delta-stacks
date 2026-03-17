@@ -10,7 +10,7 @@ export const VAULT_ALLOC_CONFIGS: VaultAllocConfig[] = [
     adapterMarket2: `${DEPLOYER}.adapter-zest-v2-usdc-v3`,
     market1Label: 'Granite',
     market2Label: 'Zest V2',
-    dustThreshold: 100_000_000n,    // 100 USDCx (6 decimals)
+    dustThreshold: 1_000n,          // 0.001 USDCx (6 decimals)
     getMarket1Apr: (d) => d.granite?.data[GRANITE_USDCX_UID]?.supplyRate,
     getMarket2Apr: (d) => d.v2?.data[ZEST_V2_USDCX_UID]?.supplyRate,
   },
