@@ -36,7 +36,8 @@ async function fetchCurrentNonce(address: string, retries = 3): Promise<number> 
  * Read get-vault-allocator from the vault contract.
  * Returns the principal string ("SP...") or null on failure.
  */
-export async function getVaultAllocator(deployer: string, contractName: string): Promise<string | null> {
+export async function getVaultAllocator(vaultPrincipal: string): Promise<string | null> {
+  const [deployer, contractName] = splitPrincipal(vaultPrincipal)
   const results = await executeStacksReadCalls([
     { contractAddress: deployer, contractName, functionName: 'get-vault-allocator', args: [] },
   ], { apiUrl: API_URL })

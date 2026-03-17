@@ -12,17 +12,13 @@
  */
 
 
-import {
-  uintCV,
-  fetchNonce,
-  contractPrincipalCV,
-} from '@stacks/transactions'
+import { fetchNonce } from '@stacks/transactions'
 import {
   type AllLendingData,
   type VaultSnapshot,
 } from '@delta-stacks/data-provision'
 import { VaultAllocationResult } from './types'
-import { deriveAddress, getVaultAllocator, splitPrincipal } from '../utils'
+import { deriveAddress, getVaultAllocator } from '../utils'
 import { VAULT_ALLOC_CONFIGS } from './config'
 import { computeRebalance } from './strategy'
 import { buildAndBroadcast } from './tx'
@@ -54,7 +50,7 @@ export async function runAllocation(
     }
 
     // Confirm we're the registered allocator for this vault
-    const onChainAllocator = await getVaultAllocator(cfg.deployer, cfg.contractName)
+    const onChainAllocator = await getVaultAllocator(cfg.vaultPrincipal)
     if (!onChainAllocator || onChainAllocator.toLowerCase() !== allocatorAddress.toLowerCase()) {
       results.push({ vault: cfg.id, status: 'skipped', reason: 'not-allocator' })
       continue
@@ -75,22 +71,10 @@ export async function runAllocation(
     }
 
     const { fromMarket1, fromMarket2, toMarket1, toMarket2, apr1, apr2 } = rebalance
-    const [a1deployer, a1name] = splitPrincipal(cfg.adapterMarket1)
-    const [a2deployer, a2name] = splitPrincipal(cfg.adapterMarket2)
 
     try {
       const txid = await buildAndBroadcast(
-        cfg.deployer,
-        cfg.contractName,
-        'reallocate',
-        [
-          uintCV(fromMarket1),
-          uintCV(fromMarket2),
-          uintCV(toMarket1),
-          uintCV(toMarket2),
-          contractPrincipalCV(a1deployer, a1name),
-          contractPrincipalCV(a2deployer, a2name),
-        ],
+        cfg.encodeReallocate(fromMarket1, fromMarket2, toMarket1, toMarket2),
         privateKey,
         nonce,
       )

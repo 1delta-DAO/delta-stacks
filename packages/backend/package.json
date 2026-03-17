@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@delta-stacks/calldata-sdk-stacks": "workspace:*",
     "@delta-stacks/data-provision": "workspace:*",
     "@stacks/transactions": "^7.0.0"
   },

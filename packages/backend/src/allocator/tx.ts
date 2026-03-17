@@ -1,24 +1,21 @@
 import {
   makeContractCall,
   PostConditionMode,
-  uintCV,
-  contractPrincipalCV,
+  broadcastTransaction,
 } from '@stacks/transactions'
-import { API_URL, TX_FEE } from './const'
+import { type StacksContractCall } from '@delta-stacks/calldata-sdk-stacks'
+import { TX_FEE } from './const'
 
 export async function buildAndBroadcast(
-  deployer: string,
-  contractName: string,
-  functionName: string,
-  functionArgs: ReturnType<typeof uintCV | typeof contractPrincipalCV>[],
+  call: StacksContractCall,
   privateKey: string,
   nonce: bigint,
 ): Promise<string> {
   const tx = await makeContractCall({
-    contractAddress: deployer,
-    contractName,
-    functionName,
-    functionArgs,
+    contractAddress: call.contractAddress,
+    contractName: call.contractName,
+    functionName: call.functionName,
+    functionArgs: call.functionArgs,
     senderKey: privateKey,
     network: 'mainnet',
     fee: TX_FEE,
@@ -26,16 +23,9 @@ export async function buildAndBroadcast(
     postConditionMode: PostConditionMode.Allow,
   })
 
-  const serialized = tx.serialize()
-  const res = await fetch(`${API_URL}/v2/transactions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/octet-stream' },
-    body: serialized,
-  })
-
-  const body = await res.json() as { txid?: string; error?: string; reason?: string }
-  if (!res.ok || body.error) {
-    throw new Error(body.reason ?? body.error ?? `broadcast failed: ${res.status}`)
+  const result = await broadcastTransaction({ transaction: tx, network: 'mainnet' })
+  if ('error' in result) {
+    throw new Error((result as { reason?: string; error: string }).reason ?? (result as { error: string }).error)
   }
-  return body.txid ?? ''
+  return (result as { txid: string }).txid
 }

@@ -29,9 +29,15 @@ importers:
 
   packages/backend:
     dependencies:
+      '@delta-stacks/calldata-sdk-stacks':
+        specifier: workspace:*
+        version: link:../calldata-sdk-stacks
       '@delta-stacks/data-provision':
         specifier: workspace:*
         version: link:../data-provision
+      '@stacks/transactions':
+        specifier: ^7.0.0
+        version: 7.3.1
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20241205.0

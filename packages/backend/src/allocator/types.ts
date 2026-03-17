@@ -1,15 +1,8 @@
-import {
-  type AllLendingData,
-} from '@delta-stacks/data-provision'
+import { type StacksContractCall } from '@delta-stacks/calldata-sdk-stacks'
+import { type AllLendingData } from '@delta-stacks/data-provision'
 
 export interface VaultAllocConfig {
   id: string
-  deployer: string
-  contractName: string
-  /** Full principal (deployer.contract-name) for market-1 adapter */
-  adapterMarket1: string
-  /** Full principal (deployer.contract-name) for market-2 adapter */
-  adapterMarket2: string
   market1Label: string
   market2Label: string
   /**
@@ -17,8 +10,12 @@ export interface VaultAllocConfig {
    * Reallocations smaller than this are skipped as dust.
    */
   dustThreshold: bigint
+  /** Delegates to the calldata-sdk encoder — same function the frontend uses. */
+  encodeReallocate(from1: bigint, from2: bigint, to1: bigint, to2: bigint): StacksContractCall
   getMarket1Apr(data: AllLendingData): number | undefined
   getMarket2Apr(data: AllLendingData): number | undefined
+  /** On-chain contract principal (deployer.name) used to verify the registered allocator. */
+  vaultPrincipal: string
 }
 
 export interface VaultAllocationResult {
