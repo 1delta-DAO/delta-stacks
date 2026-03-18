@@ -1,19 +1,21 @@
 /**
- * Delta sBTC Vault V3 contract addresses (Stacks Mainnet).
+ * Delta sBTC Vault V5 contract addresses (Stacks Mainnet).
  *
  * Markets: Zest V1 (sBTC, Aave-like pool) + Zest V2 (sBTC, ERC-4626 vault).
  * No Granite market for sBTC.
  *
- * sBTC is a standard SIP-010 token — no wrapping step required.
+ * V5: Same architecture as STX v5-5.  Withdrawals pull from idle + V2 only.
+ * V1 operations via external zest-v1-sbtc-manager.
  */
 
 export const VAULT_SBTC_DEPLOYER = 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H'
 
 export const VAULT_SBTC_CONTRACTS = {
-  vault: `${VAULT_SBTC_DEPLOYER}.vault-sbtc-v3`,
-  adapterZestV1: `${VAULT_SBTC_DEPLOYER}.adapter-zest-v1-sbtc-v3`,
-  adapterZestV2: `${VAULT_SBTC_DEPLOYER}.adapter-zest-v2-sbtc-v3`,
+  vault: `${VAULT_SBTC_DEPLOYER}.vault-sbtc-v5`,
+  adapterZestV1: `${VAULT_SBTC_DEPLOYER}.adapter-zest-v1-sbtc-thin`,
+  adapterZestV2: `${VAULT_SBTC_DEPLOYER}.adapter-zest-v2-sbtc-v5`,
   trait: `${VAULT_SBTC_DEPLOYER}.lending-adapter-trait`,
+  zestV1Manager: `${VAULT_SBTC_DEPLOYER}.zest-v1-sbtc-manager`,
 } as const
 
 /**

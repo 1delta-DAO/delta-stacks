@@ -1,8 +1,13 @@
 /**
- * Delta STX Vault V3 contract addresses (Stacks Mainnet).
+ * Delta STX Vault V5 contract addresses (Stacks Mainnet).
  *
  * Markets: Zest V1 (wSTX, Aave-like pool) + Zest V2 (wSTX, ERC-4626 vault).
  * No Granite market for STX.
+ *
+ * V5 fix: Data-var scratch space for withdrawal params.  The helper writes
+ * shares-to-burn / pull-v1 / pull-v2 to data vars, stack fully unwinds,
+ * then adapter calls happen at depth ~4 (absolute minimum).  Sync removed
+ * from withdraw path to save additional frames.
  *
  * wSTX note: Both protocols use wSTX — a SIP-010 wrapper around native STX.
  * wSTX.transfer() = stx-transfer?(), balance = stx-get-balance.
@@ -12,10 +17,11 @@
 export const VAULT_STX_DEPLOYER = 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H'
 
 export const VAULT_STX_CONTRACTS = {
-  vault: `${VAULT_STX_DEPLOYER}.vault-stx-v3-1`,
-  adapterZestV1: `${VAULT_STX_DEPLOYER}.adapter-zest-v1-wstx-v3`,
-  adapterZestV2: `${VAULT_STX_DEPLOYER}.adapter-zest-v2-stx-v3`,
+  vault: `${VAULT_STX_DEPLOYER}.vault-stx-v5-5`,
+  adapterZestV1: `${VAULT_STX_DEPLOYER}.adapter-zest-v1-wstx-thin`,
+  adapterZestV2: `${VAULT_STX_DEPLOYER}.adapter-zest-v2-stx-v5`,
   trait: `${VAULT_STX_DEPLOYER}.lending-adapter-trait`,
+  zestV1Manager: `${VAULT_STX_DEPLOYER}.zest-v1-manager-v2`,
 } as const
 
 /**

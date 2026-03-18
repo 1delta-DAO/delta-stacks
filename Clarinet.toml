@@ -36,6 +36,21 @@ path = "contracts/vault-usdcx-v3.clar"
 clarity_version = 3
 epoch = 3.0
 
+[contracts.vault-stx-v4]
+path = "contracts/vault-stx-v4.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.vault-stx-v5-4]
+path = "contracts/vault-stx-v5-4.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.vault-stx-v5]
+path = "contracts/vault-stx-v5.clar"
+clarity_version = 3
+epoch = 3.0
+
 [contracts.mock-adapter]
 path = "contracts/mock-adapter.clar"
 clarity_version = 3
@@ -130,6 +145,25 @@ epoch = 3.0
 #
 # [contracts.adapter-zest-v2-stx-v3]
 # path = "contracts/prod/v3/stx/adapter-zest-v2-stx.clar"
+# clarity_version = 3
+# epoch = 3.0
+
+# --- v4 / STX ---
+# Fix for MaxStackDepthReached on v3 withdraw/redeem.
+# Deployment via: clarinet deployments apply --deployment-plan-path deployments/vault-v4-stx.mainnet-plan.yaml
+#
+# [contracts.vault-stx-v4]
+# path = "contracts/prod/v4/stx/vault-stx-v4.clar"
+# clarity_version = 3
+# epoch = 3.0
+#
+# [contracts.adapter-zest-v1-wstx-v4]
+# path = "contracts/prod/v4/stx/adapter-zest-v1-wstx.clar"
+# clarity_version = 3
+# epoch = 3.0
+#
+# [contracts.adapter-zest-v2-stx-v4]
+# path = "contracts/prod/v4/stx/adapter-zest-v2-stx.clar"
 # clarity_version = 3
 # epoch = 3.0
 

@@ -264,43 +264,24 @@ async function fetchVaultStateV3Fallback(): Promise<VaultStateV3> {
   const ZEST_DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7'
   const ZEST_CONTRACT = 'v0-vault-usdc'
 
-  const [
-    totalAssetsHex,
-    allocGraniteHex,
-    allocZestHex,
-    idleBookHex,
-    totalSupplyHex,
-    liveIdleHex,
-    liveGraniteHex,
-    liveZestHex,
-    liveTotalHex,
-    feeBpsHex,
-    idleBufferBpsHex,
-    virtualOffsetHex,
-    graniteLpParamsHex,
-    _graniteOpenInterestHex,
-    zestInterestRateHex,
-    zestUtilizationHex,
-    zestFeeReserveHex,
-  ] = await Promise.all([
-    callRead(SENDER, vaultContract, 'get-total-assets'),
-    callRead(SENDER, vaultContract, 'get-alloc-granite'),
-    callRead(SENDER, vaultContract, 'get-alloc-zest-v2'),
-    callRead(SENDER, vaultContract, 'get-idle-bookkeeping'),
-    callRead(SENDER, vaultContract, 'get-total-supply'),
-    callRead(SENDER, vaultContract, 'get-idle-balance'),
-    callRead(SENDER, vaultContract, 'get-granite-usdcx-position'),
-    callRead(SENDER, vaultContract, 'get-zest-v2-usdc-position'),
-    callRead(SENDER, vaultContract, 'get-live-total-assets'),
-    callRead(SENDER, vaultContract, 'get-fee-bps'),
-    callRead(SENDER, vaultContract, 'get-idle-buffer-bps'),
-    callRead(SENDER, vaultContract, 'get-virtual-offset'),
-    callRead(GRANITE_STATE, GRANITE_CONTRACT, 'get-lp-params'),
-    callRead(GRANITE_STATE, GRANITE_CONTRACT, 'get-open-interest'),
-    callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-interest-rate'),
-    callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-utilization'),
-    callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-fee-reserve'),
-  ])
+  // Sequential calls to avoid 429 rate limits
+  const totalAssetsHex = await callRead(SENDER, vaultContract, 'get-total-assets')
+  const allocGraniteHex = await callRead(SENDER, vaultContract, 'get-alloc-granite')
+  const allocZestHex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v2')
+  const idleBookHex = await callRead(SENDER, vaultContract, 'get-idle-bookkeeping')
+  const totalSupplyHex = await callRead(SENDER, vaultContract, 'get-total-supply')
+  const liveIdleHex = await callRead(SENDER, vaultContract, 'get-idle-balance')
+  const liveGraniteHex = await callRead(SENDER, vaultContract, 'get-granite-usdcx-position')
+  const liveZestHex = await callRead(SENDER, vaultContract, 'get-zest-v2-usdc-position')
+  const liveTotalHex = await callRead(SENDER, vaultContract, 'get-live-total-assets')
+  const feeBpsHex = await callRead(SENDER, vaultContract, 'get-fee-bps')
+  const idleBufferBpsHex = await callRead(SENDER, vaultContract, 'get-idle-buffer-bps')
+  const virtualOffsetHex = await callRead(SENDER, vaultContract, 'get-virtual-offset')
+  const graniteLpParamsHex = await callRead(GRANITE_STATE, GRANITE_CONTRACT, 'get-lp-params')
+  const _graniteOpenInterestHex = await callRead(GRANITE_STATE, GRANITE_CONTRACT, 'get-open-interest')
+  const zestInterestRateHex = await callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-interest-rate')
+  const zestUtilizationHex = await callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-utilization')
+  const zestFeeReserveHex = await callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-fee-reserve')
 
   const totalAssets = decodeUint(totalAssetsHex)
   const allocGranite = decodeUint(allocGraniteHex)
@@ -379,7 +360,7 @@ async function fetchVaultStateV3Fallback(): Promise<VaultStateV3> {
 
 const VAULT_V3_STATE_KEY = ['vault-v3-state'] as const
 
-export function useVaultStateV3(pollIntervalMs = 60_000) {
+export function useVaultStateV3(pollIntervalMs = 120_000) {
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -387,7 +368,9 @@ export function useVaultStateV3(pollIntervalMs = 60_000) {
     queryFn: fetchVaultStateV3,
     refetchInterval: pollIntervalMs,
     placeholderData: (prev) => prev,
-    staleTime: 30_000,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   })
 
   const refresh = useCallback(() => {

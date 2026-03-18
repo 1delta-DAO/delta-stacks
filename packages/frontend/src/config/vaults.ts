@@ -38,11 +38,11 @@ export const VAULT_USDCX: VaultDef = {
 
 export const VAULT_STX: VaultDef = {
   id: 'stx',
-  name: '1delta STX Vault v3',
+  name: '1delta STX Vault v5',
   symbol: '1dSTX',
   asset: 'STX',
   assetContract: 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.wstx',
-  vaultContract: 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3-1',
+  vaultContract: 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v5-5',
   market1Label: 'Zest V1',
   market2Label: 'Zest V2',
   market1Logo: zestLogo,
@@ -53,11 +53,11 @@ export const VAULT_STX: VaultDef = {
 
 export const VAULT_SBTC: VaultDef = {
   id: 'sbtc',
-  name: '1delta sBTC Vault v3',
+  name: '1delta sBTC Vault v5',
   symbol: '1dsBTC',
   asset: 'sBTC',
   assetContract: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
-  vaultContract: 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-sbtc-v3',
+  vaultContract: 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-sbtc-v5',
   market1Label: 'Zest V1',
   market2Label: 'Zest V2',
   market1Logo: zestLogo,
@@ -66,4 +66,4 @@ export const VAULT_SBTC: VaultDef = {
   decimals: 8,
 }
 
-export const ALL_VAULTS: VaultDef[] = [VAULT_USDCX, VAULT_STX, VAULT_SBTC]
+export const ALL_VAULTS: VaultDef[] = [VAULT_USDCX, VAULT_STX]

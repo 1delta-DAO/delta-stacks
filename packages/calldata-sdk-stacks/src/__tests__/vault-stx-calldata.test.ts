@@ -19,7 +19,7 @@ describe('DeltaVaultSTX', () => {
     it('targets the STX vault contract', () => {
       const call = DeltaVaultSTX.encodeDeposit(1_000_000n, USER)
       expect(call.contractAddress).toBe(VAULT_STX_DEPLOYER)
-      expect(call.contractName).toBe('vault-stx-v3-1')
+      expect(call.contractName).toBe('vault-stx-v5-5')
       expect(call.functionName).toBe('deposit')
     })
 
@@ -85,7 +85,7 @@ describe('DeltaVaultSTX', () => {
     it('targets deposit-stx function', () => {
       const call = DeltaVaultSTX.encodeDepositStx(10_000_000n, USER)
       expect(call.contractAddress).toBe(VAULT_STX_DEPLOYER)
-      expect(call.contractName).toBe('vault-stx-v3-1')
+      expect(call.contractName).toBe('vault-stx-v5-5')
       expect(call.functionName).toBe('deposit-stx')
     })
 
@@ -191,9 +191,12 @@ describe('DeltaVaultSTX', () => {
 
   // === Allocator operations ===
 
+  // v5-3: V1 deploy goes through vault (supply is shallow), recall through manager
+
   describe('encodeDeployToZestV1', () => {
-    it('encodes deploy-to-zest-v1 with amount and adapter', () => {
+    it('targets vault deploy-to-zest-v1 (supply has no depth issue)', () => {
       const call = DeltaVaultSTX.encodeDeployToZestV1(500_000n)
+      expect(call.contractName).toBe('vault-stx-v5-5')
       expect(call.functionName).toBe('deploy-to-zest-v1')
       expect(call.functionArgs).toHaveLength(2)
       expect(cvToJSON(call.functionArgs[0]).value).toBe('500000')
@@ -209,10 +212,11 @@ describe('DeltaVaultSTX', () => {
   })
 
   describe('encodeRecallFromZestV1', () => {
-    it('encodes recall-from-zest-v1 with amount and adapter', () => {
+    it('targets zest-v1-manager-v2.recall with amount', () => {
       const call = DeltaVaultSTX.encodeRecallFromZestV1(300_000n)
-      expect(call.functionName).toBe('recall-from-zest-v1')
-      expect(call.functionArgs).toHaveLength(2)
+      expect(call.contractName).toBe('zest-v1-manager-v2')
+      expect(call.functionName).toBe('recall')
+      expect(call.functionArgs).toHaveLength(1)
       expect(cvToJSON(call.functionArgs[0]).value).toBe('300000')
     })
   })
@@ -225,35 +229,29 @@ describe('DeltaVaultSTX', () => {
     })
   })
 
-  describe('encodeRebalanceV1ToV2', () => {
-    it('encodes with amount + 2 adapter args', () => {
-      const call = DeltaVaultSTX.encodeRebalanceV1ToV2(250_000n)
-      expect(call.functionName).toBe('rebalance-v1-to-v2')
-      expect(call.functionArgs).toHaveLength(3)
-      expect(cvToJSON(call.functionArgs[1]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV1)
-      expect(cvToJSON(call.functionArgs[2]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV2)
+  describe('encodeCompleteV1Deploy', () => {
+    it('targets vault complete-v1-deploy bookkeeping', () => {
+      const call = DeltaVaultSTX.encodeCompleteV1Deploy(500_000n)
+      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.functionName).toBe('complete-v1-deploy')
+      expect(call.functionArgs).toHaveLength(1)
     })
   })
 
-  describe('encodeRebalanceV2ToV1', () => {
-    it('encodes with amount + 2 adapter args (v2 first)', () => {
-      const call = DeltaVaultSTX.encodeRebalanceV2ToV1(250_000n)
-      expect(call.functionName).toBe('rebalance-v2-to-v1')
-      expect(call.functionArgs).toHaveLength(3)
-      expect(cvToJSON(call.functionArgs[1]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV2)
-      expect(cvToJSON(call.functionArgs[2]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV1)
+  describe('encodeCompleteV1Recall', () => {
+    it('targets vault complete-v1-recall bookkeeping', () => {
+      const call = DeltaVaultSTX.encodeCompleteV1Recall(300_000n)
+      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.functionName).toBe('complete-v1-recall')
+      expect(call.functionArgs).toHaveLength(1)
     })
   })
 
   describe('encodeReallocate', () => {
-    it('encodes zero-sum rebalance with 6 args', () => {
+    it('encodes V2-only reallocate', () => {
       const call = DeltaVaultSTX.encodeReallocate(100_000n, 0n, 0n, 100_000n)
-      expect(call.functionName).toBe('reallocate')
-      expect(call.functionArgs).toHaveLength(6)
-      expect(cvToJSON(call.functionArgs[0]).value).toBe('100000')  // from-v1
-      expect(cvToJSON(call.functionArgs[1]).value).toBe('0')       // from-v2
-      expect(cvToJSON(call.functionArgs[2]).value).toBe('0')       // to-v1
-      expect(cvToJSON(call.functionArgs[3]).value).toBe('100000')  // to-v2
+      expect(call.functionName).toBe('reallocate-v2')
+      expect(call.functionArgs).toHaveLength(3) // from-v2, to-v2, adapter
     })
   })
 
@@ -494,27 +492,27 @@ describe('DeltaVaultSTX', () => {
     })
   })
 
+  // v5-2: V1 ops go through external manager, V2 ops stay in vault
+
   describe('wSTX wrapping — allocator deploy/recall', () => {
-    it('deploy-to-zest-v1 routes STX through wSTX wrapping adapter', () => {
+    it('deploy-to-zest-v1 targets vault (supply is shallow)', () => {
       const call = DeltaVaultSTX.encodeDeployToZestV1(3_000_000n)
+      expect(call.contractName).toBe('vault-stx-v5-5')
       expect(call.functionName).toBe('deploy-to-zest-v1')
-      // The adapter internally: vault STX → wSTX(V1) transfer → borrow-helper.supply
-      expect(cvToJSON(call.functionArgs[1]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV1)
+      expect(call.functionArgs).toHaveLength(2)
     })
 
     it('deploy-to-zest-v2 routes STX through Zest V2 wSTX adapter', () => {
       const call = DeltaVaultSTX.encodeDeployToZestV2(3_000_000n)
       expect(call.functionName).toBe('deploy-to-zest-v2')
-      // The adapter internally: vault STX → wSTX(V2) transfer → v0-vault-stx.deposit
       expect(cvToJSON(call.functionArgs[1]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV2)
     })
 
-    it('recall-from-zest-v1 unwraps wSTX back to vault as STX', () => {
+    it('recall-from-zest-v1 targets the external manager', () => {
       const call = DeltaVaultSTX.encodeRecallFromZestV1(1_500_000n)
-      expect(call.functionName).toBe('recall-from-zest-v1')
-      // The adapter internally: borrow-helper.withdraw → wSTX(V1) → STX to vault
+      expect(call.contractName).toBe('zest-v1-manager-v2')
+      expect(call.functionName).toBe('recall')
       expect(cvToJSON(call.functionArgs[0]).value).toBe('1500000')
-      expect(cvToJSON(call.functionArgs[1]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV1)
     })
 
     it('recall-from-zest-v2 returns STX via Zest V2 wSTX', () => {
@@ -525,45 +523,25 @@ describe('DeltaVaultSTX', () => {
     })
   })
 
-  describe('wSTX wrapping — rebalance across protocols', () => {
-    it('rebalance V1→V2: unwrap from Zest V1 wSTX, wrap into Zest V2 wSTX', () => {
-      const call = DeltaVaultSTX.encodeRebalanceV1ToV2(2_000_000n)
-      expect(call.functionName).toBe('rebalance-v1-to-v2')
-      // Zest V1 adapter (unwrap source) then Zest V2 adapter (wrap dest)
-      expect(cvToJSON(call.functionArgs[1]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV1)
-      expect(cvToJSON(call.functionArgs[2]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV2)
+  describe('v5-2 V1 bookkeeping completers', () => {
+    it('complete-v1-deploy updates vault bookkeeping after manager deploy', () => {
+      const call = DeltaVaultSTX.encodeCompleteV1Deploy(3_000_000n)
+      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.functionName).toBe('complete-v1-deploy')
     })
 
-    it('rebalance V2→V1: unwrap from Zest V2 wSTX, wrap into Zest V1 wSTX', () => {
-      const call = DeltaVaultSTX.encodeRebalanceV2ToV1(2_000_000n)
-      expect(call.functionName).toBe('rebalance-v2-to-v1')
-      // Zest V2 adapter (unwrap source) then Zest V1 adapter (wrap dest)
-      expect(cvToJSON(call.functionArgs[1]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV2)
-      expect(cvToJSON(call.functionArgs[2]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV1)
+    it('complete-v1-recall updates vault bookkeeping after manager recall', () => {
+      const call = DeltaVaultSTX.encodeCompleteV1Recall(1_500_000n)
+      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.functionName).toBe('complete-v1-recall')
     })
+  })
 
-    it('reallocate wraps/unwraps across both protocols atomically', () => {
-      // Move 500k from V1 to V2: unwrap 500k from V1, wrap 500k into V2
-      const call = DeltaVaultSTX.encodeReallocate(500_000n, 0n, 0n, 500_000n)
-      expect(call.functionName).toBe('reallocate')
-      expect(call.functionArgs).toHaveLength(6)
-      // from-v1 = 500k, from-v2 = 0, to-v1 = 0, to-v2 = 500k
-      expect(cvToJSON(call.functionArgs[0]).value).toBe('500000')
-      expect(cvToJSON(call.functionArgs[1]).value).toBe('0')
-      expect(cvToJSON(call.functionArgs[2]).value).toBe('0')
-      expect(cvToJSON(call.functionArgs[3]).value).toBe('500000')
-      // Adapters at [4] and [5]
-      expect(cvToJSON(call.functionArgs[4]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV1)
-      expect(cvToJSON(call.functionArgs[5]).value).toBe(VAULT_STX_CONTRACTS.adapterZestV2)
-    })
-
-    it('reallocate with bidirectional flows', () => {
-      // Move 300k from V1 and 200k from V2, deploy 100k to V1 and 400k to V2
-      const call = DeltaVaultSTX.encodeReallocate(300_000n, 200_000n, 100_000n, 400_000n)
-      expect(cvToJSON(call.functionArgs[0]).value).toBe('300000')  // from-v1
-      expect(cvToJSON(call.functionArgs[1]).value).toBe('200000')  // from-v2
-      expect(cvToJSON(call.functionArgs[2]).value).toBe('100000')  // to-v1
-      expect(cvToJSON(call.functionArgs[3]).value).toBe('400000')  // to-v2
+  describe('v5-2 reallocate (V2 only)', () => {
+    it('reallocate-v2 only touches Zest V2', () => {
+      const call = DeltaVaultSTX.encodeReallocate(0n, 500_000n, 0n, 500_000n)
+      expect(call.functionName).toBe('reallocate-v2')
+      expect(call.functionArgs).toHaveLength(3)
     })
   })
 

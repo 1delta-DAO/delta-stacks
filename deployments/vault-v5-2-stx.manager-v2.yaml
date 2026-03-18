@@ -1,0 +1,18 @@
+---
+id: 16
+name: Deploy zest-v1-manager-v2 (fixed type error)
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: zest-v1-manager-v2
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/v5/stx/zest-v1-manager-v2.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'

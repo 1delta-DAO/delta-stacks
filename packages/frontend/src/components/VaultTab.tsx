@@ -510,7 +510,8 @@ function UserPanel({ balances, vault, vaultDef, onTxConfirm }: { balances: Balan
     if (tx.status === 'submitted' && tx.txId) pending.addTx(tx.txId)
   }, [tx.status, tx.txId, pending])
 
-  const amtExceedsMax = parseFloat(amount) > maxAmount
+  // Don't block if data hasn't loaded yet (maxAmount=0 due to failed RPC)
+  const amtExceedsMax = maxAmount > 0 && parseFloat(amount) > maxAmount
 
   return (
     <div className="glass-card rounded-xl p-5 space-y-4">
@@ -633,12 +634,14 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
         if (isRebal12) return DeltaVaultSBTC.encodeRebalanceV1ToV2(amtSmallest)
         if (isRebal21) return DeltaVaultSBTC.encodeRebalanceV2ToV1(amtSmallest)
       } else if (vaultDef.id === 'stx') {
+        // V1 ops go through external manager (step 1); bookkeeping via complete-v1-* (step 2)
         if (isM1Deploy) return DeltaVaultSTX.encodeDeployToZestV1(amtSmallest)
         if (isM2Deploy) return DeltaVaultSTX.encodeDeployToZestV2(amtSmallest)
         if (isM1Recall) return DeltaVaultSTX.encodeRecallFromZestV1(amtSmallest)
         if (isM2Recall) return DeltaVaultSTX.encodeRecallFromZestV2(amtSmallest)
-        if (isRebal12) return DeltaVaultSTX.encodeRebalanceV1ToV2(amtSmallest)
-        if (isRebal21) return DeltaVaultSTX.encodeRebalanceV2ToV1(amtSmallest)
+        // V1 rebalancing not supported as single tx in v5-2; use recall + deploy
+        if (isRebal12) return DeltaVaultSTX.encodeRecallFromZestV1(amtSmallest)
+        if (isRebal21) return DeltaVaultSTX.encodeDeployToZestV1(amtSmallest)
       } else {
         if (isM1Deploy) return DeltaVaultV3.encodeDeployToGranite(amtSmallest)
         if (isM2Deploy) return DeltaVaultV3.encodeDeployToZestV2(amtSmallest)

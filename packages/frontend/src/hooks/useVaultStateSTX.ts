@@ -139,19 +139,13 @@ const EMPTY: VaultStateSTX = {
 }
 
 // ---------------------------------------------------------------------------
-// Fetch — single reader call (1 RPC + 1 backend fetch instead of 15+1)
-// Falls back to individual calls if reader not deployed
+// Fetch — single vault get-vault-state call (1 RPC instead of 15)
+// Falls back to legacy reader, then individual calls
 // ---------------------------------------------------------------------------
 
 async function fetchVaultStateSTX(): Promise<VaultStateSTX> {
-  // Try reader first
-  const readerHex = await callRead(READER_DEPLOYER, READER_CONTRACT, 'read-vault-stx')
-
-  if (readerHex) {
-    return parseReaderResponse(readerHex)
-  }
-
-  // Fallback: individual calls
+  // get-vault-state exceeds Hiro free-tier RPC cost limits (calls external contracts).
+  // Use sequential batched individual calls instead to avoid 429s.
   return fetchVaultStateSTXFallback()
 }
 
@@ -233,45 +227,30 @@ async function parseReaderResponse(hex: string): Promise<VaultStateSTX> {
 }
 
 // ---------------------------------------------------------------------------
-// Fallback: individual calls (for when reader is not deployed)
+// Fallback: sequential batched calls (avoids 429 rate limits)
 // ---------------------------------------------------------------------------
 
-async function fetchVaultStateSTXFallback(): Promise<VaultStateSTX> {
-  const vaultContract = 'vault-stx-v3-1'
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-  const [
-    totalAssetsHex,
-    allocV1Hex,
-    allocV2Hex,
-    idleBookHex,
-    totalSupplyHex,
-    liveIdleHex,
-    liveV1Hex,
-    liveV2Hex,
-    liveTotalHex,
-    feeBpsHex,
-    idleBufferBpsHex,
-    virtualOffsetHex,
-    zestV2InterestRateHex,
-    zestV2UtilizationHex,
-    zestV2FeeReserveHex,
-  ] = await Promise.all([
-    callRead(SENDER, vaultContract, 'get-total-assets'),
-    callRead(SENDER, vaultContract, 'get-alloc-zest-v1'),
-    callRead(SENDER, vaultContract, 'get-alloc-zest-v2'),
-    callRead(SENDER, vaultContract, 'get-idle-bookkeeping'),
-    callRead(SENDER, vaultContract, 'get-total-supply'),
-    callRead(SENDER, vaultContract, 'get-idle-balance'),
-    callRead(SENDER, vaultContract, 'get-zest-v1-wstx-position'),
-    callRead(SENDER, vaultContract, 'get-zest-v2-stx-position'),
-    callRead(SENDER, vaultContract, 'get-live-total-assets'),
-    callRead(SENDER, vaultContract, 'get-fee-bps'),
-    callRead(SENDER, vaultContract, 'get-idle-buffer-bps'),
-    callRead(SENDER, vaultContract, 'get-virtual-offset'),
-    callRead(ZEST_V2_DEPLOYER, ZEST_V2_CONTRACT, 'get-interest-rate'),
-    callRead(ZEST_V2_DEPLOYER, ZEST_V2_CONTRACT, 'get-utilization'),
-    callRead(ZEST_V2_DEPLOYER, ZEST_V2_CONTRACT, 'get-fee-reserve'),
-  ])
+async function fetchVaultStateSTXFallback(): Promise<VaultStateSTX> {
+  const vaultContract = 'vault-stx-v5-5'
+
+  // Sequential calls -- one at a time to avoid 429s from Hiro rate limiter
+  const totalAssetsHex = await callRead(SENDER, vaultContract, 'get-total-assets')
+  const totalSupplyHex = await callRead(SENDER, vaultContract, 'get-total-supply')
+  const allocV1Hex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v1')
+  const allocV2Hex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v2')
+  const idleBookHex = await callRead(SENDER, vaultContract, 'get-idle-bookkeeping')
+  const virtualOffsetHex = await callRead(SENDER, vaultContract, 'get-virtual-offset')
+  const feeBpsHex = await callRead(SENDER, vaultContract, 'get-fee-bps')
+  const idleBufferBpsHex = await callRead(SENDER, vaultContract, 'get-idle-buffer-bps')
+  const liveIdleHex = await callRead(SENDER, vaultContract, 'get-idle-balance')
+  const liveV1Hex = await callRead(SENDER, vaultContract, 'get-zest-v1-wstx-position')
+  const liveV2Hex = await callRead(SENDER, vaultContract, 'get-zest-v2-stx-position')
+  const liveTotalHex = await callRead(SENDER, vaultContract, 'get-live-total-assets')
+  const zestV2InterestRateHex = await callRead(ZEST_V2_DEPLOYER, ZEST_V2_CONTRACT, 'get-interest-rate')
+  const zestV2UtilizationHex = await callRead(ZEST_V2_DEPLOYER, ZEST_V2_CONTRACT, 'get-utilization')
+  const zestV2FeeReserveHex = await callRead(ZEST_V2_DEPLOYER, ZEST_V2_CONTRACT, 'get-fee-reserve')
 
   const totalAssets = decodeUint(totalAssetsHex)
   const allocZestV1 = decodeUint(allocV1Hex)
@@ -356,14 +335,16 @@ async function fetchVaultStateSTXFallback(): Promise<VaultStateSTX> {
 
 const VAULT_STX_STATE_KEY = ['vault-stx-state'] as const
 
-export function useVaultStateSTX(pollIntervalMs = 60_000) {
+export function useVaultStateSTX(pollIntervalMs = 120_000) {
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
     queryKey: VAULT_STX_STATE_KEY,
     queryFn: fetchVaultStateSTX,
-    staleTime: 30_000,
+    staleTime: 120_000,
     refetchInterval: pollIntervalMs,
+    refetchOnWindowFocus: false,
+    retry: 1,
   })
 
   const refresh = useCallback(() => {
