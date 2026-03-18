@@ -19,7 +19,7 @@ describe('DeltaVaultSTX', () => {
     it('targets the STX vault contract', () => {
       const call = DeltaVaultSTX.encodeDeposit(1_000_000n, USER)
       expect(call.contractAddress).toBe(VAULT_STX_DEPLOYER)
-      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.contractName).toBe('vault-stx-v6')
       expect(call.functionName).toBe('deposit')
     })
 
@@ -85,7 +85,7 @@ describe('DeltaVaultSTX', () => {
     it('targets deposit-stx function', () => {
       const call = DeltaVaultSTX.encodeDepositStx(10_000_000n, USER)
       expect(call.contractAddress).toBe(VAULT_STX_DEPLOYER)
-      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.contractName).toBe('vault-stx-v6')
       expect(call.functionName).toBe('deposit-stx')
     })
 
@@ -196,7 +196,7 @@ describe('DeltaVaultSTX', () => {
   describe('encodeDeployToZestV1', () => {
     it('targets vault deploy-to-zest-v1 (supply has no depth issue)', () => {
       const call = DeltaVaultSTX.encodeDeployToZestV1(500_000n)
-      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.contractName).toBe('vault-stx-v6')
       expect(call.functionName).toBe('deploy-to-zest-v1')
       expect(call.functionArgs).toHaveLength(2)
       expect(cvToJSON(call.functionArgs[0]).value).toBe('500000')
@@ -232,7 +232,7 @@ describe('DeltaVaultSTX', () => {
   describe('encodeCompleteV1Deploy', () => {
     it('targets vault complete-v1-deploy bookkeeping', () => {
       const call = DeltaVaultSTX.encodeCompleteV1Deploy(500_000n)
-      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.contractName).toBe('vault-stx-v6')
       expect(call.functionName).toBe('complete-v1-deploy')
       expect(call.functionArgs).toHaveLength(1)
     })
@@ -241,7 +241,7 @@ describe('DeltaVaultSTX', () => {
   describe('encodeCompleteV1Recall', () => {
     it('targets vault complete-v1-recall bookkeeping', () => {
       const call = DeltaVaultSTX.encodeCompleteV1Recall(300_000n)
-      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.contractName).toBe('vault-stx-v6')
       expect(call.functionName).toBe('complete-v1-recall')
       expect(call.functionArgs).toHaveLength(1)
     })
@@ -497,7 +497,7 @@ describe('DeltaVaultSTX', () => {
   describe('wSTX wrapping — allocator deploy/recall', () => {
     it('deploy-to-zest-v1 targets vault (supply is shallow)', () => {
       const call = DeltaVaultSTX.encodeDeployToZestV1(3_000_000n)
-      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.contractName).toBe('vault-stx-v6')
       expect(call.functionName).toBe('deploy-to-zest-v1')
       expect(call.functionArgs).toHaveLength(2)
     })
@@ -526,13 +526,13 @@ describe('DeltaVaultSTX', () => {
   describe('v5-2 V1 bookkeeping completers', () => {
     it('complete-v1-deploy updates vault bookkeeping after manager deploy', () => {
       const call = DeltaVaultSTX.encodeCompleteV1Deploy(3_000_000n)
-      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.contractName).toBe('vault-stx-v6')
       expect(call.functionName).toBe('complete-v1-deploy')
     })
 
     it('complete-v1-recall updates vault bookkeeping after manager recall', () => {
       const call = DeltaVaultSTX.encodeCompleteV1Recall(1_500_000n)
-      expect(call.contractName).toBe('vault-stx-v5-5')
+      expect(call.contractName).toBe('vault-stx-v6')
       expect(call.functionName).toBe('complete-v1-recall')
     })
   })

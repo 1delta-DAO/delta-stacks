@@ -1,0 +1,59 @@
+---
+id: 29
+name: Delta Vault V6 sBTC (proportional V1 withdrawal + disable-collateral)
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: adapter-zest-v1-sbtc-thin-v3
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 800000
+          path: contracts/prod/v5/sbtc/adapter-zest-v1-sbtc-thin-v3.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    - id: 1
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: vault-sbtc-v6
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 2500000
+          path: contracts/prod/v5/sbtc/vault-sbtc-v6.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    - id: 2
+      transactions:
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-sbtc-v6
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: initialize
+          parameters:
+            - "'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token"
+            - "\"1delta sBTC Vault v6\""
+            - "\"1dsBTC\""
+            - "u8"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-sbtc-v6
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v1-sbtc
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-sbtc-thin-v3"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-sbtc-v6
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-sbtc
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-sbtc-v5"
+          cost: 250000
+      epoch: '3.0'

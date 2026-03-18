@@ -17,8 +17,8 @@
 export const VAULT_STX_DEPLOYER = 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H'
 
 export const VAULT_STX_CONTRACTS = {
-  vault: `${VAULT_STX_DEPLOYER}.vault-stx-v5-5`,
-  adapterZestV1: `${VAULT_STX_DEPLOYER}.adapter-zest-v1-wstx-thin`,
+  vault: `${VAULT_STX_DEPLOYER}.vault-stx-v6`,
+  adapterZestV1: `${VAULT_STX_DEPLOYER}.adapter-zest-v1-wstx-thin-v3`,
   adapterZestV2: `${VAULT_STX_DEPLOYER}.adapter-zest-v2-stx-v5`,
   trait: `${VAULT_STX_DEPLOYER}.lending-adapter-trait`,
   zestV1Manager: `${VAULT_STX_DEPLOYER}.zest-v1-manager-v2`,

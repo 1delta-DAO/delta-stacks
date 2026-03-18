@@ -30,6 +30,7 @@ function getAllocatorOps(v: VaultDef) {
     `Rebalance ${v.market1Label[0]}→${v.market2Label[0]}`,
     `Rebalance ${v.market2Label[0]}→${v.market1Label[0]}`,
     'Reallocate',
+    'Disable V1 Collateral',
   ] as const
 }
 
@@ -591,6 +592,7 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
 
   const op = allocOps[opTab]
   const isReallocate = op === 'Reallocate'
+  const isNoAmountOp = op === 'Disable V1 Collateral'
 
   const decFactor = 10 ** vaultDef.decimals
 
@@ -613,6 +615,48 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
       return
     }
 
+    // Disable V1 Collateral -- two-step:
+    // 1. Fund adapter with STX for Pyth oracle fee (user signs STX transfer)
+    // 2. Call disable-collateral with fresh Pyth data (user signs contract call)
+    if (op === 'Disable V1 Collateral') {
+      const adapterPrincipal = vaultDef.id === 'stx'
+        ? 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-wstx-thin-v3'
+        : 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-sbtc-thin-v3'
+
+      // Step 1: Fund adapter for Pyth fee
+      try {
+        const { request: walletRequest } = await import('@stacks/connect')
+        await walletRequest('stx_transferStx', {
+          recipient: adapterPrincipal,
+          amount: '10000', // 0.01 STX
+        })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        if (msg.includes('cancel') || msg.includes('denied')) {
+          return // user cancelled
+        }
+        // Non-cancel error -- adapter may already have funds, proceed
+      }
+
+      // Step 2: Disable collateral with fresh Pyth data
+      await tx.execute(async () => {
+        let priceFeedBytes: Uint8Array | null = null
+        try {
+          const { fetchPythPriceUpdate, PYTH_FEED_IDS } = await import('@delta-stacks/calldata-sdk-stacks')
+          const feeds = vaultDef.id === 'stx'
+            ? [PYTH_FEED_IDS.STX, PYTH_FEED_IDS.BTC]
+            : [PYTH_FEED_IDS.BTC]
+          priceFeedBytes = await fetchPythPriceUpdate(feeds)
+        } catch (e) {
+          console.warn('Failed to fetch Pyth price feed, trying with none:', e)
+        }
+        if (vaultDef.id === 'stx') return DeltaVaultSTX.encodeDisableV1Collateral(priceFeedBytes)
+        if (vaultDef.id === 'sbtc') return DeltaVaultSBTC.encodeDisableV1Collateral(priceFeedBytes)
+        throw new Error('Disable V1 Collateral not supported for this vault')
+      })
+      return
+    }
+
     if (!amount) return
     const amtRaw = parseFloat(amount)
     if (isNaN(amtRaw) || amtRaw <= 0) return
@@ -631,15 +675,13 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
         if (isM2Deploy) return DeltaVaultSBTC.encodeDeployToZestV2(amtSmallest)
         if (isM1Recall) return DeltaVaultSBTC.encodeRecallFromZestV1(amtSmallest)
         if (isM2Recall) return DeltaVaultSBTC.encodeRecallFromZestV2(amtSmallest)
-        if (isRebal12) return DeltaVaultSBTC.encodeRebalanceV1ToV2(amtSmallest)
-        if (isRebal21) return DeltaVaultSBTC.encodeRebalanceV2ToV1(amtSmallest)
+        if (isRebal12) return DeltaVaultSBTC.encodeRecallFromZestV1(amtSmallest)
+        if (isRebal21) return DeltaVaultSBTC.encodeDeployToZestV1(amtSmallest)
       } else if (vaultDef.id === 'stx') {
-        // V1 ops go through external manager (step 1); bookkeeping via complete-v1-* (step 2)
         if (isM1Deploy) return DeltaVaultSTX.encodeDeployToZestV1(amtSmallest)
         if (isM2Deploy) return DeltaVaultSTX.encodeDeployToZestV2(amtSmallest)
         if (isM1Recall) return DeltaVaultSTX.encodeRecallFromZestV1(amtSmallest)
         if (isM2Recall) return DeltaVaultSTX.encodeRecallFromZestV2(amtSmallest)
-        // V1 rebalancing not supported as single tx in v5-2; use recall + deploy
         if (isRebal12) return DeltaVaultSTX.encodeRecallFromZestV1(amtSmallest)
         if (isRebal21) return DeltaVaultSTX.encodeDeployToZestV1(amtSmallest)
       } else {
@@ -690,7 +732,11 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
         </div>
       </div>
 
-      {isReallocate ? (
+      {isNoAmountOp ? (
+        <div className="text-xs text-text-dim bg-surface-alt/60 rounded-xl p-3 border border-border-subtle">
+          Disables the Zest V1 collateral flag on the adapter. This skips the deep health-factor check on withdrawals. Call after each deploy to V1. Requires 2 wallet signatures: first funds the adapter with 0.01 STX for the Pyth oracle fee, then calls disable-collateral with fresh price data.
+        </div>
+      ) : isReallocate ? (
         <div className="space-y-3">
           <div className="text-xs text-text-dim">
             Zero-sum rebalance: total recalled must equal total deployed.
@@ -747,7 +793,7 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
         connect={connect}
         onClick={handleSubmit}
         disabled={
-          isReallocate
+          (isReallocate || isNoAmountOp)
             ? tx.status === 'building' || tx.status === 'signing'
             : !amount || tx.status === 'building' || tx.status === 'signing'
         }

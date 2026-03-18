@@ -1,5 +1,5 @@
 import type { StacksContractCall } from '../../types'
-import { principal, uint, noneCV } from '../../types/clarity-args'
+import { principal, uint, noneCV, someCV, bufferCV } from '../../types/clarity-args'
 import type { ClarityValue } from '../../types/clarity-args'
 import {
   VAULT_SBTC_DEPLOYER,
@@ -204,6 +204,19 @@ export namespace DeltaVaultSBTC {
     call(VAULT_SBTC_CONTRACTS.vault, 'deploy-to-zest-v1', [
       uint(amount),
       principal(adapter),
+    ])
+
+  /**
+   * Disable V1 collateral flag on the adapter.
+   * Call after each deploy-to-zest-v1 to skip health-factor check on withdrawals.
+   *
+   * @param priceFeedBytes - fresh Pyth price feed VAA (required by Zest oracle)
+   */
+  export const encodeDisableV1Collateral = (
+    priceFeedBytes?: Uint8Array | null,
+  ): StacksContractCall =>
+    call(VAULT_SBTC_CONTRACTS.adapterZestV1, 'disable-collateral', [
+      priceFeedBytes ? someCV(bufferCV(priceFeedBytes)) : noneCV(),
     ])
 
   /**

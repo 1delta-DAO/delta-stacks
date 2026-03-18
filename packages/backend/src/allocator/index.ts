@@ -7,8 +7,8 @@
  *
  * Vaults supported:
  *   - vault-usdcx-v3   → Granite vs Zest V2 (USDCx)
- *   - vault-stx-v5-5   → Zest V1 vs Zest V2 (wSTX / STX)
- *   - vault-sbtc-v5    → Zest V1 vs Zest V2 (sBTC)
+ *   - vault-stx-v6   → Zest V1 vs Zest V2 (wSTX / STX)
+ *   - vault-sbtc-v6    → Zest V1 vs Zest V2 (sBTC)
  */
 
 

@@ -1,0 +1,62 @@
+---
+id: 25
+name: Delta Vault V6 STX (proportional V1 withdrawal + disable-collateral)
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    # Batch 0: thin-v2 adapter (has disable-collateral)
+    - id: 0
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: adapter-zest-v1-wstx-thin-v2
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 800000
+          path: contracts/prod/v5/stx/adapter-zest-v1-wstx-thin-v2.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # Batch 1: vault (references thin-v2 adapter via trait, not hardcoded)
+    - id: 1
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: vault-stx-v6
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 2500000
+          path: contracts/prod/v5/stx/vault-stx-v6.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # Batch 2: initialize + register adapters
+    - id: 2
+      transactions:
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v6
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: initialize
+          parameters:
+            - "'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.wstx"
+            - "\"1delta STX Vault v6\""
+            - "\"1dSTX\""
+            - "u6"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v6
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v1-wstx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-wstx-thin-v2"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v6
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-stx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-stx-v5"
+          cost: 250000
+      epoch: '3.0'

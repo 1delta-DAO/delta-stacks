@@ -33,14 +33,14 @@ export const VAULT_USDCX_CONFIG: VaultConfig = {
 
 export const VAULT_STX_CONFIG: VaultConfig = {
   deployer: VAULT_V3_DEPLOYER,
-  contractName: 'vault-stx-v5-5',
+  contractName: 'vault-stx-v6',
   allocMarket1Fn: 'get-alloc-zest-v1',
   allocMarket2Fn: 'get-alloc-zest-v2',
 }
 
 export const VAULT_SBTC_CONFIG: VaultConfig = {
   deployer: VAULT_V3_DEPLOYER,
-  contractName: 'vault-sbtc-v5',
+  contractName: 'vault-sbtc-v6',
   allocMarket1Fn: 'get-alloc-zest-v1',
   allocMarket2Fn: 'get-alloc-zest-v2',
 }

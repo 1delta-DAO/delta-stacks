@@ -264,24 +264,25 @@ async function fetchVaultStateV3Fallback(): Promise<VaultStateV3> {
   const ZEST_DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7'
   const ZEST_CONTRACT = 'v0-vault-usdc'
 
-  // Sequential calls to avoid 429 rate limits
+  // Essential reads only (6 calls instead of 17)
   const totalAssetsHex = await callRead(SENDER, vaultContract, 'get-total-assets')
+  const totalSupplyHex = await callRead(SENDER, vaultContract, 'get-total-supply')
   const allocGraniteHex = await callRead(SENDER, vaultContract, 'get-alloc-granite')
   const allocZestHex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v2')
   const idleBookHex = await callRead(SENDER, vaultContract, 'get-idle-bookkeeping')
-  const totalSupplyHex = await callRead(SENDER, vaultContract, 'get-total-supply')
-  const liveIdleHex = await callRead(SENDER, vaultContract, 'get-idle-balance')
-  const liveGraniteHex = await callRead(SENDER, vaultContract, 'get-granite-usdcx-position')
-  const liveZestHex = await callRead(SENDER, vaultContract, 'get-zest-v2-usdc-position')
-  const liveTotalHex = await callRead(SENDER, vaultContract, 'get-live-total-assets')
   const feeBpsHex = await callRead(SENDER, vaultContract, 'get-fee-bps')
-  const idleBufferBpsHex = await callRead(SENDER, vaultContract, 'get-idle-buffer-bps')
-  const virtualOffsetHex = await callRead(SENDER, vaultContract, 'get-virtual-offset')
-  const graniteLpParamsHex = await callRead(GRANITE_STATE, GRANITE_CONTRACT, 'get-lp-params')
-  const _graniteOpenInterestHex = await callRead(GRANITE_STATE, GRANITE_CONTRACT, 'get-open-interest')
-  const zestInterestRateHex = await callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-interest-rate')
-  const zestUtilizationHex = await callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-utilization')
-  const zestFeeReserveHex = await callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-fee-reserve')
+  // Derive the rest from bookkeeping (skip live reads + APR data)
+  const liveIdleHex = ''
+  const liveGraniteHex = ''
+  const liveZestHex = ''
+  const liveTotalHex = ''
+  const idleBufferBpsHex = ''
+  const virtualOffsetHex = ''
+  const graniteLpParamsHex = ''
+  const _graniteOpenInterestHex = ''
+  const zestInterestRateHex = ''
+  const zestUtilizationHex = ''
+  const zestFeeReserveHex = ''
 
   const totalAssets = decodeUint(totalAssetsHex)
   const allocGranite = decodeUint(allocGraniteHex)

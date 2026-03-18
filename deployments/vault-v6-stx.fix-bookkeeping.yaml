@@ -1,0 +1,19 @@
+---
+id: 28
+name: V6 STX -- zero out stale V1 bookkeeping from old adapter
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    - id: 0
+      transactions:
+        # Zero out the stale alloc-zest-v1 (0.051 STX stuck in thin-v2)
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v6
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: complete-v1-recall
+          parameters:
+            - "u50936"
+          cost: 250000
+      epoch: '3.0'

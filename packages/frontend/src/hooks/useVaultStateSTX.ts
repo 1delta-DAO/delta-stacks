@@ -233,24 +233,25 @@ async function parseReaderResponse(hex: string): Promise<VaultStateSTX> {
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 async function fetchVaultStateSTXFallback(): Promise<VaultStateSTX> {
-  const vaultContract = 'vault-stx-v5-5'
+  const vaultContract = 'vault-stx-v6'
 
-  // Sequential calls -- one at a time to avoid 429s from Hiro rate limiter
+  // Essential reads only (6 calls instead of 15 to reduce RPC load)
   const totalAssetsHex = await callRead(SENDER, vaultContract, 'get-total-assets')
   const totalSupplyHex = await callRead(SENDER, vaultContract, 'get-total-supply')
   const allocV1Hex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v1')
   const allocV2Hex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v2')
   const idleBookHex = await callRead(SENDER, vaultContract, 'get-idle-bookkeeping')
-  const virtualOffsetHex = await callRead(SENDER, vaultContract, 'get-virtual-offset')
   const feeBpsHex = await callRead(SENDER, vaultContract, 'get-fee-bps')
-  const idleBufferBpsHex = await callRead(SENDER, vaultContract, 'get-idle-buffer-bps')
-  const liveIdleHex = await callRead(SENDER, vaultContract, 'get-idle-balance')
-  const liveV1Hex = await callRead(SENDER, vaultContract, 'get-zest-v1-wstx-position')
-  const liveV2Hex = await callRead(SENDER, vaultContract, 'get-zest-v2-stx-position')
-  const liveTotalHex = await callRead(SENDER, vaultContract, 'get-live-total-assets')
-  const zestV2InterestRateHex = await callRead(ZEST_V2_DEPLOYER, ZEST_V2_CONTRACT, 'get-interest-rate')
-  const zestV2UtilizationHex = await callRead(ZEST_V2_DEPLOYER, ZEST_V2_CONTRACT, 'get-utilization')
-  const zestV2FeeReserveHex = await callRead(ZEST_V2_DEPLOYER, ZEST_V2_CONTRACT, 'get-fee-reserve')
+  // Derive the rest from bookkeeping (skip live position reads + Zest V2 APR)
+  const virtualOffsetHex = ''
+  const idleBufferBpsHex = ''
+  const liveIdleHex = ''
+  const liveV1Hex = ''
+  const liveV2Hex = ''
+  const liveTotalHex = ''
+  const zestV2InterestRateHex = ''
+  const zestV2UtilizationHex = ''
+  const zestV2FeeReserveHex = ''
 
   const totalAssets = decodeUint(totalAssetsHex)
   const allocZestV1 = decodeUint(allocV1Hex)
