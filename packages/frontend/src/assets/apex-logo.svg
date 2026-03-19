@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- Vault door / shield shape -->
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f7931a"/>
+      <stop offset="50%" stop-color="#e8850f"/>
+      <stop offset="100%" stop-color="#d4a04a"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="60" y1="10" x2="60" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f7931a" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#e8850f" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer vault circle -->
+  <circle cx="60" cy="60" r="56" stroke="url(#g1)" stroke-width="3.5" fill="url(#g2)"/>
+
+  <!-- Inner vault ring (door detail) -->
+  <circle cx="60" cy="60" r="42" stroke="url(#g1)" stroke-width="1.5" stroke-opacity="0.4" fill="none"/>
+
+  <!-- Vault door handle / spokes -->
+  <line x1="60" y1="18" x2="60" y2="30" stroke="url(#g1)" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+  <line x1="60" y1="90" x2="60" y2="102" stroke="url(#g1)" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+  <line x1="18" y1="60" x2="30" y2="60" stroke="url(#g1)" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+  <line x1="90" y1="60" x2="102" y2="60" stroke="url(#g1)" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+
+  <!-- Bitcoin ₿ symbol — centered -->
+  <g transform="translate(56,60)">
+    <!-- Vertical bars of ₿ -->
+    <rect x="-5" y="-24" width="2.8" height="48" rx="1.4" fill="url(#g1)"/>
+    <rect x="2.2" y="-24" width="2.8" height="48" rx="1.4" fill="url(#g1)"/>
+
+    <!-- Upper B bump -->
+    <path d="M-10,-16 h14 c8,0 12,4 12,9.5 s-4,9.5-12,9.5 h-14 z" stroke="url(#g1)" stroke-width="3" fill="none" stroke-linejoin="round"/>
+
+    <!-- Lower B bump (wider) -->
+    <path d="M-10,3 h16 c9,0 13.5,4 13.5,10 s-4.5,10-13.5,10 h-16 z" stroke="url(#g1)" stroke-width="3" fill="none" stroke-linejoin="round"/>
+  </g>
+</svg>

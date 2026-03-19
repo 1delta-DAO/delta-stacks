@@ -45,15 +45,38 @@ export async function handleScheduled(env: Env): Promise<void> {
   }
 
   // Step 2: Fetch lender data with prices
+  // Merge-on-write: if a fetch returns fewer markets than cached (some RPCs
+  // failed), overlay the fresh markets onto the cached data so that markets
+  // with transient RPC failures are preserved from the previous successful
+  // fetch instead of being silently dropped.
   console.log(`Cron: fetching ${lender} (index ${idx})`)
   const kvKey = `lending:${lender}`
   try {
     const data = await getStacksLenderPublicData(lender, prices, { concurrency: 2 })
 
-    const hasMarkets = data && Object.keys(data.data).length > 0
-    if (hasMarkets) {
-      await env.LENDING_KV.put(kvKey, JSON.stringify(data))
-      console.log(`Cron: stored ${lender} data (${Object.keys(data.data).length} markets)`)
+    const freshCount = data ? Object.keys(data.data).length : 0
+    if (data && freshCount > 0) {
+      // Load cached version to merge with
+      const cachedRaw = await env.LENDING_KV.get(kvKey)
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw)
+        const cachedCount = cached?.data ? Object.keys(cached.data).length : 0
+
+        if (cachedCount > freshCount) {
+          // Some markets were lost — merge fresh data onto cached base
+          const merged = { ...data, data: { ...cached.data, ...data.data } }
+          await env.LENDING_KV.put(kvKey, JSON.stringify(merged))
+          console.log(
+            `Cron: stored ${lender} data (${freshCount} fresh, ${Object.keys(merged.data).length} total — preserved ${cachedCount - freshCount} cached markets)`,
+          )
+        } else {
+          await env.LENDING_KV.put(kvKey, JSON.stringify(data))
+          console.log(`Cron: stored ${lender} data (${freshCount} markets)`)
+        }
+      } else {
+        await env.LENDING_KV.put(kvKey, JSON.stringify(data))
+        console.log(`Cron: stored ${lender} data (${freshCount} markets, first write)`)
+      }
     } else {
       console.warn(`Cron: ${lender} returned no data or empty markets, keeping cached version`)
     }

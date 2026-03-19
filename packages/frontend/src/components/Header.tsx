@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useWallet } from '../context/useWallet'
 import { useTheme, THEMES, type ThemeId } from '../context/useTheme'
-import staultLogo from '../assets/stault.png'
+import apexLogo from '../assets/apex-logo.svg'
 
 /** SVG icons for each theme — small, crisp, and distinct */
 function ThemeIcon({ id, className = 'w-4 h-4' }: { id: ThemeId; className?: string }) {
@@ -74,13 +74,18 @@ export function Header() {
 
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface/60 backdrop-blur-md sticky top-0 z-50">
-      <div className="flex items-center gap-3">
-        <img src={staultLogo} alt="1delta Vaults" className="w-9 h-9 rounded-xl object-contain drop-shadow-lg" />
-        <h1 className="text-xl font-extrabold tracking-tight">
-          <span className="bg-gradient-to-r from-primary via-accent-purple to-accent-blue bg-clip-text text-transparent">
-            1delta Vaults
+      <div className="flex items-center gap-4">
+        <img src={apexLogo} alt="ApexYield" className="w-12 h-12 drop-shadow-[0_0_12px_var(--color-primary-glow)]" />
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-extrabold tracking-tight leading-none">
+            <span className="bg-gradient-to-r from-primary via-accent-purple to-accent-blue bg-clip-text text-transparent">
+              1delta
+            </span>
+          </h1>
+          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-text-dim leading-none mt-0.5">
+            ApexYield
           </span>
-        </h1>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

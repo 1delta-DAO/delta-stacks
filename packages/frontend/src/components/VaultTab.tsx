@@ -48,17 +48,18 @@ const PCT_BUTTONS = [25, 50, 75, 100] as const
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatAmount(n: number): string {
+function formatAmount(n: number, decimals = 6): string {
   if (n === 0) return '0'
   if (n >= 1000) return n.toFixed(2)
   if (n >= 1) return n.toFixed(4)
-  return n.toFixed(6)
+  // For small amounts (e.g. sBTC), show up to the asset's full precision
+  return n.toFixed(Math.max(6, decimals))
 }
 
 /** Format smallest-units to human-readable (default 6 decimals) */
 function micro(n: bigint, decimals = 6): string {
   const num = Number(n) / (10 ** decimals)
-  return formatAmount(num)
+  return formatAmount(num, decimals)
 }
 
 /** Format a percentage with 2 decimals */
@@ -194,13 +195,14 @@ export function VaultTab({ vault: vaultDef = VAULT_USDCX, onBack }: { vault?: Va
   return (
     <div className="space-y-4">
       {/* Vault overview header */}
-      <div className="glass-card rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
+      <div className="glass-card rounded-xl p-5 sm:p-6">
+        {/* Top row: back + name + APR badge */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
             {onBack && (
               <button
                 onClick={onBack}
-                className="mr-1 p-1.5 rounded-lg hover:bg-surface-alt text-text-dim hover:text-text transition-all"
+                className="p-1.5 -ml-1 rounded-lg hover:bg-surface-alt text-text-dim hover:text-text transition-all"
                 title="Back to vault list"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -211,31 +213,48 @@ export function VaultTab({ vault: vaultDef = VAULT_USDCX, onBack }: { vault?: Va
             <img
               src={getTokenIcon(vaultDef.asset)}
               alt={vaultDef.asset}
-              className="w-8 h-8 rounded-full bg-surface-alt ring-2 ring-border-subtle"
+              className="w-10 h-10 rounded-full bg-surface-alt ring-2 ring-border-subtle"
               onError={(e) => {
-                ;(e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${vaultDef.asset}&background=2e2e4a&color=eaeaf4&size=36&bold=true`
+                ;(e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${vaultDef.asset}&background=2e2e4a&color=eaeaf4&size=40&bold=true`
               }}
             />
             <div>
-              <h2 className="text-sm font-semibold">{vaultDef.name}</h2>
-              <span className="text-[11px] text-text-dim">{vaultDef.symbol}</span>
+              <h2 className="text-base font-semibold leading-tight">{vaultDef.name}</h2>
+              <span className="text-xs text-text-dim">{vaultDef.symbol}</span>
             </div>
           </div>
           {!loading && vault.blendedApr > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-positive-dim">
-              <span className="text-sm font-mono text-positive font-semibold">
-                {pct(vault.blendedApr)} APR
+            <div className="px-3.5 py-2 rounded-xl bg-positive-dim border border-positive/20">
+              <span className="text-sm font-mono text-positive font-bold tracking-tight">
+                {pct(vault.blendedApr)} <span className="text-xs font-medium opacity-70">APR</span>
               </span>
             </div>
           )}
         </div>
 
-        {/* Key metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.totalAssets, vaultDef.decimals)} ${vaultDef.asset}`} />
-          <MetricCard label="Share Price" value={loading ? '...' : vault.sharePrice.toFixed(6)} />
-          <MetricCard label="Total Shares" value={loading ? '...' : micro(vault.totalSupply, vaultDef.decimals)} />
-          <MetricCard label="Fee" value={loading ? '...' : bpsPct(vault.feeBps)} />
+        {/* TVL hero + secondary metrics */}
+        <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
+          <div className="flex-1">
+            <div className="text-[10px] text-text-dim uppercase tracking-wider font-semibold mb-1">Total Value Locked</div>
+            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight leading-none">
+              {loading ? '...' : micro(vault.totalAssets, vaultDef.decimals)}
+              <span className="text-base sm:text-lg text-text-muted ml-1.5 font-semibold">{vaultDef.asset}</span>
+            </div>
+          </div>
+          <div className="flex gap-4 sm:gap-6 pb-0.5">
+            <div>
+              <div className="text-[10px] text-text-dim uppercase tracking-wider font-semibold mb-0.5">Share Price</div>
+              <div className="font-mono text-sm text-text-muted">{loading ? '...' : vault.sharePrice.toFixed(6)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-text-dim uppercase tracking-wider font-semibold mb-0.5">Total Shares</div>
+              <div className="font-mono text-sm text-text-muted">{loading ? '...' : micro(vault.totalSupply, vaultDef.decimals)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-text-dim uppercase tracking-wider font-semibold mb-0.5">Fee</div>
+              <div className="font-mono text-sm text-text-muted">{loading ? '...' : bpsPct(vault.feeBps)}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -640,8 +659,32 @@ function UserPanel({ balances, vault, vaultDef, onTxConfirm }: { balances: Balan
   // Don't block if data hasn't loaded yet (maxAmount=0 due to failed RPC)
   const amtExceedsMax = maxAmount > 0 && parseFloat(amount) > maxAmount
 
+  // Deposit preview: shares you'd receive
+  const depositPreview = useMemo(() => {
+    if (op !== 'Deposit' || !amount) return null
+    const amtNum = parseFloat(amount)
+    if (isNaN(amtNum) || amtNum <= 0 || vault.sharePrice <= 0) return null
+    return formatAmount(amtNum / vault.sharePrice, vaultDef.decimals)
+  }, [op, amount, vault.sharePrice, vaultDef.decimals])
+
+  // Withdraw preview: shares that will be burned
+  const withdrawPreview = useMemo(() => {
+    if (op !== 'Withdraw' || !amount) return null
+    const amtNum = parseFloat(amount)
+    if (isNaN(amtNum) || amtNum <= 0 || vault.sharePrice <= 0) return null
+    return formatAmount(amtNum / vault.sharePrice, vaultDef.decimals)
+  }, [op, amount, vault.sharePrice, vaultDef.decimals])
+
+  // Redeem preview: assets you'd receive
+  const redeemPreview = useMemo(() => {
+    if (op !== 'Redeem' || !amount) return null
+    const amtNum = parseFloat(amount)
+    if (isNaN(amtNum) || amtNum <= 0) return null
+    return formatAmount(amtNum * vault.sharePrice, vaultDef.decimals)
+  }, [op, amount, vault.sharePrice, vaultDef.decimals])
+
   return (
-    <div className="glass-card rounded-xl p-5 space-y-4">
+    <div className="glass-card rounded-xl p-5 space-y-5">
       <Tabs
         tabs={[...USER_OPS]}
         active={opTab}
@@ -649,32 +692,47 @@ function UserPanel({ balances, vault, vaultDef, onTxConfirm }: { balances: Balan
         size="sm"
       />
 
-      {/* Position context */}
+      {/* Balances card — redesigned */}
       {connected && (
-        <div className="bg-surface-alt/60 rounded-xl p-3 space-y-2 text-xs border border-border-subtle">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <img src={getTokenIcon(vaultDef.asset)} alt={vaultDef.asset} className="w-4 h-4 rounded-full" />
-              <span className="text-text-dim">{vaultDef.asset} wallet</span>
-            </div>
-            <span className="font-mono text-text-muted">{formatAmount(walletBalance)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="w-4 h-4 rounded-full bg-gradient-to-br from-accent-blue to-accent-purple flex items-center justify-center text-[8px] font-bold text-white">d</span>
-              <span className="text-text-dim">{vaultDef.symbol} shares</span>
-            </div>
-            <span className="font-mono text-text-muted">{formatAmount(shareBalance)}</span>
-          </div>
-          {shareBalance > 0 && (
-            <div className="flex items-center justify-between border-t border-border-subtle pt-2">
-              <div className="flex items-center gap-1.5">
-                <img src={getTokenIcon(vaultDef.asset)} alt={vaultDef.asset} className="w-4 h-4 rounded-full opacity-60" />
-                <span className="text-text-dim">Withdrawable</span>
+        <div className="rounded-xl overflow-hidden border border-border-subtle">
+          {/* Wallet balance row */}
+          <div className="flex items-center justify-between px-4 py-3 bg-surface-alt/40">
+            <div className="flex items-center gap-2.5">
+              <img
+                src={getTokenIcon(vaultDef.asset)}
+                alt={vaultDef.asset}
+                className="w-7 h-7 rounded-full ring-1 ring-border-subtle"
+              />
+              <div>
+                <div className="text-xs font-medium text-text">{vaultDef.asset}</div>
+                <div className="text-[10px] text-text-dim">Wallet</div>
               </div>
-              <span className="font-mono text-text-muted">{formatAmount(withdrawableBalance)} {vaultDef.asset}</span>
             </div>
-          )}
+            <div className="text-right">
+              <div className="font-mono text-sm font-semibold text-text">{formatAmount(walletBalance, vaultDef.decimals)}</div>
+            </div>
+          </div>
+
+          {/* Vault position row */}
+          <div className="flex items-center justify-between px-4 py-3 bg-surface-alt/20 border-t border-border-subtle">
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-accent-blue to-accent-purple flex items-center justify-center text-[10px] font-bold text-white ring-1 ring-border-subtle">
+                {vaultDef.symbol.slice(0, 2)}
+              </span>
+              <div>
+                <div className="text-xs font-medium text-text">{vaultDef.symbol}</div>
+                <div className="text-[10px] text-text-dim">Vault shares</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="font-mono text-sm font-semibold text-text">{formatAmount(shareBalance, vaultDef.decimals)}</div>
+              {shareBalance > 0 && (
+                <div className="text-[10px] text-text-dim font-mono">
+                  = {formatAmount(withdrawableBalance, vaultDef.decimals)} {vaultDef.asset}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -688,6 +746,22 @@ function UserPanel({ balances, vault, vaultDef, onTxConfirm }: { balances: Balan
         pctButtons
         onPercent={setPercent}
       />
+
+      {/* Preview */}
+      {(depositPreview || withdrawPreview || redeemPreview) && (
+        <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-surface-alt/40 border border-border-subtle text-xs">
+          <span className="text-text-dim">
+            {op === 'Deposit' && 'You receive'}
+            {op === 'Withdraw' && 'Shares burned'}
+            {op === 'Redeem' && 'You receive'}
+          </span>
+          <span className="font-mono text-text-muted font-medium">
+            {op === 'Deposit' && `~${depositPreview} ${vaultDef.symbol}`}
+            {op === 'Withdraw' && `~${withdrawPreview} ${vaultDef.symbol}`}
+            {op === 'Redeem' && `~${redeemPreview} ${vaultDef.asset}`}
+          </span>
+        </div>
+      )}
 
       <SubmitButton
         connected={connected}
@@ -1086,39 +1160,49 @@ function AmountInput({
   onPercent?: (pct: number) => void
 }) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <label className="text-xs text-text-muted font-medium">{label}</label>
-        {maxAmount != null && maxAmount > 0 && (
-          <span className="text-[11px] text-text-dim">
-            Max: <span className="font-mono text-text-muted">{formatAmount(maxAmount)}</span>
-          </span>
+    <div className="space-y-2.5">
+      <label className="text-xs text-text-muted font-medium">{label}</label>
+
+      {/* Input with inline MAX button */}
+      <div
+        className={`relative rounded-xl border transition-all duration-200 bg-surface-alt/60 ${
+          exceedsMax ? 'border-negative' : 'border-border-subtle focus-within:border-primary'
+        }`}
+      >
+        <input
+          type="number"
+          min="0"
+          step="any"
+          placeholder="0.00"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="w-full bg-transparent px-4 py-3.5 text-base font-mono focus:outline-none"
+        />
+        {maxAmount != null && maxAmount > 0 && onPercent && (
+          <button
+            onClick={() => onPercent(100)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-[10px] uppercase tracking-wider font-bold rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          >
+            Max
+          </button>
         )}
       </div>
-      <input
-        type="number"
-        min="0"
-        step="any"
-        placeholder="0.00"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        className={`w-full bg-surface-alt/80 border rounded-xl px-4 py-3 text-sm font-mono focus:outline-none transition-all duration-200 ${
-          exceedsMax ? 'border-negative' : 'border-border-subtle focus:border-primary'
-        }`}
-      />
+
+      {/* Percentage quick-select */}
       {pctButtons && maxAmount != null && maxAmount > 0 && onPercent && (
         <div className="flex gap-1.5">
           {PCT_BUTTONS.map((pct) => (
             <button
               key={pct}
               onClick={() => onPercent(pct)}
-              className="flex-1 py-1.5 text-xs rounded-lg bg-surface-alt hover:bg-surface-hover text-text-muted hover:text-text transition-all duration-200 font-mono border border-transparent hover:border-border-subtle"
+              className="flex-1 py-1.5 text-xs rounded-lg bg-surface-alt/80 hover:bg-surface-hover text-text-muted hover:text-text transition-all duration-200 font-mono border border-border-subtle/50 hover:border-border-subtle"
             >
               {pct}%
             </button>
           ))}
         </div>
       )}
+
       {exceedsMax && (
         <div className="text-xs text-negative flex items-center gap-1.5">
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
