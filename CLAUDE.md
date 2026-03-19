@@ -23,7 +23,8 @@ delta-stacks/
       src/vault/                 Vault snapshot fetcher
       src/prices/                Oracle price aggregation (Pyth + on-chain)
       src/token-list/            Stacks token list utilities + README
-    backend/                     Cloudflare Workers (cron + REST API)
+    backend/                     Cloudflare Worker — data provision (cron + REST API)
+    backend-allocator/           Cloudflare Worker — vault auto-allocator bot
     frontend/                    React 19 + Tailwind 4 UI
   tests/fork/                    Mainnet fork integration tests + README
 ```
@@ -39,7 +40,8 @@ delta-stacks/
 | Vault V3 SDK | [packages/calldata-sdk-stacks/src/vault/v3/README.md](packages/calldata-sdk-stacks/src/vault/v3/README.md) |
 | Calldata SDK | [packages/calldata-sdk-stacks/README.md](packages/calldata-sdk-stacks/README.md) |
 | Data provision | [packages/data-provision/README.md](packages/data-provision/README.md) |
-| Backend (Workers) | [packages/backend/README.md](packages/backend/README.md) |
+| Backend — data provision | [packages/backend/README.md](packages/backend/README.md) |
+| Backend — allocator | [packages/backend-allocator/README.md](packages/backend-allocator/README.md) |
 | Frontend | [packages/frontend/README.md](packages/frontend/README.md) |
 | Zest V1 | [packages/calldata-sdk-stacks/src/zest-v1/README.md](packages/calldata-sdk-stacks/src/zest-v1/README.md) |
 | Zest V2 | [packages/calldata-sdk-stacks/src/zest-v2/README.md](packages/calldata-sdk-stacks/src/zest-v2/README.md) |

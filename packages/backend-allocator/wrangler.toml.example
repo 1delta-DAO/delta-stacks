@@ -1,0 +1,16 @@
+name = "delta-stacks-allocator"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[triggers]
+crons = ["0 */4 * * *"]
+
+[[kv_namespaces]]
+binding = "LENDING_KV"
+id = "your-kv-namespace-id"
+
+[vars]
+# Allocator bot private key (hex, 64 chars, no 0x prefix).
+ALLOCATOR_PRIVATE_KEY = ""
+# Shared secret for the POST /allocate endpoint (Authorization: Bearer <secret>).
+ALLOCATOR_SECRET = ""

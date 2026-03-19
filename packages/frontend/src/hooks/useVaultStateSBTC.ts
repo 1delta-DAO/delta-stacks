@@ -232,37 +232,39 @@ async function parseReaderResponse(hex: string): Promise<VaultStateSBTC> {
 async function fetchVaultStateSBTCFallback(): Promise<VaultStateSBTC> {
   const vaultContract = 'vault-sbtc-v6'
 
-  // Core vault reads only (6 RPCs) -- APR comes from backend
-  const totalAssetsHex = await callRead(SENDER, vaultContract, 'get-total-assets')
-  const totalSupplyHex = await callRead(SENDER, vaultContract, 'get-total-supply')
-  const allocV1Hex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v1')
-  const allocV2Hex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v2')
-  const idleBookHex = await callRead(SENDER, vaultContract, 'get-idle-bookkeeping')
-  const feeBpsHex = await callRead(SENDER, vaultContract, 'get-fee-bps')
+  // Read all bookkeeping values concurrently to minimise cross-block race
+  const [totalAssetsHex, totalSupplyHex, allocV1Hex, allocV2Hex, feeBpsHex] =
+    await Promise.all([
+      callRead(SENDER, vaultContract, 'get-total-assets'),
+      callRead(SENDER, vaultContract, 'get-total-supply'),
+      callRead(SENDER, vaultContract, 'get-alloc-zest-v1'),
+      callRead(SENDER, vaultContract, 'get-alloc-zest-v2'),
+      callRead(SENDER, vaultContract, 'get-fee-bps'),
+    ])
+
   // Unused -- APR from backend, live positions skipped
-  const virtualOffsetHex = ''
-  const idleBufferBpsHex = ''
   const liveIdleHex = ''
   const liveV1Hex = ''
   const liveV2Hex = ''
   const liveTotalHex = ''
-  const zestV2InterestRateHex = ''
-  const zestV2UtilizationHex = ''
-  const zestV2FeeReserveHex = ''
 
-  const totalAssets = decodeUint(totalAssetsHex)
+  const rawTotalAssets = decodeUint(totalAssetsHex)
   const allocZestV1 = decodeUint(allocV1Hex)
   const allocZestV2 = decodeUint(allocV2Hex)
-  const idleBookkeeping = decodeUint(idleBookHex)
   const totalSupply = decodeUint(totalSupplyHex)
+
+  // Derive idle locally; ensure TVL is never understated by a race
+  const allocSum = allocZestV1 + allocZestV2
+  const totalAssets = rawTotalAssets >= allocSum ? rawTotalAssets : allocSum
+  const idleBookkeeping = totalAssets - allocSum
+
   const liveIdle = decodeUint(liveIdleHex)
   const liveZestV1 = decodeUint(liveV1Hex)
   const liveZestV2 = decodeUint(liveV2Hex)
   const liveTotalDeployed = decodeUint(liveTotalHex)
   const liveTotal = liveTotalDeployed + liveIdle
 
-  const virtualOffset = decodeUint(virtualOffsetHex)
-  const vo = virtualOffset > 0n ? virtualOffset : 100_000_000n
+  const vo = 100_000_000n // virtual offset for sBTC (10^8)
   const sharePrice =
     totalSupply > 0n
       ? Number((totalAssets + vo) * 100_000_000n / (totalSupply + vo)) / 1e8
@@ -271,7 +273,6 @@ async function fetchVaultStateSBTCFallback(): Promise<VaultStateSBTC> {
   const unrealizedYield = liveTotal > totalAssets ? liveTotal - totalAssets : 0n
 
   const feeBps = decodeUint(feeBpsHex)
-  const idleBufferBps = decodeUint(idleBufferBpsHex)
 
   // --- APR from backend ---
   let zestV1Apr = 0
@@ -321,7 +322,7 @@ async function fetchVaultStateSBTCFallback(): Promise<VaultStateSBTC> {
     blendedApr,
     feeBps,
     feeRecipient: '',
-    idleBufferBps,
+    idleBufferBps: 500n,
     virtualOffset: vo,
     vaultOwner: '',
     vaultAllocator: '',

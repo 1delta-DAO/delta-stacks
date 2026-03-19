@@ -1,0 +1,39 @@
+import { executeStacksReadCalls } from '@delta-stacks/data-provision'
+import {
+  getAddressFromPrivateKey,
+  hexToCV,
+  cvToJSON,
+} from '@stacks/transactions'
+import { API_URL } from './allocator/const'
+
+/** Parse "deployer.contract-name" into [deployer, contractName]. */
+export function splitPrincipal(full: string): [string, string] {
+  const dot = full.indexOf('.')
+  return [full.slice(0, dot), full.slice(dot + 1)]
+}
+
+/** Derive the Stacks mainnet address from a hex-encoded private key. */
+export function deriveAddress(privateKey: string): string {
+  return getAddressFromPrivateKey(privateKey, 'mainnet')
+}
+
+/**
+ * Read get-vault-allocator from the vault contract.
+ * Returns the principal string ("SP...") or null on failure.
+ */
+export async function getVaultAllocator(vaultPrincipal: string): Promise<string | null> {
+  const [deployer, contractName] = splitPrincipal(vaultPrincipal)
+  const results = await executeStacksReadCalls([
+    { contractAddress: deployer, contractName, functionName: 'get-vault-allocator', args: [] },
+  ], { apiUrl: API_URL })
+
+  const r = results[0]
+  if (!r?.okay) return null
+  try {
+    const cv = hexToCV(r.result)
+    const json = cvToJSON(cv) as { type: string; value: string }
+    return json.value ?? null
+  } catch {
+    return null
+  }
+}

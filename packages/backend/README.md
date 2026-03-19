@@ -1,28 +1,25 @@
-# Backend — Cloudflare Workers
+# Backend — Data Provision Worker
 
-REST API + scheduled cron jobs for Delta Stacks. Serves cached lending data and vault snapshots to the frontend, and runs an auto-allocator bot that rebalances vaults across lending markets.
+Read-only REST API + scheduled cron jobs for Delta Stacks. Serves cached lending data, prices, and vault snapshots to the frontend.
+
+Allocation operations (vault rebalancing) are handled by a separate worker — see [`backend-allocator`](../backend-allocator/README.md).
 
 ## Architecture
 
 ```
-Cloudflare Worker
+Cloudflare Worker (delta-stacks-data)
 ├── REST API (fetch handler)
 │   ├── GET /lending          All cached lending data
 │   ├── GET /prices           Cached USD price map
 │   ├── GET /:lender          Single-lender data
 │   ├── GET /vault/history    USDCx vault share-price history
 │   ├── GET /vault-stx/history
-│   ├── GET /vault-sbtc/history
-│   ├── GET /allocator-address
-│   └── POST /allocate        Manually trigger rebalance
+│   └── GET /vault-sbtc/history
 │
-├── Cron: */2 * * * * (every 2 min)
-│   ├── Refresh prices (Pyth + on-chain oracle)
-│   ├── Rotate through one lender per invocation (~6-min refresh per lender)
-│   └── Snapshot all three vaults (USDCx, STX, sBTC)
-│
-└── Cron: 0 */4 * * * (every 4 hours)
-    └── Auto-allocator: rebalance vaults to the higher-APR market
+└── Cron: */2 * * * * (every 2 min)
+    ├── Refresh prices (Pyth + on-chain oracle)
+    ├── Rotate through one lender per invocation (~6-min refresh per lender)
+    └── Snapshot all three vaults (USDCx, STX, sBTC)
 ```
 
 ## REST API
@@ -68,40 +65,7 @@ Returns the rolling share-price history for each vault. Supports optional `?from
 ]
 ```
 
-### `GET /allocator-address`
-
-Returns the Stacks address derived from `ALLOCATOR_PRIVATE_KEY`. Use this to configure the vault's allocator principal on-chain.
-
-### `POST /allocate`
-
-Manually triggers the allocation strategy for all vaults. Requires `Authorization: Bearer <ALLOCATOR_SECRET>` when `ALLOCATOR_SECRET` is set.
-
-Body (optional):
-```json
-{ "force": true }
-```
-
-Set `force: true` to bypass the APR-delta threshold and rebalance regardless of current spread.
-
-## Auto-Allocator
-
-The allocator runs every 4 hours and compares the supply APR of both markets in each vault:
-
-1. Load latest lending data and vault snapshots from KV
-2. For each vault, compute the APR for both markets
-3. If the APR difference exceeds **0.5%** (`REBALANCE_THRESHOLD`), move funds to the higher-yielding market
-4. Apply a **5% safety buffer** to prevent LP token underflow on recall
-5. Build and broadcast the allocation transaction using `ALLOCATOR_PRIVATE_KEY`
-
-### Supported Vaults
-
-| Vault | Asset | Market 1 | Market 2 |
-|-------|-------|----------|----------|
-| `usdcx` | USDCx (6 dec) | Granite | Zest V2 |
-| `stx` | wSTX (6 dec) | Zest V1 | Zest V2 |
-| `sbtc` | sBTC (8 dec) | Zest V1 | Zest V2 |
-
-## KV Schema
+## KV Schema (written by this worker)
 
 | Key | Value |
 |-----|-------|
@@ -119,13 +83,6 @@ The allocator runs every 4 hours and compares the supply APR of both markets in 
 
 ## Configuration
 
-### Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ALLOCATOR_PRIVATE_KEY` | Yes | Hex-encoded Stacks private key (64 chars, no `0x` prefix). Must be the vault's configured allocator principal. |
-| `ALLOCATOR_SECRET` | No | Bearer token for `POST /allocate`. If unset, the endpoint is unauthenticated. |
-
 ### KV Namespace
 
 Bind `LENDING_KV` in `wrangler.toml`:
@@ -135,6 +92,8 @@ Bind `LENDING_KV` in `wrangler.toml`:
 binding = "LENDING_KV"
 id = "<your-kv-namespace-id>"
 ```
+
+This worker has no secrets — it is purely read/write against public on-chain data.
 
 ## Development
 
@@ -147,7 +106,7 @@ id = "<your-kv-namespace-id>"
 
 ```bash
 cd packages/backend
-npm install
+pnpm install
 ```
 
 ### Local Development
@@ -156,24 +115,10 @@ npm install
 npm run dev          # Start local Workers dev server (http://localhost:8787)
 ```
 
-Set secrets locally via a `.dev.vars` file (never commit):
-
-```
-ALLOCATOR_PRIVATE_KEY=your64hexcharshere
-ALLOCATOR_SECRET=your-bearer-token
-```
-
 ### Deploy
 
 ```bash
 npm run deploy:wrangler   # Deploy to Cloudflare
-```
-
-Set production secrets:
-
-```bash
-wrangler secret put ALLOCATOR_PRIVATE_KEY
-wrangler secret put ALLOCATOR_SECRET
 ```
 
 ### Other Commands
@@ -187,12 +132,11 @@ npm run typecheck    # TypeScript type-check only
 
 ```
 src/
-  index.ts           Entry point — routes requests and registers cron handlers
-  allocator/
-    index.ts         Main allocator entry — loads KV data, executes rebalancing
-    config.ts        Vault configurations (market UIDs, encoders, dust thresholds)
-    const.ts         API URL, deployer address, rebalance threshold
-    strategy.ts      computeRebalance() — APR comparison logic
-    tx.ts            Build and broadcast allocation transactions
-    types.ts         VaultAllocConfig, VaultAllocationResult types
+  index.ts           Entry point — routes requests and registers cron handler
+  env.ts             TypeScript env interface (KV namespace binding)
+  constants.ts       KV keys, lender list, vault constants
+  utils.ts           Helper utilities
+  handlers/
+    request.ts       HTTP request router (all GET endpoints)
+    scheduled.ts     Cron job: price refresh + lender rotation + vault snapshots
 ```

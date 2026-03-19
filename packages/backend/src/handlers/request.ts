@@ -3,8 +3,6 @@ import {
   type AllLendingData,
   type VaultSnapshot,
 } from '@delta-stacks/data-provision'
-import { deriveAddress } from '../utils'
-import { handleAllocation } from './allocation'
 import type { Env } from '../env'
 import {
   LENDERS,
@@ -36,38 +34,10 @@ const VAULT_HISTORY_MAP: Record<string, string> = {
  * GET  /vault/history       — USDCx vault share-price history
  * GET  /vault-stx/history   — STX vault share-price history
  * GET  /vault-sbtc/history  — sBTC vault share-price history
- * GET  /allocator-address   — Stacks address derived from ALLOCATOR_PRIVATE_KEY
- * POST /allocate            — trigger allocation immediately (requires Authorization header)
  */
 export async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url)
   const path = url.pathname.replace(/^\/+|\/+$/g, '')
-
-  // POST /allocate — manually trigger the allocation strategy
-  if (request.method === 'POST') {
-    if (path !== 'allocate') {
-      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: JSON_HEADERS })
-    }
-
-    const secret = env.ALLOCATOR_SECRET
-    if (secret) {
-      const auth = request.headers.get('Authorization') ?? ''
-      if (auth !== `Bearer ${secret}`) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS })
-      }
-    }
-
-    if (!env.ALLOCATOR_PRIVATE_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'ALLOCATOR_PRIVATE_KEY not configured' }),
-        { status: 503, headers: JSON_HEADERS },
-      )
-    }
-
-    const body = await request.json().catch(() => ({})) as { force?: boolean }
-    const results = await handleAllocation(env, body.force === true)
-    return new Response(JSON.stringify({ results }), { headers: JSON_HEADERS })
-  }
 
   if (request.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -139,20 +109,6 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
     }
 
     return new Response(JSON.stringify(result), { headers: JSON_HEADERS })
-  }
-
-  // Allocator address (derived from the private key — set this as the vault allocator in the UI)
-  if (path === 'allocator-address') {
-    if (!env.ALLOCATOR_PRIVATE_KEY) {
-      return new Response(JSON.stringify({ error: 'ALLOCATOR_PRIVATE_KEY not configured' }), {
-        status: 503,
-        headers: JSON_HEADERS,
-      })
-    }
-    return new Response(
-      JSON.stringify({ address: deriveAddress(env.ALLOCATOR_PRIVATE_KEY) }),
-      { headers: JSON_HEADERS },
-    )
   }
 
   return new Response(JSON.stringify({ error: 'Not found' }), {

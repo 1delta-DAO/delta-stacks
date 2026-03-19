@@ -265,26 +265,26 @@ async function fetchVaultStateV3Fallback(): Promise<VaultStateV3> {
   const ZEST_DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7'
   const ZEST_CONTRACT = 'v0-vault-usdc'
 
-  // Core vault reads only (6 RPCs) -- APR comes from backend
-  const totalAssetsHex = await callRead(SENDER, vaultContract, 'get-total-assets')
-  const totalSupplyHex = await callRead(SENDER, vaultContract, 'get-total-supply')
-  const allocGraniteHex = await callRead(SENDER, vaultContract, 'get-alloc-granite')
-  const allocZestHex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v2')
-  const idleBookHex = await callRead(SENDER, vaultContract, 'get-idle-bookkeeping')
-  const feeBpsHex = await callRead(SENDER, vaultContract, 'get-fee-bps')
-  // Unused -- APR from backend, live positions skipped
-  const graniteLpParamsHex = ''
-  const _graniteOpenInterestHex = ''
-  const zestInterestRateHex = ''
-  const zestUtilizationHex = ''
-  const zestFeeReserveHex = ''
+  // Read all bookkeeping values concurrently to minimise cross-block race
+  const [totalAssetsHex, totalSupplyHex, allocGraniteHex, allocZestHex, feeBpsHex] =
+    await Promise.all([
+      callRead(SENDER, vaultContract, 'get-total-assets'),
+      callRead(SENDER, vaultContract, 'get-total-supply'),
+      callRead(SENDER, vaultContract, 'get-alloc-granite'),
+      callRead(SENDER, vaultContract, 'get-alloc-zest-v2'),
+      callRead(SENDER, vaultContract, 'get-fee-bps'),
+    ])
 
-  const totalAssets = decodeUint(totalAssetsHex)
+  const rawTotalAssets = decodeUint(totalAssetsHex)
   const allocGranite = decodeUint(allocGraniteHex)
   const allocZest = decodeUint(allocZestHex)
-  const idleBookkeeping = decodeUint(idleBookHex)
   const totalSupply = decodeUint(totalSupplyHex)
   const feeBps = decodeUint(feeBpsHex)
+
+  // Derive idle locally; ensure TVL is never understated by a race
+  const allocSum = allocGranite + allocZest
+  const totalAssets = rawTotalAssets >= allocSum ? rawTotalAssets : allocSum
+  const idleBookkeeping = totalAssets - allocSum
 
   // Live positions not fetched (saves 5 RPCs) — use bookkeeping as approximation
   const liveIdle = idleBookkeeping

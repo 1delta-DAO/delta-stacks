@@ -1,16 +1,18 @@
 {
-  "name": "@delta-stacks/backend",
+  "name": "@delta-stacks/backend-allocator",
   "private": true,
   "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy:wrangler": "wrangler deploy --name delta-stacks-data",
+    "deploy:wrangler": "wrangler deploy --name delta-stacks-allocator",
     "log": "wrangler tail",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@delta-stacks/data-provision": "workspace:*"
+    "@delta-stacks/calldata-sdk-stacks": "workspace:*",
+    "@delta-stacks/data-provision": "workspace:*",
+    "@stacks/transactions": "^7.0.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241205.0",
