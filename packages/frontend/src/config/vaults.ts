@@ -38,7 +38,7 @@ export const VAULT_USDCX: VaultDef = {
 
 export const VAULT_STX: VaultDef = {
   id: 'stx',
-  name: '1delta STX Vault v5',
+  name: '1delta STX Vault v6',
   symbol: '1dSTX',
   asset: 'STX',
   assetContract: 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.wstx',
@@ -53,7 +53,7 @@ export const VAULT_STX: VaultDef = {
 
 export const VAULT_SBTC: VaultDef = {
   id: 'sbtc',
-  name: '1delta sBTC Vault v5',
+  name: '1delta sBTC Vault v6',
   symbol: '1dsBTC',
   asset: 'sBTC',
   assetContract: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',

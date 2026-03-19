@@ -144,7 +144,7 @@ const EMPTY: VaultStateSBTC = {
 // ---------------------------------------------------------------------------
 
 async function fetchVaultStateSBTC(): Promise<VaultStateSBTC> {
-  // v5: go straight to sequential calls (reader not deployed for v5)
+  // v6: go straight to sequential calls (reader not deployed for v5)
   return fetchVaultStateSBTCFallback()
 }
 
