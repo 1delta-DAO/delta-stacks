@@ -8,7 +8,8 @@ DeFi infrastructure for Stacks (Bitcoin L2) lending protocols. Monorepo with Cla
 delta-stacks/
   contracts/                     Clarity aggregator + vault contracts
     prod/v2/                     Vault V2 production contracts
-    prod/v3/usdcx/               Vault V3 production contracts + README
+    prod/v3/usdcx/               Vault V3 USDCx production contracts + README
+    prod/v3/stx/                 Vault V3 STX production contracts + README
   packages/
     calldata-sdk-stacks/         Transaction calldata encoders (all protocols)
       src/vault/v2/              Legacy vault SDK
@@ -33,9 +34,13 @@ delta-stacks/
 |-------|----------|
 | Project overview | [README.md](README.md) |
 | Agent quick-reference | [AGENT.md](AGENT.md) |
-| Vault V3 contract spec | [contracts/prod/v3/usdcx/README.md](contracts/prod/v3/usdcx/README.md) |
+| Vault V3 contract spec (USDCx) | [contracts/prod/v3/usdcx/README.md](contracts/prod/v3/usdcx/README.md) |
+| Vault V3 contract spec (STX) | [contracts/prod/v3/stx/README.md](contracts/prod/v3/stx/README.md) |
 | Vault V3 SDK | [packages/calldata-sdk-stacks/src/vault/v3/README.md](packages/calldata-sdk-stacks/src/vault/v3/README.md) |
 | Calldata SDK | [packages/calldata-sdk-stacks/README.md](packages/calldata-sdk-stacks/README.md) |
+| Data provision | [packages/data-provision/README.md](packages/data-provision/README.md) |
+| Backend (Workers) | [packages/backend/README.md](packages/backend/README.md) |
+| Frontend | [packages/frontend/README.md](packages/frontend/README.md) |
 | Zest V1 | [packages/calldata-sdk-stacks/src/zest-v1/README.md](packages/calldata-sdk-stacks/src/zest-v1/README.md) |
 | Zest V2 | [packages/calldata-sdk-stacks/src/zest-v2/README.md](packages/calldata-sdk-stacks/src/zest-v2/README.md) |
 | Granite | [packages/calldata-sdk-stacks/src/granite/README.md](packages/calldata-sdk-stacks/src/granite/README.md) |
