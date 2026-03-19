@@ -142,14 +142,7 @@ const EMPTY: VaultStateV3 = {
 // ---------------------------------------------------------------------------
 
 async function fetchVaultStateV3(): Promise<VaultStateV3> {
-  // Try reader first
-  const readerHex = await callRead(READER_DEPLOYER, READER_CONTRACT, 'read-vault-usdcx')
-
-  if (readerHex) {
-    return parseReaderResponse(readerHex)
-  }
-
-  // Fallback: individual calls (17 RPC requests)
+  // Go straight to sequential calls (reader exceeds RPC cost limits)
   return fetchVaultStateV3Fallback()
 }
 
