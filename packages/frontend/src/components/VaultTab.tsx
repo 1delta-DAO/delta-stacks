@@ -232,14 +232,10 @@ export function VaultTab({ vault: vaultDef = VAULT_USDCX, onBack }: { vault?: Va
 
         {/* Key metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.liveTotal, vaultDef.decimals)} ${vaultDef.asset}`} />
+          <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.totalAssets, vaultDef.decimals)} ${vaultDef.asset}`} />
           <MetricCard label="Share Price" value={loading ? '...' : vault.sharePrice.toFixed(6)} />
           <MetricCard label="Total Shares" value={loading ? '...' : micro(vault.totalSupply, vaultDef.decimals)} />
-          <MetricCard
-            label="Unrealized Yield"
-            value={loading ? '...' : `${micro(vault.unrealizedYield, vaultDef.decimals)} ${vaultDef.asset}`}
-            positive={vault.unrealizedYield > 0n}
-          />
+          <MetricCard label="Fee" value={loading ? '...' : `${vault.feeBps}bps`} />
         </div>
 
         {/* V3 config row */}
@@ -354,19 +350,13 @@ function AllocationBar({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: 
             <span className="w-2.5 h-2.5 rounded-full bg-text-dim/30 inline-block" />
             <span className="text-text-dim font-medium">Idle</span>
           </div>
-          <div className="font-mono pl-4 text-text-muted">{micro(vault.liveIdle, vaultDef.decimals)}</div>
+          <div className="font-mono pl-4 text-text-muted">{micro(vault.idleBookkeeping, vaultDef.decimals)}</div>
           <div className="text-text-dim pl-4">{pct(idlePct)}</div>
           <div className="text-text-dim pl-4 font-mono">0.00% APR</div>
         </div>
       </div>
 
-      {/* Live vs bookkeeping */}
-      {vault.unrealizedYield > 0n && (
-        <div className="text-xs text-text-dim bg-surface-alt/60 rounded-xl p-3 flex justify-between border border-border-subtle">
-          <span>Live total (incl. unrealized)</span>
-          <span className="font-mono text-text-muted">{micro(vault.liveTotal, vaultDef.decimals)} {vaultDef.asset}</span>
-        </div>
-      )}
+      {/* Live vs bookkeeping -- hidden when live data not fetched */}
     </div>
   )
 }
@@ -720,7 +710,7 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
       <div className="bg-surface-alt/60 rounded-xl p-3 space-y-1.5 text-xs border border-border-subtle">
         <div className="flex justify-between">
           <span className="text-text-dim">Idle (deployable)</span>
-          <span className="font-mono text-text-muted">{micro(vault.liveIdle, vaultDef.decimals)} {vaultDef.asset}</span>
+          <span className="font-mono text-text-muted">{micro(vault.idleBookkeeping, vaultDef.decimals)} {vaultDef.asset}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-text-dim">{vaultDef.market1Label}</span>
