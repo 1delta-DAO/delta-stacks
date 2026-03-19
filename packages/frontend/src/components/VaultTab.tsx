@@ -796,6 +796,16 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
 
   const decFactor = 10 ** vaultDef.decimals
 
+  // Zero-sum check for reallocate: total recalled must equal total deployed
+  const reallocIsZeroSum = useMemo(() => {
+    if (!isReallocate) return true
+    const fromSum = Math.floor(parseFloat(reallocFields.fromM1 || '0') * decFactor)
+                  + Math.floor(parseFloat(reallocFields.fromM2 || '0') * decFactor)
+    const toSum   = Math.floor(parseFloat(reallocFields.toM1 || '0') * decFactor)
+                  + Math.floor(parseFloat(reallocFields.toM2 || '0') * decFactor)
+    return fromSum === toSum && fromSum > 0
+  }, [isReallocate, reallocFields, decFactor])
+
   const handleSubmit = useCallback(async () => {
     if (!stxAddress) return
 
@@ -937,49 +947,11 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
           Disables the Zest V1 collateral flag on the adapter. This skips the deep health-factor check on withdrawals. Call after each deploy to V1. Requires 2 wallet signatures: first funds the adapter with 0.01 STX for the Pyth oracle fee, then calls disable-collateral with fresh price data.
         </div>
       ) : isReallocate ? (
-        <div className="space-y-3">
-          <div className="text-xs text-text-dim">
-            Zero-sum rebalance: total recalled must equal total deployed.
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">From {vaultDef.market1Label}</label>
-              <input
-                type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.fromM1}
-                onChange={(e) => { setReallocFields(f => ({ ...f, fromM1: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
-                className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">From {vaultDef.market2Label}</label>
-              <input
-                type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.fromM2}
-                onChange={(e) => { setReallocFields(f => ({ ...f, fromM2: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
-                className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">To {vaultDef.market1Label}</label>
-              <input
-                type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.toM1}
-                onChange={(e) => { setReallocFields(f => ({ ...f, toM1: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
-                className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-text-muted font-medium">To {vaultDef.market2Label}</label>
-              <input
-                type="number" min="0" step="any" placeholder="0.00"
-                value={reallocFields.toM2}
-                onChange={(e) => { setReallocFields(f => ({ ...f, toM2: e.target.value })); if (tx.status !== 'idle') tx.reset() }}
-                className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
-              />
-            </div>
-          </div>
-        </div>
+        <ReallocateFields
+          fields={reallocFields}
+          setFields={(f: typeof reallocFields) => { setReallocFields(f); if (tx.status !== 'idle') tx.reset() }}
+          vaultDef={vaultDef}
+        />
       ) : (
         <AmountInput
           amount={amount}
@@ -993,7 +965,9 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
         connect={connect}
         onClick={handleSubmit}
         disabled={
-          (isReallocate || isNoAmountOp)
+          isReallocate
+            ? !reallocIsZeroSum || tx.status === 'building' || tx.status === 'signing'
+          : isNoAmountOp
             ? tx.status === 'building' || tx.status === 'signing'
             : !amount || tx.status === 'building' || tx.status === 'signing'
         }
@@ -1141,6 +1115,96 @@ function OwnerPanel({ vaultDef, onTxConfirm }: { vaultDef: VaultDef; onTxConfirm
 // ---------------------------------------------------------------------------
 // Shared sub-components
 // ---------------------------------------------------------------------------
+
+function ReallocateFields({
+  fields,
+  setFields,
+  vaultDef,
+}: {
+  fields: { fromM1: string; fromM2: string; toM1: string; toM2: string }
+  setFields: (f: typeof fields) => void
+  vaultDef: VaultDef
+}) {
+  const decFactor = 10 ** vaultDef.decimals
+  const fromSum = Math.floor(parseFloat(fields.fromM1 || '0') * decFactor)
+                + Math.floor(parseFloat(fields.fromM2 || '0') * decFactor)
+  const toSum   = Math.floor(parseFloat(fields.toM1 || '0') * decFactor)
+                + Math.floor(parseFloat(fields.toM2 || '0') * decFactor)
+  const hasValues = fromSum > 0 || toSum > 0
+  const isBalanced = fromSum === toSum
+  const diff = (toSum - fromSum) / decFactor
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-text-dim">
+        Zero-sum rebalance: total recalled must equal total deployed.
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs text-text-muted font-medium">From {vaultDef.market1Label}</label>
+          <input
+            type="number" min="0" step="any" placeholder="0.00"
+            value={fields.fromM1}
+            onChange={(e) => setFields({ ...fields, fromM1: e.target.value })}
+            className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs text-text-muted font-medium">From {vaultDef.market2Label}</label>
+          <input
+            type="number" min="0" step="any" placeholder="0.00"
+            value={fields.fromM2}
+            onChange={(e) => setFields({ ...fields, fromM2: e.target.value })}
+            className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs text-text-muted font-medium">To {vaultDef.market1Label}</label>
+          <input
+            type="number" min="0" step="any" placeholder="0.00"
+            value={fields.toM1}
+            onChange={(e) => setFields({ ...fields, toM1: e.target.value })}
+            className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs text-text-muted font-medium">To {vaultDef.market2Label}</label>
+          <input
+            type="number" min="0" step="any" placeholder="0.00"
+            value={fields.toM2}
+            onChange={(e) => setFields({ ...fields, toM2: e.target.value })}
+            className="w-full bg-surface-alt/80 border border-border-subtle rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary transition-all duration-200"
+          />
+        </div>
+      </div>
+
+      {/* Zero-sum indicator */}
+      {hasValues && (
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-mono ${
+          isBalanced
+            ? 'bg-positive-dim border-positive/20 text-positive'
+            : 'bg-negative-dim border-negative/20 text-negative'
+        }`}>
+          {isBalanced ? (
+            <>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Zero-sum balanced
+            </>
+          ) : (
+            <>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+              </svg>
+              Not balanced: deploy {diff > 0 ? '+' : ''}{diff.toFixed(vaultDef.decimals)} vs recalled
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function AmountInput({
   amount,
