@@ -232,14 +232,14 @@ async function parseReaderResponse(hex: string): Promise<VaultStateSBTC> {
 async function fetchVaultStateSBTCFallback(): Promise<VaultStateSBTC> {
   const vaultContract = 'vault-sbtc-v6'
 
-  // Essential reads only (6 calls instead of 15 to reduce RPC load)
+  // Core vault reads only (6 RPCs) -- APR comes from backend
   const totalAssetsHex = await callRead(SENDER, vaultContract, 'get-total-assets')
   const totalSupplyHex = await callRead(SENDER, vaultContract, 'get-total-supply')
   const allocV1Hex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v1')
   const allocV2Hex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v2')
   const idleBookHex = await callRead(SENDER, vaultContract, 'get-idle-bookkeeping')
   const feeBpsHex = await callRead(SENDER, vaultContract, 'get-fee-bps')
-  // Derive the rest from bookkeeping (skip live position reads + Zest V2 APR)
+  // Unused -- APR from backend, live positions skipped
   const virtualOffsetHex = ''
   const idleBufferBpsHex = ''
   const liveIdleHex = ''
@@ -273,27 +273,28 @@ async function fetchVaultStateSBTCFallback(): Promise<VaultStateSBTC> {
   const feeBps = decodeUint(feeBpsHex)
   const idleBufferBps = decodeUint(idleBufferBpsHex)
 
-  // --- Zest V1 APR (from backend API) ---
+  // --- APR from backend ---
   let zestV1Apr = 0
+  let zestV2Apr = 0
   try {
     const backendBase = getBackendBase()
     if (backendBase) {
-      const res = await fetch(`${backendBase}/zest-v1`)
-      if (res.ok) {
-        const lenderData = await res.json()
-        const sbtcMarket = lenderData?.data?.[ZEST_V1_SBTC_MARKET_UID]
-        if (sbtcMarket?.depositRate != null) {
-          zestV1Apr = sbtcMarket.depositRate * 100
-        }
+      const [v1Res, v2Res] = await Promise.all([
+        fetch(`${backendBase}/zest-v1`),
+        fetch(`${backendBase}/zest-v2`),
+      ])
+      if (v1Res.ok) {
+        const v1Data = await v1Res.json()
+        const sbtcMarket = v1Data?.data?.[ZEST_V1_SBTC_MARKET_UID]
+        if (sbtcMarket?.depositRate != null) zestV1Apr = sbtcMarket.depositRate * 100
+      }
+      if (v2Res.ok) {
+        const v2Data = await v2Res.json()
+        const sbtcMarket = v2Data?.data?.['stacks-mainnet:zest-v2:2']
+        if (sbtcMarket?.supplyRate != null) zestV2Apr = sbtcMarket.supplyRate * 100
       }
     }
   } catch { /* keep 0 */ }
-
-  // --- Zest V2 APR ---
-  const zestV2BorrowRate = Number(decodeUint(zestV2InterestRateHex)) / 10_000
-  const zestV2Utilization = Number(decodeUint(zestV2UtilizationHex)) / 10_000
-  const zestV2FeeReserve = Number(decodeUint(zestV2FeeReserveHex)) / 10_000
-  const zestV2Apr = zestV2BorrowRate * zestV2Utilization * (1 - zestV2FeeReserve) * 100
 
   // --- Blended APR ---
   let blendedApr = 0

@@ -30,7 +30,7 @@ function useVaultTileData(vault: VaultDef): VaultTileData {
 
   if (vault.id === 'sbtc') {
     return {
-      tvl: sbtc.state.liveTotal,
+      tvl: sbtc.state.totalAssets,
       sharePrice: sbtc.state.sharePrice,
       blendedApr: sbtc.state.blendedApr,
       loading: sbtc.loading,
@@ -38,14 +38,14 @@ function useVaultTileData(vault: VaultDef): VaultTileData {
   }
   if (vault.id === 'stx') {
     return {
-      tvl: stx.state.liveTotal,
+      tvl: stx.state.totalAssets,
       sharePrice: stx.state.sharePrice,
       blendedApr: stx.state.blendedApr,
       loading: stx.loading,
     }
   }
   return {
-    tvl: usdcx.state.liveTotal,
+    tvl: usdcx.state.totalAssets,
     sharePrice: usdcx.state.sharePrice,
     blendedApr: usdcx.state.blendedApr,
     loading: usdcx.loading,
