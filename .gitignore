@@ -17,3 +17,5 @@ settings/Testnet.toml
 
 # Cloudflare
 packages/backend/wrangler.toml
+packages/backend-allocator/wrangler.toml
+
