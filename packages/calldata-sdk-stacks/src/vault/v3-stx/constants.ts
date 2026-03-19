@@ -21,7 +21,7 @@ export const VAULT_STX_CONTRACTS = {
   adapterZestV1: `${VAULT_STX_DEPLOYER}.adapter-zest-v1-wstx-thin-v3`,
   adapterZestV2: `${VAULT_STX_DEPLOYER}.adapter-zest-v2-stx-v5`,
   trait: `${VAULT_STX_DEPLOYER}.lending-adapter-trait`,
-  zestV1Manager: `${VAULT_STX_DEPLOYER}.zest-v1-manager-v2`,
+  zestV1Manager: `${VAULT_STX_DEPLOYER}.zest-v1-manager-v3`,
 } as const
 
 /**

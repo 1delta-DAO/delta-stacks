@@ -212,9 +212,9 @@ describe('DeltaVaultSTX', () => {
   })
 
   describe('encodeRecallFromZestV1', () => {
-    it('targets zest-v1-manager-v2.recall with amount', () => {
+    it('targets zest-v1-manager-v3.recall with amount', () => {
       const call = DeltaVaultSTX.encodeRecallFromZestV1(300_000n)
-      expect(call.contractName).toBe('zest-v1-manager-v2')
+      expect(call.contractName).toBe('zest-v1-manager-v3')
       expect(call.functionName).toBe('recall')
       expect(call.functionArgs).toHaveLength(1)
       expect(cvToJSON(call.functionArgs[0]).value).toBe('300000')
@@ -510,7 +510,7 @@ describe('DeltaVaultSTX', () => {
 
     it('recall-from-zest-v1 targets the external manager', () => {
       const call = DeltaVaultSTX.encodeRecallFromZestV1(1_500_000n)
-      expect(call.contractName).toBe('zest-v1-manager-v2')
+      expect(call.contractName).toBe('zest-v1-manager-v3')
       expect(call.functionName).toBe('recall')
       expect(cvToJSON(call.functionArgs[0]).value).toBe('1500000')
     })

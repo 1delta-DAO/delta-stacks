@@ -76,10 +76,7 @@ export async function handleScheduled(env: Env): Promise<void> {
       const snapshot = await fetchVaultSnapshot({ concurrency: 2, vault: config })
 
       // Share price must be >= 1 due to virtual offset. Skip bad reads.
-      const hasActivity = snapshot.totalAssets !== '0' ||
-        snapshot.allocMarket1 !== '0' || snapshot.allocMarket2 !== '0' ||
-        snapshot.idleBookkeeping !== '0'
-      if (snapshot.sharePrice < 1 || (hasActivity && snapshot.sharePrice === 1)) {
+      if (snapshot.sharePrice < 1) {
         console.warn(`Cron: ${label} vault snapshot invalid (price=${snapshot.sharePrice}), skipping`)
         return
       }
@@ -97,13 +94,6 @@ export async function handleScheduled(env: Env): Promise<void> {
       const beforeLen = history.length
       history = history.filter(s => {
         if (s.sharePrice < 1) return false
-        // sharePrice=1 is only valid for an empty vault (no allocs)
-        if (s.sharePrice === 1) {
-          const hasActivity = s.totalAssets !== '0' ||
-            s.allocMarket1 !== '0' || s.allocMarket2 !== '0' ||
-            s.idleBookkeeping !== '0'
-          if (hasActivity) return false
-        }
         // totalAssets=0 but allocations non-zero means bad RPC read
         if (s.totalAssets === '0' && (s.allocMarket1 !== '0' || s.allocMarket2 !== '0')) return false
         return true

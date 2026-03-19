@@ -15,7 +15,7 @@ export const VAULT_SBTC_CONTRACTS = {
   adapterZestV1: `${VAULT_SBTC_DEPLOYER}.adapter-zest-v1-sbtc-thin-v3`,
   adapterZestV2: `${VAULT_SBTC_DEPLOYER}.adapter-zest-v2-sbtc-v5`,
   trait: `${VAULT_SBTC_DEPLOYER}.lending-adapter-trait`,
-  zestV1Manager: `${VAULT_SBTC_DEPLOYER}.zest-v1-sbtc-manager`,
+  zestV1Manager: `${VAULT_SBTC_DEPLOYER}.zest-v1-sbtc-manager-v2`,
 } as const
 
 /**
