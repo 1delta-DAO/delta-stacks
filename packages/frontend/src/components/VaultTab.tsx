@@ -235,35 +235,54 @@ export function VaultTab({ vault: vaultDef = VAULT_USDCX, onBack }: { vault?: Va
           <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.totalAssets, vaultDef.decimals)} ${vaultDef.asset}`} />
           <MetricCard label="Share Price" value={loading ? '...' : vault.sharePrice.toFixed(6)} />
           <MetricCard label="Total Shares" value={loading ? '...' : micro(vault.totalSupply, vaultDef.decimals)} />
-          <MetricCard label="Fee" value={loading ? '...' : `${vault.feeBps}bps`} />
+          <MetricCard label="Fee" value={loading ? '...' : bpsPct(vault.feeBps)} />
         </div>
-
-        {/* V3 config row */}
-        {!loading && (
-          <div className="grid grid-cols-3 gap-3 mt-3">
-            <MetricCard label="Performance Fee" value={bpsPct(vault.feeBps)} />
-            <MetricCard label="Idle Buffer" value={bpsPct(vault.idleBufferBps)} />
-            <MetricCard label="Virtual Offset" value={vault.virtualOffset.toLocaleString()} />
-          </div>
-        )}
       </div>
 
-      {/* Allocation breakdown */}
-      {!loading && <AllocationBar vault={vault} vaultDef={vaultDef} />}
+      {/* Desktop: two-column layout — operations left, allocation pie right */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Left column: operations */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Role tabs */}
+          <Tabs
+            tabs={['User', 'Allocator', 'Owner']}
+            active={roleTab}
+            onChange={setRoleTab}
+          />
+
+          {roleTab === 0 && <UserPanel balances={balances} vault={vault} vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
+          {roleTab === 1 && <AllocatorPanel vault={vault} vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
+          {roleTab === 2 && <OwnerPanel vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
+        </div>
+
+        {/* Right column: allocation pie + config — stretch to match left */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          {!loading && <AllocationPie vault={vault} vaultDef={vaultDef} />}
+
+          {!loading && (
+            <div className="glass-card rounded-xl p-4 space-y-2 lg:flex-1">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-dim">Config</h3>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-text-dim">Performance Fee</span>
+                  <span className="font-mono text-text-muted">{bpsPct(vault.feeBps)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-dim">Idle Buffer</span>
+                  <span className="font-mono text-text-muted">{bpsPct(vault.idleBufferBps)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-dim">Virtual Offset</span>
+                  <span className="font-mono text-text-muted">{vault.virtualOffset.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Share price history chart */}
       <SharePriceChart historyEndpoint={vaultDef.historyEndpoint} />
-
-      {/* Role tabs */}
-      <Tabs
-        tabs={['User', 'Allocator', 'Owner']}
-        active={roleTab}
-        onChange={setRoleTab}
-      />
-
-      {roleTab === 0 && <UserPanel balances={balances} vault={vault} vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
-      {roleTab === 1 && <AllocatorPanel vault={vault} vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
-      {roleTab === 2 && <OwnerPanel vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
     </div>
   )
 }
@@ -284,6 +303,123 @@ function MetricCard({ label, value, positive }: { label: string; value: string; 
 // ---------------------------------------------------------------------------
 // Allocation breakdown bar + table
 // ---------------------------------------------------------------------------
+
+function AllocationPie({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: VaultDef }) {
+  const total = vault.totalAssets
+  const idle = vault.idleBookkeeping
+  const m1 = vault.allocMarket1
+  const m2 = vault.allocMarket2
+
+  const idlePct = total > 0n ? Number(idle * 10000n / total) / 100 : 100
+  const m1Pct = total > 0n ? Number(m1 * 10000n / total) / 100 : 0
+  const m2Pct = total > 0n ? Number(m2 * 10000n / total) / 100 : 0
+
+  // SVG pie chart using conic gradient approximation with arcs
+  const cx = 60, cy = 60, r = 50
+  const slices = [
+    { pct: m1Pct, color: '#6366f1', label: vaultDef.market1Label }, // accent-blue / indigo
+    { pct: m2Pct, color: '#a855f7', label: vaultDef.market2Label }, // accent-purple
+    { pct: idlePct, color: '#4b5563', label: 'Idle' },              // gray
+  ].filter(s => s.pct > 0)
+
+  let cumulativeAngle = -90 // start at top
+  const arcs = slices.map(({ pct: slicePct, color, label }) => {
+    const angle = (slicePct / 100) * 360
+    const startAngle = cumulativeAngle
+    const endAngle = cumulativeAngle + angle
+    cumulativeAngle = endAngle
+
+    const startRad = (startAngle * Math.PI) / 180
+    const endRad = (endAngle * Math.PI) / 180
+    const x1 = cx + r * Math.cos(startRad)
+    const y1 = cy + r * Math.sin(startRad)
+    const x2 = cx + r * Math.cos(endRad)
+    const y2 = cy + r * Math.sin(endRad)
+    const largeArc = angle > 180 ? 1 : 0
+
+    // Full circle edge case
+    if (slicePct >= 99.9) {
+      return { d: `M ${cx},${cy - r} A ${r},${r} 0 1,1 ${cx - 0.01},${cy - r} Z`, color, label, pct: slicePct }
+    }
+
+    return {
+      d: `M ${cx},${cy} L ${x1},${y1} A ${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`,
+      color,
+      label,
+      pct: slicePct,
+    }
+  })
+
+  return (
+    <div className="glass-card rounded-xl p-4 space-y-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-text-dim">Allocation</h3>
+
+      <div className="flex items-center justify-center">
+        <svg viewBox="0 0 120 120" className="w-36 h-36">
+          {arcs.map((arc, i) => (
+            <path key={i} d={arc.d} fill={arc.color} opacity={0.85}>
+              <title>{arc.label}: {arc.pct.toFixed(1)}%</title>
+            </path>
+          ))}
+          {/* Center hole for donut effect */}
+          <circle cx={cx} cy={cy} r={25} className="fill-surface" />
+          <text x={cx} y={cy - 2} textAnchor="middle" className="fill-text text-[8px] font-mono font-semibold">
+            {micro(total, vaultDef.decimals)}
+          </text>
+          <text x={cx} y={cy + 8} textAnchor="middle" className="fill-text-dim text-[6px]">
+            {vaultDef.asset}
+          </text>
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="space-y-2 text-xs">
+        <LegendRow
+          icon={vaultDef.market1Logo}
+          label={vaultDef.market1Label}
+          amount={micro(m1, vaultDef.decimals)}
+          pctVal={pct(m1Pct)}
+          apr={vault.market1Apr > 0 ? pct(vault.market1Apr) : null}
+          dotColor="#6366f1"
+        />
+        <LegendRow
+          icon={vaultDef.market2Logo}
+          label={vaultDef.market2Label}
+          amount={micro(m2, vaultDef.decimals)}
+          pctVal={pct(m2Pct)}
+          apr={vault.market2Apr > 0 ? pct(vault.market2Apr) : null}
+          dotColor="#a855f7"
+        />
+        <LegendRow
+          label="Idle"
+          amount={micro(idle, vaultDef.decimals)}
+          pctVal={pct(idlePct)}
+          apr={null}
+          dotColor="#4b5563"
+        />
+      </div>
+    </div>
+  )
+}
+
+function LegendRow({ icon, label, amount, pctVal, apr, dotColor }: {
+  icon?: string; label: string; amount: string; pctVal: string; apr: string | null; dotColor: string
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-1.5">
+        <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ backgroundColor: dotColor }} />
+        {icon && <img src={icon} alt={label} className="w-3.5 h-3.5 rounded-full" />}
+        <span className="text-text-muted font-medium">{label}</span>
+      </div>
+      <div className="flex items-center gap-2 font-mono">
+        <span className="text-text-dim">{pctVal}</span>
+        <span className="text-text-muted">{amount}</span>
+        {apr && <span className="text-positive text-[10px]">{apr}</span>}
+      </div>
+    </div>
+  )
+}
 
 function AllocationBar({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: VaultDef }) {
   const total = vault.totalAssets
