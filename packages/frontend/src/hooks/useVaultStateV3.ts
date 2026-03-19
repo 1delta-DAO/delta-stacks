@@ -5,6 +5,14 @@ import { VAULT_V3_DEPLOYER } from '@delta-stacks/calldata-sdk-stacks'
 const API = 'https://api.hiro.so'
 const SENDER = VAULT_V3_DEPLOYER
 
+function getBackendBase(): string {
+  const dataUrl = import.meta.env.VITE_DATA_API_URL as string | undefined
+  if (dataUrl) {
+    try { return new URL(dataUrl).origin } catch { return dataUrl.replace(/\/[^/]*$/, '') }
+  }
+  return ''
+}
+
 // Vault reader contract (deployed on mainnet)
 const READER_DEPLOYER = VAULT_V3_DEPLOYER
 const READER_CONTRACT = 'vault-reader-v1'
@@ -134,14 +142,7 @@ const EMPTY: VaultStateV3 = {
 // ---------------------------------------------------------------------------
 
 async function fetchVaultStateV3(): Promise<VaultStateV3> {
-  // Try reader first
-  const readerHex = await callRead(READER_DEPLOYER, READER_CONTRACT, 'read-vault-usdcx')
-
-  if (readerHex) {
-    return parseReaderResponse(readerHex)
-  }
-
-  // Fallback: individual calls (17 RPC requests)
+  // Go straight to sequential calls (reader exceeds RPC cost limits)
   return fetchVaultStateV3Fallback()
 }
 
@@ -264,82 +265,64 @@ async function fetchVaultStateV3Fallback(): Promise<VaultStateV3> {
   const ZEST_DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7'
   const ZEST_CONTRACT = 'v0-vault-usdc'
 
-  const [
-    totalAssetsHex,
-    allocGraniteHex,
-    allocZestHex,
-    idleBookHex,
-    totalSupplyHex,
-    liveIdleHex,
-    liveGraniteHex,
-    liveZestHex,
-    liveTotalHex,
-    feeBpsHex,
-    idleBufferBpsHex,
-    virtualOffsetHex,
-    graniteLpParamsHex,
-    _graniteOpenInterestHex,
-    zestInterestRateHex,
-    zestUtilizationHex,
-    zestFeeReserveHex,
-  ] = await Promise.all([
-    callRead(SENDER, vaultContract, 'get-total-assets'),
-    callRead(SENDER, vaultContract, 'get-alloc-granite'),
-    callRead(SENDER, vaultContract, 'get-alloc-zest-v2'),
-    callRead(SENDER, vaultContract, 'get-idle-bookkeeping'),
-    callRead(SENDER, vaultContract, 'get-total-supply'),
-    callRead(SENDER, vaultContract, 'get-idle-balance'),
-    callRead(SENDER, vaultContract, 'get-granite-usdcx-position'),
-    callRead(SENDER, vaultContract, 'get-zest-v2-usdc-position'),
-    callRead(SENDER, vaultContract, 'get-live-total-assets'),
-    callRead(SENDER, vaultContract, 'get-fee-bps'),
-    callRead(SENDER, vaultContract, 'get-idle-buffer-bps'),
-    callRead(SENDER, vaultContract, 'get-virtual-offset'),
-    callRead(GRANITE_STATE, GRANITE_CONTRACT, 'get-lp-params'),
-    callRead(GRANITE_STATE, GRANITE_CONTRACT, 'get-open-interest'),
-    callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-interest-rate'),
-    callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-utilization'),
-    callRead(ZEST_DEPLOYER, ZEST_CONTRACT, 'get-fee-reserve'),
-  ])
+  // Core vault reads only (6 RPCs) -- APR comes from backend
+  const totalAssetsHex = await callRead(SENDER, vaultContract, 'get-total-assets')
+  const totalSupplyHex = await callRead(SENDER, vaultContract, 'get-total-supply')
+  const allocGraniteHex = await callRead(SENDER, vaultContract, 'get-alloc-granite')
+  const allocZestHex = await callRead(SENDER, vaultContract, 'get-alloc-zest-v2')
+  const idleBookHex = await callRead(SENDER, vaultContract, 'get-idle-bookkeeping')
+  const feeBpsHex = await callRead(SENDER, vaultContract, 'get-fee-bps')
+  // Unused -- APR from backend, live positions skipped
+  const graniteLpParamsHex = ''
+  const _graniteOpenInterestHex = ''
+  const zestInterestRateHex = ''
+  const zestUtilizationHex = ''
+  const zestFeeReserveHex = ''
 
   const totalAssets = decodeUint(totalAssetsHex)
   const allocGranite = decodeUint(allocGraniteHex)
   const allocZest = decodeUint(allocZestHex)
   const idleBookkeeping = decodeUint(idleBookHex)
   const totalSupply = decodeUint(totalSupplyHex)
-  const liveIdle = decodeUint(liveIdleHex)
-  const liveGranite = decodeUint(liveGraniteHex)
-  const liveZest = decodeUint(liveZestHex)
-  const liveTotalDeployed = decodeUint(liveTotalHex)
-  const liveTotal = liveTotalDeployed + liveIdle
+  const feeBps = decodeUint(feeBpsHex)
 
-  const virtualOffset = decodeUint(virtualOffsetHex)
-  const vo = virtualOffset > 0n ? virtualOffset : 1_000_000n
+  // Live positions not fetched (saves 5 RPCs) — use bookkeeping as approximation
+  const liveIdle = idleBookkeeping
+  const liveGranite = allocGranite
+  const liveZest = allocZest
+  const liveTotal = totalAssets
+
+  const vo = 1_000_000n
   const sharePrice =
     totalSupply > 0n
       ? Number((totalAssets + vo) * 1_000_000n / (totalSupply + vo)) / 1e6
       : 1
 
-  const unrealizedYield = liveTotal > totalAssets ? liveTotal - totalAssets : 0n
+  const unrealizedYield = 0n
+  const idleBufferBps = 500n
 
-  const feeBps = decodeUint(feeBpsHex)
-  const idleBufferBps = decodeUint(idleBufferBpsHex)
-
-  // --- Granite APR ---
-  const graniteTotalAssets = decodeTupleUint(graniteLpParamsHex, 'total-assets')
-  const graniteTotalShares = decodeTupleUint(graniteLpParamsHex, 'total-shares')
+  // --- APR from backend ---
   let graniteApr = 0
-  if (graniteTotalShares > 0n && graniteTotalAssets > 0n) {
-    const exchangeRate = Number(graniteTotalAssets * 1_000_000n / graniteTotalShares) / 1_000_000
-    const premium = exchangeRate - 1
-    if (premium > 0) graniteApr = premium * 2 * 100
-  }
-
-  // --- Zest V2 APR ---
-  const zestBorrowRate = Number(decodeUint(zestInterestRateHex)) / 10_000
-  const zestUtilization = Number(decodeUint(zestUtilizationHex)) / 10_000
-  const zestFeeReserve = Number(decodeUint(zestFeeReserveHex)) / 10_000
-  const zestApr = zestBorrowRate * zestUtilization * (1 - zestFeeReserve) * 100
+  let zestApr = 0
+  try {
+    const backendBase = getBackendBase()
+    if (backendBase) {
+      const [gRes, zRes] = await Promise.all([
+        fetch(`${backendBase}/granite`),
+        fetch(`${backendBase}/zest-v2`),
+      ])
+      if (gRes.ok) {
+        const gData = await gRes.json()
+        const usdcxMarket = gData?.data?.['stacks-mainnet:granite:usdcx']
+        if (usdcxMarket?.supplyRate != null) graniteApr = usdcxMarket.supplyRate * 100
+      }
+      if (zRes.ok) {
+        const zData = await zRes.json()
+        const usdcxMarket = zData?.data?.['stacks-mainnet:zest-v2:6']
+        if (usdcxMarket?.supplyRate != null) zestApr = usdcxMarket.supplyRate * 100
+      }
+    }
+  } catch { /* keep 0 */ }
 
   // --- Blended APR ---
   let blendedApr = 0
@@ -379,7 +362,7 @@ async function fetchVaultStateV3Fallback(): Promise<VaultStateV3> {
 
 const VAULT_V3_STATE_KEY = ['vault-v3-state'] as const
 
-export function useVaultStateV3(pollIntervalMs = 60_000) {
+export function useVaultStateV3(pollIntervalMs = 120_000) {
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -387,7 +370,9 @@ export function useVaultStateV3(pollIntervalMs = 60_000) {
     queryFn: fetchVaultStateV3,
     refetchInterval: pollIntervalMs,
     placeholderData: (prev) => prev,
-    staleTime: 30_000,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   })
 
   const refresh = useCallback(() => {

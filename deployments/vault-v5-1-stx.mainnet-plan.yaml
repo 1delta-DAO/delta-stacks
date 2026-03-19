@@ -1,0 +1,81 @@
+# =============================================================================
+# Delta Vault V5-1 / STX — Mainnet Deployment Plan
+# =============================================================================
+#
+# The thin adapter (adapter-zest-v1-wstx-thin) must be deployed BEFORE the
+# vault because the vault references it by hardcoded contract principal.
+#
+# Usage
+# -----
+#   clarinet deployments apply \
+#     --deployment-plan-path deployments/vault-v5-1-stx.mainnet-plan.yaml
+#
+# =============================================================================
+
+id: 12
+name: Delta Vault V5-1 STX mainnet deployment
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    # ------------------------------------------------------------------
+    # Batch 1 — Deploy thin adapter first (vault references it by principal)
+    # ------------------------------------------------------------------
+    - id: 1
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: adapter-zest-v1-wstx-thin
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 800000
+          path: contracts/prod/v5/stx/adapter-zest-v1-wstx-thin.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 2 — Deploy vault (depends on thin adapter being on-chain)
+    # ------------------------------------------------------------------
+    - id: 2
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: vault-stx-v5-1
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 2500000
+          path: contracts/prod/v5/stx/vault-stx-v5-1.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 3 — Initialize + register adapters
+    # ------------------------------------------------------------------
+    - id: 3
+      transactions:
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v5-1
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: initialize
+          parameters:
+            - "'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.wstx"
+            - "\"1delta STX Vault v5\""
+            - "\"1dSTX\""
+            - "u6"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v5-1
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v1-wstx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-wstx-thin"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v5-1
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-stx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-stx-v5"
+          cost: 250000
+      epoch: '3.0'

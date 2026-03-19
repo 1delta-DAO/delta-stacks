@@ -1,0 +1,43 @@
+# =============================================================================
+# Delta Vault V4 / STX — Mainnet Init (post-deploy)
+# =============================================================================
+# Contracts already deployed in prior batch. This plan only initializes
+# the vault and registers the adapters.
+# =============================================================================
+
+id: 7
+name: Delta Vault V4 STX -- Initialize + Register Adapters
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v4
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: initialize
+          parameters:
+            - "'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.wstx"
+            - "\"1delta STX Vault v4\""
+            - "\"1dSTX\""
+            - "u6"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v4
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v1-wstx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-wstx-v4"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v4
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-stx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-stx-v4"
+          cost: 250000
+      epoch: '3.0'

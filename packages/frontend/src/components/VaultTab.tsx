@@ -30,6 +30,7 @@ function getAllocatorOps(v: VaultDef) {
     `Rebalance ${v.market1Label[0]}→${v.market2Label[0]}`,
     `Rebalance ${v.market2Label[0]}→${v.market1Label[0]}`,
     'Reallocate',
+    'Disable V1 Collateral',
   ] as const
 }
 
@@ -231,42 +232,57 @@ export function VaultTab({ vault: vaultDef = VAULT_USDCX, onBack }: { vault?: Va
 
         {/* Key metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.liveTotal, vaultDef.decimals)} ${vaultDef.asset}`} />
+          <MetricCard label="TVL" value={loading ? '...' : `${micro(vault.totalAssets, vaultDef.decimals)} ${vaultDef.asset}`} />
           <MetricCard label="Share Price" value={loading ? '...' : vault.sharePrice.toFixed(6)} />
           <MetricCard label="Total Shares" value={loading ? '...' : micro(vault.totalSupply, vaultDef.decimals)} />
-          <MetricCard
-            label="Unrealized Yield"
-            value={loading ? '...' : `${micro(vault.unrealizedYield, vaultDef.decimals)} ${vaultDef.asset}`}
-            positive={vault.unrealizedYield > 0n}
-          />
+          <MetricCard label="Fee" value={loading ? '...' : bpsPct(vault.feeBps)} />
         </div>
-
-        {/* V3 config row */}
-        {!loading && (
-          <div className="grid grid-cols-3 gap-3 mt-3">
-            <MetricCard label="Performance Fee" value={bpsPct(vault.feeBps)} />
-            <MetricCard label="Idle Buffer" value={bpsPct(vault.idleBufferBps)} />
-            <MetricCard label="Virtual Offset" value={vault.virtualOffset.toLocaleString()} />
-          </div>
-        )}
       </div>
 
-      {/* Allocation breakdown */}
-      {!loading && <AllocationBar vault={vault} vaultDef={vaultDef} />}
+      {/* Desktop: two-column layout — operations left, allocation pie right */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Left column: operations */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Role tabs */}
+          <Tabs
+            tabs={['User', 'Allocator', 'Owner']}
+            active={roleTab}
+            onChange={setRoleTab}
+          />
+
+          {roleTab === 0 && <UserPanel balances={balances} vault={vault} vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
+          {roleTab === 1 && <AllocatorPanel vault={vault} vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
+          {roleTab === 2 && <OwnerPanel vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
+        </div>
+
+        {/* Right column: allocation pie + config — stretch to match left */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          {!loading && <AllocationPie vault={vault} vaultDef={vaultDef} />}
+
+          {!loading && (
+            <div className="glass-card rounded-xl p-4 space-y-2 lg:flex-1">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-dim">Config</h3>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-text-dim">Performance Fee</span>
+                  <span className="font-mono text-text-muted">{bpsPct(vault.feeBps)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-dim">Idle Buffer</span>
+                  <span className="font-mono text-text-muted">{bpsPct(vault.idleBufferBps)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-dim">Virtual Offset</span>
+                  <span className="font-mono text-text-muted">{vault.virtualOffset.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Share price history chart */}
       <SharePriceChart historyEndpoint={vaultDef.historyEndpoint} />
-
-      {/* Role tabs */}
-      <Tabs
-        tabs={['User', 'Allocator', 'Owner']}
-        active={roleTab}
-        onChange={setRoleTab}
-      />
-
-      {roleTab === 0 && <UserPanel balances={balances} vault={vault} vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
-      {roleTab === 1 && <AllocatorPanel vault={vault} vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
-      {roleTab === 2 && <OwnerPanel vaultDef={vaultDef} onTxConfirm={onTxConfirm} />}
     </div>
   )
 }
@@ -287,6 +303,123 @@ function MetricCard({ label, value, positive }: { label: string; value: string; 
 // ---------------------------------------------------------------------------
 // Allocation breakdown bar + table
 // ---------------------------------------------------------------------------
+
+function AllocationPie({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: VaultDef }) {
+  const total = vault.totalAssets
+  const idle = vault.idleBookkeeping
+  const m1 = vault.allocMarket1
+  const m2 = vault.allocMarket2
+
+  const idlePct = total > 0n ? Number(idle * 10000n / total) / 100 : 100
+  const m1Pct = total > 0n ? Number(m1 * 10000n / total) / 100 : 0
+  const m2Pct = total > 0n ? Number(m2 * 10000n / total) / 100 : 0
+
+  // SVG pie chart using conic gradient approximation with arcs
+  const cx = 60, cy = 60, r = 50
+  const slices = [
+    { pct: m1Pct, color: '#6366f1', label: vaultDef.market1Label }, // accent-blue / indigo
+    { pct: m2Pct, color: '#a855f7', label: vaultDef.market2Label }, // accent-purple
+    { pct: idlePct, color: '#4b5563', label: 'Idle' },              // gray
+  ].filter(s => s.pct > 0)
+
+  let cumulativeAngle = -90 // start at top
+  const arcs = slices.map(({ pct: slicePct, color, label }) => {
+    const angle = (slicePct / 100) * 360
+    const startAngle = cumulativeAngle
+    const endAngle = cumulativeAngle + angle
+    cumulativeAngle = endAngle
+
+    const startRad = (startAngle * Math.PI) / 180
+    const endRad = (endAngle * Math.PI) / 180
+    const x1 = cx + r * Math.cos(startRad)
+    const y1 = cy + r * Math.sin(startRad)
+    const x2 = cx + r * Math.cos(endRad)
+    const y2 = cy + r * Math.sin(endRad)
+    const largeArc = angle > 180 ? 1 : 0
+
+    // Full circle edge case
+    if (slicePct >= 99.9) {
+      return { d: `M ${cx},${cy - r} A ${r},${r} 0 1,1 ${cx - 0.01},${cy - r} Z`, color, label, pct: slicePct }
+    }
+
+    return {
+      d: `M ${cx},${cy} L ${x1},${y1} A ${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`,
+      color,
+      label,
+      pct: slicePct,
+    }
+  })
+
+  return (
+    <div className="glass-card rounded-xl p-4 space-y-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-text-dim">Allocation</h3>
+
+      <div className="flex items-center justify-center">
+        <svg viewBox="0 0 120 120" className="w-36 h-36">
+          {arcs.map((arc, i) => (
+            <path key={i} d={arc.d} fill={arc.color} opacity={0.85}>
+              <title>{arc.label}: {arc.pct.toFixed(1)}%</title>
+            </path>
+          ))}
+          {/* Center hole for donut effect */}
+          <circle cx={cx} cy={cy} r={25} className="fill-surface" />
+          <text x={cx} y={cy - 2} textAnchor="middle" className="fill-text text-[8px] font-mono font-semibold">
+            {micro(total, vaultDef.decimals)}
+          </text>
+          <text x={cx} y={cy + 8} textAnchor="middle" className="fill-text-dim text-[6px]">
+            {vaultDef.asset}
+          </text>
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="space-y-2 text-xs">
+        <LegendRow
+          icon={vaultDef.market1Logo}
+          label={vaultDef.market1Label}
+          amount={micro(m1, vaultDef.decimals)}
+          pctVal={pct(m1Pct)}
+          apr={vault.market1Apr > 0 ? pct(vault.market1Apr) : null}
+          dotColor="#6366f1"
+        />
+        <LegendRow
+          icon={vaultDef.market2Logo}
+          label={vaultDef.market2Label}
+          amount={micro(m2, vaultDef.decimals)}
+          pctVal={pct(m2Pct)}
+          apr={vault.market2Apr > 0 ? pct(vault.market2Apr) : null}
+          dotColor="#a855f7"
+        />
+        <LegendRow
+          label="Idle"
+          amount={micro(idle, vaultDef.decimals)}
+          pctVal={pct(idlePct)}
+          apr={null}
+          dotColor="#4b5563"
+        />
+      </div>
+    </div>
+  )
+}
+
+function LegendRow({ icon, label, amount, pctVal, apr, dotColor }: {
+  icon?: string; label: string; amount: string; pctVal: string; apr: string | null; dotColor: string
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-1.5">
+        <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ backgroundColor: dotColor }} />
+        {icon && <img src={icon} alt={label} className="w-3.5 h-3.5 rounded-full" />}
+        <span className="text-text-muted font-medium">{label}</span>
+      </div>
+      <div className="flex items-center gap-2 font-mono">
+        <span className="text-text-dim">{pctVal}</span>
+        <span className="text-text-muted">{amount}</span>
+        {apr && <span className="text-positive text-[10px]">{apr}</span>}
+      </div>
+    </div>
+  )
+}
 
 function AllocationBar({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: VaultDef }) {
   const total = vault.totalAssets
@@ -353,19 +486,13 @@ function AllocationBar({ vault, vaultDef }: { vault: NormalizedVault; vaultDef: 
             <span className="w-2.5 h-2.5 rounded-full bg-text-dim/30 inline-block" />
             <span className="text-text-dim font-medium">Idle</span>
           </div>
-          <div className="font-mono pl-4 text-text-muted">{micro(vault.liveIdle, vaultDef.decimals)}</div>
+          <div className="font-mono pl-4 text-text-muted">{micro(vault.idleBookkeeping, vaultDef.decimals)}</div>
           <div className="text-text-dim pl-4">{pct(idlePct)}</div>
           <div className="text-text-dim pl-4 font-mono">0.00% APR</div>
         </div>
       </div>
 
-      {/* Live vs bookkeeping */}
-      {vault.unrealizedYield > 0n && (
-        <div className="text-xs text-text-dim bg-surface-alt/60 rounded-xl p-3 flex justify-between border border-border-subtle">
-          <span>Live total (incl. unrealized)</span>
-          <span className="font-mono text-text-muted">{micro(vault.liveTotal, vaultDef.decimals)} {vaultDef.asset}</span>
-        </div>
-      )}
+      {/* Live vs bookkeeping -- hidden when live data not fetched */}
     </div>
   )
 }
@@ -510,7 +637,8 @@ function UserPanel({ balances, vault, vaultDef, onTxConfirm }: { balances: Balan
     if (tx.status === 'submitted' && tx.txId) pending.addTx(tx.txId)
   }, [tx.status, tx.txId, pending])
 
-  const amtExceedsMax = parseFloat(amount) > maxAmount
+  // Don't block if data hasn't loaded yet (maxAmount=0 due to failed RPC)
+  const amtExceedsMax = maxAmount > 0 && parseFloat(amount) > maxAmount
 
   return (
     <div className="glass-card rounded-xl p-5 space-y-4">
@@ -590,6 +718,7 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
 
   const op = allocOps[opTab]
   const isReallocate = op === 'Reallocate'
+  const isNoAmountOp = op === 'Disable V1 Collateral'
 
   const decFactor = 10 ** vaultDef.decimals
 
@@ -612,6 +741,48 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
       return
     }
 
+    // Disable V1 Collateral -- two-step:
+    // 1. Fund adapter with STX for Pyth oracle fee (user signs STX transfer)
+    // 2. Call disable-collateral with fresh Pyth data (user signs contract call)
+    if (op === 'Disable V1 Collateral') {
+      const adapterPrincipal = vaultDef.id === 'stx'
+        ? 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-wstx-thin-v3'
+        : 'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-sbtc-thin-v3'
+
+      // Step 1: Fund adapter for Pyth fee
+      try {
+        const { request: walletRequest } = await import('@stacks/connect')
+        await walletRequest('stx_transferStx', {
+          recipient: adapterPrincipal,
+          amount: '10000', // 0.01 STX
+        })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        if (msg.includes('cancel') || msg.includes('denied')) {
+          return // user cancelled
+        }
+        // Non-cancel error -- adapter may already have funds, proceed
+      }
+
+      // Step 2: Disable collateral with fresh Pyth data
+      await tx.execute(async () => {
+        let priceFeedBytes: Uint8Array | null = null
+        try {
+          const { fetchPythPriceUpdate, PYTH_FEED_IDS } = await import('@delta-stacks/calldata-sdk-stacks')
+          const feeds = vaultDef.id === 'stx'
+            ? [PYTH_FEED_IDS.STX, PYTH_FEED_IDS.BTC]
+            : [PYTH_FEED_IDS.BTC]
+          priceFeedBytes = await fetchPythPriceUpdate(feeds)
+        } catch (e) {
+          console.warn('Failed to fetch Pyth price feed, trying with none:', e)
+        }
+        if (vaultDef.id === 'stx') return DeltaVaultSTX.encodeDisableV1Collateral(priceFeedBytes)
+        if (vaultDef.id === 'sbtc') return DeltaVaultSBTC.encodeDisableV1Collateral(priceFeedBytes)
+        throw new Error('Disable V1 Collateral not supported for this vault')
+      })
+      return
+    }
+
     if (!amount) return
     const amtRaw = parseFloat(amount)
     if (isNaN(amtRaw) || amtRaw <= 0) return
@@ -630,15 +801,15 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
         if (isM2Deploy) return DeltaVaultSBTC.encodeDeployToZestV2(amtSmallest)
         if (isM1Recall) return DeltaVaultSBTC.encodeRecallFromZestV1(amtSmallest)
         if (isM2Recall) return DeltaVaultSBTC.encodeRecallFromZestV2(amtSmallest)
-        if (isRebal12) return DeltaVaultSBTC.encodeRebalanceV1ToV2(amtSmallest)
-        if (isRebal21) return DeltaVaultSBTC.encodeRebalanceV2ToV1(amtSmallest)
+        if (isRebal12) return DeltaVaultSBTC.encodeRecallFromZestV1(amtSmallest)
+        if (isRebal21) return DeltaVaultSBTC.encodeDeployToZestV1(amtSmallest)
       } else if (vaultDef.id === 'stx') {
         if (isM1Deploy) return DeltaVaultSTX.encodeDeployToZestV1(amtSmallest)
         if (isM2Deploy) return DeltaVaultSTX.encodeDeployToZestV2(amtSmallest)
         if (isM1Recall) return DeltaVaultSTX.encodeRecallFromZestV1(amtSmallest)
         if (isM2Recall) return DeltaVaultSTX.encodeRecallFromZestV2(amtSmallest)
-        if (isRebal12) return DeltaVaultSTX.encodeRebalanceV1ToV2(amtSmallest)
-        if (isRebal21) return DeltaVaultSTX.encodeRebalanceV2ToV1(amtSmallest)
+        if (isRebal12) return DeltaVaultSTX.encodeRecallFromZestV1(amtSmallest)
+        if (isRebal21) return DeltaVaultSTX.encodeDeployToZestV1(amtSmallest)
       } else {
         if (isM1Deploy) return DeltaVaultV3.encodeDeployToGranite(amtSmallest)
         if (isM2Deploy) return DeltaVaultV3.encodeDeployToZestV2(amtSmallest)
@@ -675,7 +846,7 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
       <div className="bg-surface-alt/60 rounded-xl p-3 space-y-1.5 text-xs border border-border-subtle">
         <div className="flex justify-between">
           <span className="text-text-dim">Idle (deployable)</span>
-          <span className="font-mono text-text-muted">{micro(vault.liveIdle, vaultDef.decimals)} {vaultDef.asset}</span>
+          <span className="font-mono text-text-muted">{micro(vault.idleBookkeeping, vaultDef.decimals)} {vaultDef.asset}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-text-dim">{vaultDef.market1Label}</span>
@@ -687,7 +858,11 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
         </div>
       </div>
 
-      {isReallocate ? (
+      {isNoAmountOp ? (
+        <div className="text-xs text-text-dim bg-surface-alt/60 rounded-xl p-3 border border-border-subtle">
+          Disables the Zest V1 collateral flag on the adapter. This skips the deep health-factor check on withdrawals. Call after each deploy to V1. Requires 2 wallet signatures: first funds the adapter with 0.01 STX for the Pyth oracle fee, then calls disable-collateral with fresh price data.
+        </div>
+      ) : isReallocate ? (
         <div className="space-y-3">
           <div className="text-xs text-text-dim">
             Zero-sum rebalance: total recalled must equal total deployed.
@@ -744,7 +919,7 @@ function AllocatorPanel({ vault, vaultDef, onTxConfirm }: { vault: NormalizedVau
         connect={connect}
         onClick={handleSubmit}
         disabled={
-          isReallocate
+          (isReallocate || isNoAmountOp)
             ? tx.status === 'building' || tx.status === 'signing'
             : !amount || tx.status === 'building' || tx.status === 'signing'
         }

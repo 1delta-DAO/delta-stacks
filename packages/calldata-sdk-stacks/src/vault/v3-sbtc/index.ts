@@ -1,5 +1,5 @@
 import type { StacksContractCall } from '../../types'
-import { principal, uint, noneCV } from '../../types/clarity-args'
+import { principal, uint, noneCV, someCV, bufferCV } from '../../types/clarity-args'
 import type { ClarityValue } from '../../types/clarity-args'
 import {
   VAULT_SBTC_DEPLOYER,
@@ -190,8 +190,12 @@ export namespace DeltaVaultSBTC {
   // Allocator operations (vault-allocator only)
   // =================================================================
 
+  // --- Zest V1 operations ---
+  // Deploy goes through vault (borrow-helper.supply has no depth issue).
+  // Recall goes through external manager (borrow-helper.withdraw has depth issue).
+
   /**
-   * Deploy idle sBTC into Zest V1 (sBTC pool).
+   * Deploy idle sBTC into Zest V1 (via vault -- supply is shallow).
    */
   export const encodeDeployToZestV1 = (
     amount: bigint | number,
@@ -203,6 +207,52 @@ export namespace DeltaVaultSBTC {
     ])
 
   /**
+   * Disable V1 collateral flag on the adapter.
+   * Call after each deploy-to-zest-v1 to skip health-factor check on withdrawals.
+   *
+   * @param priceFeedBytes - fresh Pyth price feed VAA (required by Zest oracle)
+   */
+  export const encodeDisableV1Collateral = (
+    priceFeedBytes?: Uint8Array | null,
+  ): StacksContractCall =>
+    call(VAULT_SBTC_CONTRACTS.adapterZestV1, 'disable-collateral', [
+      priceFeedBytes ? someCV(bufferCV(priceFeedBytes)) : noneCV(),
+    ])
+
+  /**
+   * Update vault bookkeeping after V1 deploy via manager.
+   */
+  export const encodeCompleteV1Deploy = (
+    amount: bigint | number,
+  ): StacksContractCall =>
+    call(VAULT_SBTC_CONTRACTS.vault, 'complete-v1-deploy', [
+      uint(amount),
+    ])
+
+  /**
+   * Recall sBTC from Zest V1 via manager (step 1 of 2).
+   * Follow with encodeCompleteV1Recall for vault bookkeeping.
+   */
+  export const encodeRecallFromZestV1 = (
+    amount: bigint | number,
+  ): StacksContractCall =>
+    call(VAULT_SBTC_CONTRACTS.zestV1Manager, 'recall', [
+      uint(amount),
+    ])
+
+  /**
+   * Update vault bookkeeping after V1 recall (step 2 of 2).
+   */
+  export const encodeCompleteV1Recall = (
+    amount: bigint | number,
+  ): StacksContractCall =>
+    call(VAULT_SBTC_CONTRACTS.vault, 'complete-v1-recall', [
+      uint(amount),
+    ])
+
+  // --- Zest V2 operations (in-vault, single tx) ---
+
+  /**
    * Deploy idle sBTC into Zest V2.
    */
   export const encodeDeployToZestV2 = (
@@ -210,18 +260,6 @@ export namespace DeltaVaultSBTC {
     adapter: string = VAULT_SBTC_CONTRACTS.adapterZestV2,
   ): StacksContractCall =>
     call(VAULT_SBTC_CONTRACTS.vault, 'deploy-to-zest-v2', [
-      uint(amount),
-      principal(adapter),
-    ])
-
-  /**
-   * Recall sBTC from Zest V1 back to idle.
-   */
-  export const encodeRecallFromZestV1 = (
-    amount: bigint | number,
-    adapter: string = VAULT_SBTC_CONTRACTS.adapterZestV1,
-  ): StacksContractCall =>
-    call(VAULT_SBTC_CONTRACTS.vault, 'recall-from-zest-v1', [
       uint(amount),
       principal(adapter),
     ])
@@ -239,40 +277,7 @@ export namespace DeltaVaultSBTC {
     ])
 
   /**
-   * Rebalance from Zest V1 to Zest V2 atomically.
-   */
-  export const encodeRebalanceV1ToV2 = (
-    amount: bigint | number,
-    adapter: { zestV1: string; zestV2: string } = {
-      zestV1: VAULT_SBTC_CONTRACTS.adapterZestV1,
-      zestV2: VAULT_SBTC_CONTRACTS.adapterZestV2,
-    },
-  ): StacksContractCall =>
-    call(VAULT_SBTC_CONTRACTS.vault, 'rebalance-v1-to-v2', [
-      uint(amount),
-      principal(adapter.zestV1),
-      principal(adapter.zestV2),
-    ])
-
-  /**
-   * Rebalance from Zest V2 to Zest V1 atomically.
-   */
-  export const encodeRebalanceV2ToV1 = (
-    amount: bigint | number,
-    adapter: { zestV1: string; zestV2: string } = {
-      zestV1: VAULT_SBTC_CONTRACTS.adapterZestV1,
-      zestV2: VAULT_SBTC_CONTRACTS.adapterZestV2,
-    },
-  ): StacksContractCall =>
-    call(VAULT_SBTC_CONTRACTS.vault, 'rebalance-v2-to-v1', [
-      uint(amount),
-      principal(adapter.zestV2),
-      principal(adapter.zestV1),
-    ])
-
-  /**
-   * Zero-sum rebalance across both markets atomically.
-   * from-v1 + from-v2 must equal to-v1 + to-v2.
+   * Reallocate V2 capital (V2 only).
    */
   export const encodeReallocate = (
     fromV1: bigint | number,
@@ -284,12 +289,9 @@ export namespace DeltaVaultSBTC {
       zestV2: VAULT_SBTC_CONTRACTS.adapterZestV2,
     },
   ): StacksContractCall =>
-    call(VAULT_SBTC_CONTRACTS.vault, 'reallocate', [
-      uint(fromV1),
+    call(VAULT_SBTC_CONTRACTS.vault, 'reallocate-v2', [
       uint(fromV2),
-      uint(toV1),
       uint(toV2),
-      principal(adapter.zestV1),
       principal(adapter.zestV2),
     ])
 

@@ -1,0 +1,85 @@
+# =============================================================================
+# Delta Vault V5-2 / STX — Mainnet Deployment Plan
+# =============================================================================
+#
+# V5-2: vault never calls borrow-helper.withdraw.  V1 operations handled
+# by external zest-v1-manager at minimal stack depth.  User withdrawals
+# pull from idle + V2 only (V1 in math, redirected to V2).
+#
+# Depends on: adapter-zest-v1-wstx-thin (already deployed)
+#             adapter-zest-v2-stx-v5 (already deployed)
+#
+# Usage
+# -----
+#   clarinet deployments apply \
+#     --deployment-plan-path deployments/vault-v5-2-stx.mainnet-plan.yaml
+#
+# =============================================================================
+
+id: 13
+name: Delta Vault V5-2 STX mainnet deployment
+network: mainnet
+stacks-node: https://api.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+    # ------------------------------------------------------------------
+    # Batch 1 — Deploy vault first (manager references it)
+    # ------------------------------------------------------------------
+    - id: 1
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: vault-stx-v5-2
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 2500000
+          path: contracts/prod/v5/stx/vault-stx-v5-2.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 2 — Deploy manager (references vault-stx-v5-2)
+    # ------------------------------------------------------------------
+    - id: 2
+      transactions:
+        - transaction-type: contract-publish
+          contract-name: zest-v1-manager
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          cost: 500000
+          path: contracts/prod/v5/stx/zest-v1-manager.clar
+          anchor-block-only: true
+          clarity-version: 3
+      epoch: '3.0'
+
+    # ------------------------------------------------------------------
+    # Batch 3 — Initialize + register adapters
+    # ------------------------------------------------------------------
+    - id: 3
+      transactions:
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v5-2
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: initialize
+          parameters:
+            - "'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.wstx"
+            - "\"1delta STX Vault v5\""
+            - "\"1dSTX\""
+            - "u6"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v5-2
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v1-wstx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v1-wstx-thin"
+          cost: 250000
+
+        - transaction-type: contract-call
+          contract-id: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v5-2
+          expected-sender: SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H
+          method: register-adapter-zest-v2-stx
+          parameters:
+            - "'SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.adapter-zest-v2-stx-v5"
+          cost: 250000
+      epoch: '3.0'

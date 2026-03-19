@@ -4,11 +4,10 @@ import { Tabs } from './components/Tabs'
 import { BalancesTab } from './components/BalancesTab'
 import { LendingTab } from './components/LendingTab'
 import { VaultTab } from './components/VaultTab'
-import { VaultLegacyTab } from './components/VaultLegacyTab'
 import { VaultSelector } from './components/VaultSelector'
 import { ALL_VAULTS, type VaultDef } from './config/vaults'
 
-const MAIN_TABS = ['Balances', 'Lending', 'Vaults', 'Vault (Legacy)']
+const MAIN_TABS = ['Vaults', 'Lending', 'Balances']
 
 function App() {
   const [tab, setTab] = useState(0)
@@ -19,14 +18,13 @@ function App() {
       <Header />
       <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-6 space-y-6">
         <Tabs tabs={MAIN_TABS} active={tab} onChange={setTab} />
-        {tab === 0 && <BalancesTab />}
-        {tab === 1 && <LendingTab />}
-        {tab === 2 && (
+        {tab === 0 && (
           selectedVault
             ? <VaultTab vault={selectedVault} onBack={() => setSelectedVault(null)} />
             : <VaultSelector vaults={ALL_VAULTS} onSelect={setSelectedVault} />
         )}
-        {tab === 3 && <VaultLegacyTab />}
+        {tab === 1 && <LendingTab />}
+        {tab === 2 && <BalancesTab />}
       </main>
     </div>
   )
