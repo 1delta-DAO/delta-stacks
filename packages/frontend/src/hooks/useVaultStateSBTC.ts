@@ -248,15 +248,20 @@ async function fetchVaultStateSBTCFallback(): Promise<VaultStateSBTC> {
   const liveV2Hex = ''
   const liveTotalHex = ''
 
-  const rawTotalAssets = decodeUint(totalAssetsHex)
-  const allocZestV1 = decodeUint(allocV1Hex)
-  const allocZestV2 = decodeUint(allocV2Hex)
+  const totalAssets = decodeUint(totalAssetsHex)
+  const rawAllocV1 = decodeUint(allocV1Hex)
+  const rawAllocV2 = decodeUint(allocV2Hex)
   const totalSupply = decodeUint(totalSupplyHex)
 
-  // Derive idle locally; ensure TVL is never understated by a race
-  const allocSum = allocZestV1 + allocZestV2
-  const totalAssets = rawTotalAssets >= allocSum ? rawTotalAssets : allocSum
-  const idleBookkeeping = totalAssets - allocSum
+  // Scale allocs if bookkeeping drifted (see useVaultStateSTX for details)
+  const rawSum = rawAllocV1 + rawAllocV2
+  const allocZestV1 = rawSum > totalAssets && rawSum > 0n
+    ? rawAllocV1 * totalAssets / rawSum
+    : rawAllocV1
+  const allocZestV2 = rawSum > totalAssets && rawSum > 0n
+    ? rawAllocV2 * totalAssets / rawSum
+    : rawAllocV2
+  const idleBookkeeping = totalAssets - allocZestV1 - allocZestV2
 
   const liveIdle = decodeUint(liveIdleHex)
   const liveZestV1 = decodeUint(liveV1Hex)

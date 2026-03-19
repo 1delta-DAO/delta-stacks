@@ -275,16 +275,21 @@ async function fetchVaultStateV3Fallback(): Promise<VaultStateV3> {
       callRead(SENDER, vaultContract, 'get-fee-bps'),
     ])
 
-  const rawTotalAssets = decodeUint(totalAssetsHex)
-  const allocGranite = decodeUint(allocGraniteHex)
-  const allocZest = decodeUint(allocZestHex)
+  const totalAssets = decodeUint(totalAssetsHex)
+  const rawGranite = decodeUint(allocGraniteHex)
+  const rawZest = decodeUint(allocZestHex)
   const totalSupply = decodeUint(totalSupplyHex)
   const feeBps = decodeUint(feeBpsHex)
 
-  // Derive idle locally; ensure TVL is never understated by a race
-  const allocSum = allocGranite + allocZest
-  const totalAssets = rawTotalAssets >= allocSum ? rawTotalAssets : allocSum
-  const idleBookkeeping = totalAssets - allocSum
+  // Scale allocs if bookkeeping drifted (see useVaultStateSTX for details)
+  const rawSum = rawGranite + rawZest
+  const allocGranite = rawSum > totalAssets && rawSum > 0n
+    ? rawGranite * totalAssets / rawSum
+    : rawGranite
+  const allocZest = rawSum > totalAssets && rawSum > 0n
+    ? rawZest * totalAssets / rawSum
+    : rawZest
+  const idleBookkeeping = totalAssets - allocGranite - allocZest
 
   // Live positions not fetched (saves 5 RPCs) — use bookkeeping as approximation
   const liveIdle = idleBookkeeping

@@ -251,18 +251,24 @@ async function fetchVaultStateSTXFallback(): Promise<VaultStateSTX> {
   const liveV2Hex = ''
   const liveTotalHex = ''
 
-  const rawTotalAssets = decodeUint(totalAssetsHex)
-  const allocZestV1 = decodeUint(allocV1Hex)
-  const allocZestV2 = decodeUint(allocV2Hex)
+  const totalAssets = decodeUint(totalAssetsHex)
+  const rawAllocV1 = decodeUint(allocV1Hex)
+  const rawAllocV2 = decodeUint(allocV2Hex)
   const totalSupply = decodeUint(totalSupplyHex)
 
-  // Derive idle locally and ensure consistency: if a race condition caused
-  // alloc reads to reflect a newer block than totalAssets, the sum of
-  // allocations can exceed the stale totalAssets.  Use the larger value so
-  // TVL is never understated.
-  const allocSum = allocZestV1 + allocZestV2
-  const totalAssets = rawTotalAssets >= allocSum ? rawTotalAssets : allocSum
-  const idleBookkeeping = totalAssets - allocSum
+  // If alloc bookkeeping drifted (alloc sum > total-assets), scale allocs
+  // proportionally so they fit within totalAssets.  This prevents the
+  // allocation pie from exceeding 100% and TVL appearing understated.
+  // Root cause: sync + complete-v1-deploy race can double-count a deploy
+  // in alloc-zest-v1 while total only counts it once.
+  const rawSum = rawAllocV1 + rawAllocV2
+  const allocZestV1 = rawSum > totalAssets && rawSum > 0n
+    ? rawAllocV1 * totalAssets / rawSum
+    : rawAllocV1
+  const allocZestV2 = rawSum > totalAssets && rawSum > 0n
+    ? rawAllocV2 * totalAssets / rawSum
+    : rawAllocV2
+  const idleBookkeeping = totalAssets - allocZestV1 - allocZestV2
   const liveIdle = decodeUint(liveIdleHex)
   const liveZestV1 = decodeUint(liveV1Hex)
   const liveZestV2 = decodeUint(liveV2Hex)
