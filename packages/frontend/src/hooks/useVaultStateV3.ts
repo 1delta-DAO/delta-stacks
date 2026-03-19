@@ -284,23 +284,22 @@ async function fetchVaultStateV3Fallback(): Promise<VaultStateV3> {
   const allocZest = decodeUint(allocZestHex)
   const idleBookkeeping = decodeUint(idleBookHex)
   const totalSupply = decodeUint(totalSupplyHex)
-  const liveIdle = decodeUint(liveIdleHex)
-  const liveGranite = decodeUint(liveGraniteHex)
-  const liveZest = decodeUint(liveZestHex)
-  const liveTotalDeployed = decodeUint(liveTotalHex)
-  const liveTotal = liveTotalDeployed + liveIdle
+  const feeBps = decodeUint(feeBpsHex)
 
-  const virtualOffset = decodeUint(virtualOffsetHex)
-  const vo = virtualOffset > 0n ? virtualOffset : 1_000_000n
+  // Live positions not fetched (saves 5 RPCs) — use bookkeeping as approximation
+  const liveIdle = idleBookkeeping
+  const liveGranite = allocGranite
+  const liveZest = allocZest
+  const liveTotal = totalAssets
+
+  const vo = 1_000_000n
   const sharePrice =
     totalSupply > 0n
       ? Number((totalAssets + vo) * 1_000_000n / (totalSupply + vo)) / 1e6
       : 1
 
-  const unrealizedYield = liveTotal > totalAssets ? liveTotal - totalAssets : 0n
-
-  const feeBps = decodeUint(feeBpsHex)
-  const idleBufferBps = decodeUint(idleBufferBpsHex)
+  const unrealizedYield = 0n
+  const idleBufferBps = 500n
 
   // --- APR from backend ---
   let graniteApr = 0
