@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy:wrangler": "wrangler deploy",
+    "deploy:wrangler": "wrangler deploy --name delta-stacks-data",
     "log": "wrangler tail",
     "typecheck": "tsc --noEmit"
   },

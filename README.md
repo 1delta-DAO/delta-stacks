@@ -1,62 +1,83 @@
 # Delta Stacks
 
-DeFi infrastructure for Stacks lending protocols. Provides on-chain data aggregation, transaction encoding, and mainnet fork testing for **Zest V1**, **Zest V2**, and **Granite**.
+DeFi yield-aggregation infrastructure for Stacks (Bitcoin L2). Automatically allocates deposited assets across the highest-yielding Stacks lending protocols — currently supporting **Zest V1**, **Zest V2**, and **Granite**.
 
-## Project Structure
+## Overview
+
+Delta Stacks is a monorepo implementing the full stack of a DeFi yield aggregator on Stacks:
+
+| Layer | What it does |
+|-------|-------------|
+| **Clarity contracts** | ERC-4626-style vault contracts + read-only aggregator |
+| **Calldata SDK** | TypeScript transaction encoders for every lending operation |
+| **Data provision** | On-chain data fetching, price oracles, vault snapshots |
+| **Backend** | Cloudflare Workers — REST API, cron polling, auto-allocator bot |
+| **Frontend** | React 19 UI — view balances, lending markets, and interact with vaults |
+
+## Vaults
+
+Three ERC-4626 vaults are deployed on mainnet, each routing deposits to the highest-APR market:
+
+| Vault | Token | Market 1 | Market 2 | Share token |
+|-------|-------|----------|----------|-------------|
+| USDCx Vault | USDCx (6 dec) | Granite | Zest V2 | 1dUSDCx |
+| STX Vault | wSTX (6 dec) | Zest V1 | Zest V2 | 1dSTX |
+| sBTC Vault | sBTC (8 dec) | Zest V1 | Zest V2 | 1dsBTC |
+
+The vault share price follows `(totalAssets + V) / (totalSupply + V)` where `V = 10^decimals`, preventing price manipulation via direct deposits.
+
+## Repository Structure
 
 ```
 delta-stacks/
-  contracts/           Clarity aggregator contracts (deployed on-chain)
+  contracts/
+    prod/v2/                   Vault V2 production contracts (legacy)
+    prod/v3/usdcx/             Vault V3 USDCx contract + README
+    prod/v3/stx/               Vault V3 STX contract + README
+    zest-reader.clar           Read-only aggregator (batch multi-protocol reads)
   packages/
-    data-provision/    Read-only data fetching & parsing for all protocols
-    calldata-sdk-stacks/  Transaction calldata encoders for all protocols
-    backend/           Cloudflare Workers backend (REST API + cron + auto-allocator)
-    frontend/          React 19 + Tailwind 4 frontend
-  tests/fork/          Mainnet fork integration tests
+    calldata-sdk-stacks/       Transaction calldata encoders for all protocols
+      src/vault/v2/            Legacy vault SDK
+      src/vault/v3/            Vault V3 SDK
+      src/zest-v1/             Zest V1 encoders
+      src/zest-v2/             Zest V2 encoders
+      src/granite/             Granite encoders
+      src/lending/             High-level lending API
+    data-provision/            On-chain data fetching & parsing
+      src/lending/public-data/ Protocol-specific data modules
+      src/vault/               Vault snapshot fetcher
+      src/prices/              Oracle price aggregation (Pyth + on-chain)
+      src/token-list/          Stacks token list utilities
+    backend/                   Cloudflare Workers (cron + REST API + allocator)
+    frontend/                  React 19 + Tailwind 4 UI
+  tests/fork/                  Mainnet fork integration tests
 ```
 
 ## Packages
 
 ### `contracts/`
 
-A single Clarity contract (`zest-reader.clar`) that batches multiple cross-contract read-only calls into one RPC request. Covers Zest V1, Zest V2, and Granite reserve data. Deployed via Clarinet with `clarity_version = 3` on `epoch 3.0`.
+Clarity smart contracts for vault logic and on-chain data aggregation.
 
-### `@delta-stacks/data-provision`
+- `zest-reader.clar` — Batches multiple cross-contract read-only calls into a single RPC request, covering Zest V1, Zest V2, and Granite reserve data. Deployed with `clarity_version = 3`, epoch 3.0.
+- `prod/v3/` — Vault V3 contracts (USDCx and STX variants). ERC-4626-style portable vaults with fee accrual, bookkeeping offsets, and protocol adapter trait.
 
-Fetches and parses on-chain lending market data for all three protocols.
-
-- **`stacks-call/`** - Generic Stacks RPC call executor with Clarity encoding/decoding
-- **`public-data/zest-v1/`** - Zest V1 reserve data (6 pools, 6 calls per pool)
-- **`public-data/zest-v2/`** - Zest V2 reserve data with e-mode support
-- **`public-data/granite/`** - Granite isolated market data (aeUSDC + USDCx, 9 calls per market)
-- **`token-list/`** - Stacks token list fetcher and address utilities
-
-Each protocol module follows the same pattern:
-1. `constants.ts` - Contract addresses and market definitions
-2. `publicCallBuild.ts` - Builds read-only call descriptors
-3. `publicCallParse.ts` - Parses raw Clarity responses into typed data
-4. `aggregatorParse.ts` - Parses aggregated results from the on-chain reader contract
-
-Usage:
-```typescript
-import { getStacksLenderPublicData } from '@delta-stacks/data-provision'
-
-const zestV1 = await getStacksLenderPublicData('zest-v1')
-const zestV2 = await getStacksLenderPublicData('zest-v2')
-const granite = await getStacksLenderPublicData('granite')
-```
+See [contracts/README.md](contracts/README.md) and [contracts/prod/v3/usdcx/README.md](contracts/prod/v3/usdcx/README.md).
 
 ### `@delta-stacks/calldata-sdk-stacks`
 
-Encodes Stacks contract call transactions for all lending operations. Returns `StacksContractCall` objects (`{ contractAddress, contractName, functionName, functionArgs }`) ready for wallet signing or simnet execution.
+TypeScript SDK that encodes Stacks contract call transactions for all supported operations. Returns `StacksContractCall` objects ready for wallet signing or simnet execution — never broadcasts directly.
 
-**Zest V1** - `ZestV1Lending.encodeSupply()`, `encodeBorrow()`, `encodeRepay()`, `encodeWithdraw()`
+**Zest V1** — `ZestV1Lending.encodeSupply()`, `encodeBorrow()`, `encodeRepay()`, `encodeWithdraw()`
 
-**Zest V2** - `ZestV2Lending.encodeSupply()`, `encodeBorrow()`, `encodeRepay()`, `encodeWithdraw()`, `encodeSetEMode()`
+**Zest V2** — `ZestV2Lending.encodeSupply()`, `encodeBorrow()`, `encodeRepay()`, `encodeWithdraw()`, `encodeSetEMode()`
 
-**Granite** - `GraniteLending.encodeDeposit()`, `encodeWithdraw()`, `encodeRedeem()`, `encodeAddCollateral()`, `encodeRemoveCollateral()`, `encodeBorrow()`, `encodeRepay()`, `encodeLiquidate()`, `encodeFlashLoan()`
+**Granite** — `GraniteLending.encodeDeposit()`, `encodeWithdraw()`, `encodeRedeem()`, `encodeAddCollateral()`, `encodeRemoveCollateral()`, `encodeBorrow()`, `encodeRepay()`, `encodeLiquidate()`, `encodeFlashLoan()`
 
-Usage:
+**Vault V3** — `DeltaVaultV3.encodeDeposit()`, `encodeWithdraw()`, `encodeAllocate()`
+
+All amounts are in on-chain micro-units (e.g., 1 USDCx = `1_000_000`).
+
 ```typescript
 import { GraniteLending, GRANITE_AEUSDC_MARKET } from '@delta-stacks/calldata-sdk-stacks'
 
@@ -64,12 +85,58 @@ const call = GraniteLending.encodeDeposit(GRANITE_AEUSDC_MARKET, 100_000_000, se
 // -> { contractAddress, contractName, functionName, functionArgs }
 ```
 
+See [packages/calldata-sdk-stacks/README.md](packages/calldata-sdk-stacks/README.md).
+
+### `@delta-stacks/data-provision`
+
+Read-only on-chain data fetching, price oracle aggregation, and vault snapshot reading. Used by both the backend and frontend.
+
+```typescript
+import { getStacksLenderPublicData, fetchAllPrices, fetchVaultSnapshot } from '@delta-stacks/data-provision'
+
+const zestV1 = await getStacksLenderPublicData('zest-v1')
+const prices  = await fetchAllPrices()
+const vault   = await fetchVaultSnapshot({ vault: 'usdcx' })
+```
+
+See [packages/data-provision/README.md](packages/data-provision/README.md).
+
+### `packages/backend/`
+
+Cloudflare Workers service exposing a REST API and running two scheduled cron jobs:
+
+- **Every 2 min** — Refreshes prices, rotates through lenders, snapshots all three vaults
+- **Every 4 hours** — Auto-allocator: rebalances vaults to the higher-APR market when the delta exceeds 0.5%
+
+Key endpoints: `GET /lending`, `GET /prices`, `GET /vault/history`, `POST /allocate`
+
+See [packages/backend/README.md](packages/backend/README.md).
+
+### `packages/frontend/`
+
+React 19 + Tailwind 4 single-page app providing:
+
+- **Balances tab** — Token holdings
+- **Lending tab** — Live APR and liquidity for all markets
+- **Vault tab** — Deposit/withdraw/rebalance for V3 vaults with share-price chart
+- **Legacy tab** — V2 vault support
+
+See [packages/frontend/README.md](packages/frontend/README.md).
+
+## Supported Protocols
+
+| Protocol | Type | Markets |
+|----------|------|---------|
+| **Zest V1** | Pool-based lending (Aave-like) | STX, sBTC, USDA, xBTC, DIKO, Welsh |
+| **Zest V2** | Hub-spoke with e-mode vaults | Multiple pools with efficiency grouping |
+| **Granite** | Isolated markets (Compound V3 style) | aeUSDC, USDCx |
+
 ## Mainnet Fork Tests
 
-Tests in `tests/fork/` run against a Clarinet simnet forked from Stacks mainnet at block **6,972,000**. They validate both the on-chain reader contract and the calldata SDK encoders against real protocol state.
+Tests in `tests/fork/` run against a Clarinet simnet forked from Stacks mainnet. They validate the on-chain reader contract and calldata SDK encoders against real protocol state.
 
 | Test file | What it covers |
-|---|---|
+|-----------|----------------|
 | `zest-reader-mainnet.test.ts` | Zest V1/V2 aggregator contract reads |
 | `zest-v1-deposit.test.ts` | Zest V1 supply via SDK encoder |
 | `zest-v1-borrow.test.ts` | Zest V1 borrow via SDK encoder |
@@ -81,6 +148,8 @@ Run fork tests individually (parallel execution hits API rate limits):
 ```bash
 npx vitest run tests/fork/granite-deposit.test.ts
 ```
+
+See [tests/fork/README.md](tests/fork/README.md).
 
 ## Development
 
@@ -111,12 +180,36 @@ npx vitest run tests/fork/granite-deposit.test.ts
 # Package-level tests
 cd packages/calldata-sdk-stacks && pnpm test
 cd packages/data-provision && pnpm test
+
+# Type-check all packages
+npx tsc --noEmit -p packages/backend/tsconfig.json
+npx tsc --noEmit -p packages/frontend/tsconfig.app.json
 ```
 
-## Supported Protocols
+## Key Contract Addresses (Mainnet)
 
-| Protocol | Type | Markets |
-|---|---|---|
-| **Zest V1** | Pool-based lending | STX, sBTC, USDA, xBTC, DIKO, Welsh |
-| **Zest V2** | Pool-based lending with e-mode | Multiple pools with efficiency grouping |
-| **Granite** | Isolated markets (Compound V3 style) | aeUSDC, USDCx |
+| Contract | Principal |
+|----------|-----------|
+| Vault V3 deployer | `SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H` |
+| Vault V3 (USDCx) | `SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-usdcx-v3` |
+| Vault V3 (STX) | `SP2DRPT3AA170EK5DC4T22CMSXZ6HACATPXHPAT7H.vault-stx-v3-1` |
+| USDCx | `SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx` |
+| Zest V2 deployer | `SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7` |
+
+## Documentation Index
+
+| Topic | Location |
+|-------|----------|
+| Agent quick-reference | [AGENT.md](AGENT.md) |
+| Vault V3 contract spec (USDCx) | [contracts/prod/v3/usdcx/README.md](contracts/prod/v3/usdcx/README.md) |
+| Vault V3 contract spec (STX) | [contracts/prod/v3/stx/README.md](contracts/prod/v3/stx/README.md) |
+| Vault V3 SDK | [packages/calldata-sdk-stacks/src/vault/v3/README.md](packages/calldata-sdk-stacks/src/vault/v3/README.md) |
+| Calldata SDK overview | [packages/calldata-sdk-stacks/README.md](packages/calldata-sdk-stacks/README.md) |
+| Data provision overview | [packages/data-provision/README.md](packages/data-provision/README.md) |
+| Backend (Workers) | [packages/backend/README.md](packages/backend/README.md) |
+| Frontend | [packages/frontend/README.md](packages/frontend/README.md) |
+| Zest V1 protocol | [packages/calldata-sdk-stacks/src/zest-v1/README.md](packages/calldata-sdk-stacks/src/zest-v1/README.md) |
+| Zest V2 protocol | [packages/calldata-sdk-stacks/src/zest-v2/README.md](packages/calldata-sdk-stacks/src/zest-v2/README.md) |
+| Granite protocol | [packages/calldata-sdk-stacks/src/granite/README.md](packages/calldata-sdk-stacks/src/granite/README.md) |
+| On-chain reader contract | [contracts/README.md](contracts/README.md) |
+| Fork test guide | [tests/fork/README.md](tests/fork/README.md) |
